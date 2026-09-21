@@ -42,6 +42,12 @@ ACCURACY_BUDGET = 1.0  # percentage points of intent accuracy
 # next to them. A timing without a thread count cannot be compared to anything.
 THREADS = 1
 
+# The confidence below which bslm.infer.Parser answers "oos" instead of
+# guessing, chosen upstream on 2026-09-06 from a sweep and documented at
+# bslm/infer.py:45. It is recorded here because a figure measured with an
+# abstain rule means nothing without the rule's number next to it.
+ABSTAIN_THRESHOLD = 0.50
+
 
 def load_rows(path: Path, limit: int | None):
     rows = []
@@ -81,6 +87,8 @@ def evaluate(session, tok, meta, rows):
     # is the entire story: this loop runs sentences from 2 to 64 tokens and
     # latency grows with the square of that.
     run_ms: list[float] = []
+    abstain_hits = 0
+    abstained = 0
 
     for row in rows:
         words = row["words"]
@@ -107,6 +115,21 @@ def evaluate(session, tok, meta, rows):
         n += 1
         ok_intent = pred_intent == intent_index[gold_intent]
         intent_hits += ok_intent
+
+        # The same weights, scored the way the deployed assistant scores them.
+        # bslm.infer.Parser answers "oos" below confidence 0.50 rather than
+        # guessing, so a row it declines is right only when the gold label is
+        # itself oos. This is a strictly harder number than the argmax one and
+        # it is the one a reader would meet if they used the assistant, so the
+        # page is not allowed to quote either without the other.
+        logits = out[0][0]
+        shifted = np.exp(logits - logits.max())
+        confidence = float((shifted / shifted.sum()).max())
+        if confidence < ABSTAIN_THRESHOLD:
+            abstained += 1
+            abstain_hits += gold_intent == "oos"
+        else:
+            abstain_hits += ok_intent
 
         # The first sub token of each word carries that word's tag, which is how
         # the model was trained and the only position its prediction means
@@ -140,6 +163,16 @@ def evaluate(session, tok, meta, rows):
         "intentAccuracy": round(100 * intent_hits / n, 2) if n else 0.0,
         "tagAccuracy": round(100 * tag_hits / tag_total, 2) if tag_total else 0.0,
         "exactMatch": round(100 * both / n, 2) if n else 0.0,
+        "withAbstain": {
+            "threshold": ABSTAIN_THRESHOLD,
+            "intentAccuracy": round(100 * abstain_hits / n, 2) if n else 0.0,
+            "abstained": abstained,
+            "rows": n,
+            "note": "the same weights scored the way bslm.infer.Parser scores "
+                    "them: below this confidence it answers oos rather than "
+                    "guessing, so a declined row counts only when the gold "
+                    "label is itself oos.",
+        },
         "latency": {
             "medianMs": pct(0.50),
             "p05Ms": pct(0.05),
@@ -296,7 +329,9 @@ def main() -> int:
             f"{lat['medianMs']:.2f} ms median   n={r['n']}"
         )
         print(
-            f"      latency p05 {lat['p05Ms']:.2f}  p95 {lat['p95Ms']:.2f}  "
+            f"      abstain {r['withAbstain']['intentAccuracy']:.2f}% "
+            f"declining {r['withAbstain']['abstained']} of {r['n']}   "
+            f"latency p05 {lat['p05Ms']:.2f}  p95 {lat['p95Ms']:.2f}  "
             f"first run {lat['firstRunMs']:.2f}   "
             + "  ".join(f"T={b['tokens']} {b['medianMs']:.2f}" for b in r["byLength"])
         )

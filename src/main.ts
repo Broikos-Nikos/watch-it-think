@@ -282,10 +282,25 @@ async function boot() {
       ? ' That set is the adversarial one, so it is a floor rather than a headline.'
       : ''
 
+  // Both accuracy figures or neither. The argmax number is what this page
+  // draws, because the page draws what the model predicts. The abstaining
+  // number is what the same weights score when they are allowed to decline,
+  // which is what a reader would meet if they used the assistant, and it is
+  // nearly two points lower. Quoting the first alone is a different claim, and
+  // this file quoted it alone for twenty eight ticks under a devlog entry
+  // asserting that it could not.
+  const a = q?.int8.withAbstain
+  const both = a
+    ? ` That is what it scores when it must answer; allowed to decline below ` +
+      `${a.threshold} confidence it declines ${a.abstained.toLocaleString('en-US')} ` +
+      `of them and scores ${a.intentAccuracy}%.`
+    : ''
+
   el.footer.textContent = q
     ? `${(q.bytesInt8 / 1e6).toFixed(2)} MB over the wire, ${loadMs.toFixed(0)} ms to load. ` +
       `Intent accuracy ${q.int8.intentAccuracy}% on ${q.rowsEvaluated.toLocaleString('en-US')} ` +
       `held out sentences, against ${q.fp32.intentAccuracy}% before quantisation.` +
+      both +
       floor
     : `${loadMs.toFixed(0)} ms to load.`
 

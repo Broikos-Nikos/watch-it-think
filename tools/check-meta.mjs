@@ -94,6 +94,39 @@ if (q) {
     if (!g.byLength?.length) {
       fail(`quantisation.${graph}.byLength`, 'no latency against token count, and attention is quadratic in it')
     }
+
+    // Both accuracy figures or neither. The argmax one alone is a different
+    // and more flattering claim than the one the deployed weights support, and
+    // it shipped alone for twenty eight ticks under a devlog entry asserting
+    // it could not.
+    const a = g.withAbstain
+    if (typeof g.intentAccuracy === 'number' && !a) {
+      fail(`quantisation.${graph}.withAbstain`, 'an argmax accuracy with no abstaining figure beside it')
+      continue
+    }
+    for (const k of ['threshold', 'intentAccuracy', 'abstained', 'rows']) {
+      if (typeof a[k] !== 'number') fail(`quantisation.${graph}.withAbstain`, `no ${k}`)
+    }
+    if (a.rows !== g.rowsEvaluated) {
+      fail(`quantisation.${graph}.withAbstain`, `measured on ${a.rows} rows against ${g.rowsEvaluated} for the argmax figure`)
+    }
+    if (a.intentAccuracy > g.intentAccuracy) {
+      fail(`quantisation.${graph}.withAbstain`, 'scores above the argmax figure, which cannot happen if it is the same weights declining')
+    }
+  }
+
+  // The harness being right is the premise of every accuracy number here.
+  const c = q.crossCheck
+  if (!c) {
+    fail('quantisation.crossCheck', 'no record that this harness agrees with the reference implementation')
+  } else {
+    if (typeof c.seed !== 'number') fail('quantisation.crossCheck', 'no seed, so the rows it ran on cannot be recovered')
+    if (c.argmaxDisagreements !== 0) {
+      fail('quantisation.crossCheck', `${c.argmaxDisagreements} rows where the harness and the reference disagree`)
+    }
+    if (c.onnxArgmaxAccuracy !== c.referenceArgmaxAccuracy) {
+      fail('quantisation.crossCheck', 'the harness and the reference do not agree on the sample')
+    }
   }
 }
 
@@ -109,6 +142,18 @@ console.log(
   `meta.json: ${Object.keys(meta.parity).length} parity entries each with their own tolerance, ` +
     `${Object.keys(meta.inputs).length} inputs named and hashed`,
 )
+if (int8?.withAbstain) {
+  console.log(
+    `  int8 ${int8.intentAccuracy}% argmax, ${int8.withAbstain.intentAccuracy}% declining ` +
+      `${int8.withAbstain.abstained} of ${int8.withAbstain.rows} below ${int8.withAbstain.threshold}`,
+  )
+}
+if (q?.crossCheck) {
+  console.log(
+    `  cross check vs ${q.crossCheck.reference}: ${q.crossCheck.argmaxDisagreements} disagreements ` +
+      `over ${q.crossCheck.rows} rows, seed ${q.crossCheck.seed}`,
+  )
+}
 if (int8?.latency) {
   console.log(
     `  int8 ${int8.latency.medianMs} ms median over ${int8.latency.runs} runs ` +

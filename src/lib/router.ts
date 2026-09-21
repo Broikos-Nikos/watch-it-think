@@ -56,6 +56,8 @@ export interface Graph {
   tagAccuracy: number
   exactMatch: number
   latency?: { medianMs: number; p05Ms: number; p95Ms: number; firstRunMs: number; runs: number }
+  /** The same weights scored the way the deployed assistant scores them. */
+  withAbstain?: { threshold: number; intentAccuracy: number; abstained: number; rows: number }
   byLength?: { tokens: number; medianMs: number; p95Ms: number; reps: number }[]
 }
 
@@ -109,6 +111,14 @@ export interface Meta {
     rowsEvaluated: number
     heldOutSentences: number
     measuredOn?: { runtime: string; threads: number; cpu: string; notThePage: string }
+    crossCheck?: {
+      reference: string
+      seed: number
+      rows: number
+      argmaxDisagreements: number
+      onnxArgmaxAccuracy: number
+      referenceArgmaxAccuracy: number
+    }
     fp32: Graph
     int8: Graph
     bytesInt8: number

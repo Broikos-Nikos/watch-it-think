@@ -261,11 +261,18 @@
       "intentAccuracy": 74.58,
       "tagAccuracy": 97.28,
       "exactMatch": 69.97,
+      "withAbstain": {
+        "threshold": 0.5,
+        "intentAccuracy": 72.48,
+        "abstained": 774,
+        "rows": 10578,
+        "note": "the same weights scored the way bslm.infer.Parser scores them: below this confidence it answers oos rather than guessing, so a declined row counts only when the gold label is itself oos."
+      },
       "latency": {
-        "medianMs": 1.478,
-        "p05Ms": 1.038,
-        "p95Ms": 2.024,
-        "firstRunMs": 2.071,
+        "medianMs": 1.661,
+        "p05Ms": 1.164,
+        "p95Ms": 2.353,
+        "firstRunMs": 2.26,
         "runs": 10578,
         "note": "session.run only, one timing per sentence, over the evaluated rows. Tokenization is not included: it is about 0.005 ms and it is not what this measures."
       },
@@ -276,26 +283,26 @@
       "byLength": [
         {
           "tokens": 6,
-          "medianMs": 1.143,
-          "p95Ms": 1.397,
+          "medianMs": 1.403,
+          "p95Ms": 1.836,
           "reps": 200
         },
         {
           "tokens": 14,
-          "medianMs": 1.878,
-          "p95Ms": 2.089,
+          "medianMs": 2.148,
+          "p95Ms": 2.697,
           "reps": 200
         },
         {
           "tokens": 32,
-          "medianMs": 3.341,
-          "p95Ms": 3.695,
+          "medianMs": 3.555,
+          "p95Ms": 4.034,
           "reps": 200
         },
         {
           "tokens": 64,
-          "medianMs": 5.912,
-          "p95Ms": 6.522,
+          "medianMs": 6.184,
+          "p95Ms": 7.147,
           "reps": 200
         }
       ]
@@ -305,11 +312,18 @@
       "intentAccuracy": 74.53,
       "tagAccuracy": 97.28,
       "exactMatch": 69.86,
+      "withAbstain": {
+        "threshold": 0.5,
+        "intentAccuracy": 72.63,
+        "abstained": 834,
+        "rows": 10578,
+        "note": "the same weights scored the way bslm.infer.Parser scores them: below this confidence it answers oos rather than guessing, so a declined row counts only when the gold label is itself oos."
+      },
       "latency": {
-        "medianMs": 0.724,
-        "p05Ms": 0.475,
-        "p95Ms": 1.101,
-        "firstRunMs": 0.985,
+        "medianMs": 0.798,
+        "p05Ms": 0.512,
+        "p95Ms": 1.226,
+        "firstRunMs": 1.111,
         "runs": 10578,
         "note": "session.run only, one timing per sentence, over the evaluated rows. Tokenization is not included: it is about 0.005 ms and it is not what this measures."
       },
@@ -320,26 +334,26 @@
       "byLength": [
         {
           "tokens": 6,
-          "medianMs": 0.571,
-          "p95Ms": 0.649,
+          "medianMs": 0.576,
+          "p95Ms": 0.995,
           "reps": 200
         },
         {
           "tokens": 14,
-          "medianMs": 0.936,
-          "p95Ms": 1.038,
+          "medianMs": 0.968,
+          "p95Ms": 1.256,
           "reps": 200
         },
         {
           "tokens": 32,
-          "medianMs": 1.796,
-          "p95Ms": 2.033,
+          "medianMs": 1.919,
+          "p95Ms": 2.865,
           "reps": 200
         },
         {
           "tokens": 64,
-          "medianMs": 3.657,
-          "p95Ms": 4.182,
+          "medianMs": 3.697,
+          "p95Ms": 4.062,
           "reps": 200
         }
       ]
@@ -348,6 +362,35 @@
     "bytesFp32": 20420994,
     "bytesInt8": 5284077,
     "shrink": 3.86,
-    "ships": "int8"
+    "ships": "int8",
+    "crossCheck": {
+      "reference": "bslm.infer.Parser",
+      "graph": "router.onnx",
+      "seed": 20260921,
+      "rows": 800,
+      "testSet": {
+        "bytes": 2526137,
+        "sha256": "e3828414e3dc3d4f94dd75dbdf45d2721c649bb84282fe0e51c77d98efc0f682",
+        "path": "data/test.jsonl",
+        "obtainable": false,
+        "note": "not committed to that repository, so this file cannot be obtained from it. The hash identifies it; nothing here produces it."
+      },
+      "bslm": {
+        "name": "bslm",
+        "remote": "https://github.com/Broikos-Nikos/bslm.git",
+        "commit": "50aafae",
+        "dirty": true
+      },
+      "onnxArgmaxAccuracy": 76.12,
+      "referenceArgmaxAccuracy": 76.12,
+      "argmaxDisagreements": 0,
+      "withAbstain": {
+        "threshold": 0.5,
+        "intentAccuracy": 73.75,
+        "abstained": 57,
+        "rows": 800,
+        "note": "the deployed assistant declines below this confidence rather than guessing. The page quotes the argmax figure because the page draws what the model predicts, and this is what the same weights score when they are allowed to say nothing."
+      }
+    }
   }
 }
