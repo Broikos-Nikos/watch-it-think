@@ -38,6 +38,10 @@ PROJECT = HERE.parent
 
 ACCURACY_BUDGET = 1.0  # percentage points of intent accuracy
 
+# Every latency number here is taken at this thread count, and it is recorded
+# next to them. A timing without a thread count cannot be compared to anything.
+THREADS = 1
+
 
 def load_rows(path: Path, limit: int | None):
     rows = []
@@ -71,7 +75,12 @@ def evaluate(session, tok, meta, rows):
     # current data and there is nothing in the arithmetic that keeps them equal.
     skipped_empty = 0
     skipped_unseen = 0
-    started = time.perf_counter()
+    # One timing per inference, not one stopwatch around the whole loop. The
+    # old number divided a total by a count, which silently included
+    # tokenization and gave a mean with no spread, on a quantity whose spread
+    # is the entire story: this loop runs sentences from 2 to 64 tokens and
+    # latency grows with the square of that.
+    run_ms: list[float] = []
 
     for row in rows:
         words = row["words"]
@@ -85,13 +94,13 @@ def evaluate(session, tok, meta, rows):
             continue
 
         ids, cases, widx = tok.encode(words, max_len)
-        out = session.run(
-            None,
-            {
-                "ids": np.array([ids], dtype=np.int64),
-                "cases": np.array([cases], dtype=np.int64),
-            },
-        )
+        feeds = {
+            "ids": np.array([ids], dtype=np.int64),
+            "cases": np.array([cases], dtype=np.int64),
+        }
+        t0 = time.perf_counter()
+        out = session.run(None, feeds)
+        run_ms.append(1000 * (time.perf_counter() - t0))
         pred_intent = int(out[0][0].argmax())
         slot_logits = out[1][0]
 
@@ -121,19 +130,103 @@ def evaluate(session, tok, meta, rows):
 
         both += ok_intent and ok_tags
 
-    elapsed = time.perf_counter() - started
+    # Median, not mean. The first inference of a session is several times the
+    # steady state one and a mean carries that warmup into every later quote.
+    ordered = sorted(run_ms)
+    pct = lambda p: round(ordered[min(len(ordered) - 1, int(p * len(ordered)))], 3) if ordered else 0.0
+
     return {
         "n": n,
         "intentAccuracy": round(100 * intent_hits / n, 2) if n else 0.0,
         "tagAccuracy": round(100 * tag_hits / tag_total, 2) if tag_total else 0.0,
         "exactMatch": round(100 * both / n, 2) if n else 0.0,
-        "msPerSentence": round(1000 * elapsed / n, 2) if n else 0.0,
+        "latency": {
+            "medianMs": pct(0.50),
+            "p05Ms": pct(0.05),
+            "p95Ms": pct(0.95),
+            "firstRunMs": round(run_ms[0], 3) if run_ms else 0.0,
+            "runs": len(run_ms),
+            "note": "session.run only, one timing per sentence, over the "
+                    "evaluated rows. Tokenization is not included: it is "
+                    "about 0.005 ms and it is not what this measures.",
+        },
         "rowsRead": len(rows),
         "rowsEvaluated": n,
         "skippedEmptyWords": skipped_empty,
         "skippedUnseenIntent": skipped_unseen,
         "unseenIntents": sorted(unseen_intents),
     }
+
+
+def runtime_facts(threads: int) -> dict:
+    """What the latency numbers were taken on, without which they say nothing.
+
+    A millisecond figure with no machine, no runtime and no thread count is not
+    a measurement, it is an anecdote. This project had five such figures for the
+    same quantity, ranging from 0.71 to 3.4, and no way to tell which disagreed
+    with which because none of them said what they ran on.
+    """
+    import platform
+
+    import onnxruntime as ort
+
+    cpu = platform.processor() or platform.machine()
+    try:  # a real model name where Windows will give one
+        import subprocess
+        out = subprocess.run(["wmic", "cpu", "get", "name"], capture_output=True,
+                             text=True, timeout=15)
+        lines = [l.strip() for l in out.stdout.splitlines() if l.strip()]
+        if len(lines) > 1:
+            cpu = lines[1]
+    except (OSError, subprocess.SubprocessError, IndexError):
+        pass
+
+    return {
+        "runtime": f"onnxruntime {ort.__version__} CPUExecutionProvider",
+        "threads": threads,
+        "cpu": cpu,
+        "python": platform.python_version(),
+        "os": f"{platform.system()} {platform.release()}",
+        "notThePage": "The page runs onnxruntime-web in wasm at one thread, "
+                      "which is several times slower than this. These numbers "
+                      "describe the graph, not the visitor's experience: the "
+                      "page measures its own latency live and that is the "
+                      "figure a reader should believe about the page.",
+    }
+
+
+def by_length(session, max_len: int, lengths=(6, 14, 32, 64), reps: int = 200) -> list:
+    """Latency against token count, which is the shape of the thing.
+
+    The claim this replaces was "five million parameters at a 64 token context
+    are a millisecond of CPU", written to justify not shipping a WebGPU build.
+    It was never measured. Attention is quadratic in the token count, so one
+    number for "a sentence" hides the only variable that matters.
+    """
+    import numpy as np
+
+    out = []
+    for t in lengths:
+        t = min(t, max_len)
+        feeds = {
+            "ids": np.ones((1, t), dtype=np.int64),
+            "cases": np.zeros((1, t), dtype=np.int64),
+        }
+        for _ in range(20):  # warmup, discarded
+            session.run(None, feeds)
+        samples = []
+        for _ in range(reps):
+            t0 = time.perf_counter()
+            session.run(None, feeds)
+            samples.append(1000 * (time.perf_counter() - t0))
+        samples.sort()
+        out.append({
+            "tokens": t,
+            "medianMs": round(samples[len(samples) // 2], 3),
+            "p95Ms": round(samples[int(0.95 * len(samples))], 3),
+            "reps": reps,
+        })
+    return out
 
 
 def main() -> int:
@@ -184,14 +277,28 @@ def main() -> int:
 
     results = {}
     for name, path in (("fp32", fp32), ("int8", int8)):
-        sess = ort.InferenceSession(str(path), providers=["CPUExecutionProvider"])
+        # Pinned to one thread. Not because it is faster, it is not, but
+        # because a number produced by however many cores were idle at the time
+        # is not a number anyone can reproduce, and because the page runs at
+        # one thread in wasm, so this is at least the comparable shape.
+        opts = ort.SessionOptions()
+        opts.intra_op_num_threads = THREADS
+        opts.inter_op_num_threads = THREADS
+        sess = ort.InferenceSession(str(path), opts, providers=["CPUExecutionProvider"])
         r = evaluate(sess, tok, meta, rows)
+        r["byLength"] = by_length(sess, meta["maxLen"])
         results[name] = r
+        lat = r["latency"]
         print(
             f"{name:5s} intent {r['intentAccuracy']:6.2f}%   "
             f"tags {r['tagAccuracy']:6.2f}%   "
             f"both {r['exactMatch']:6.2f}%   "
-            f"{r['msPerSentence']:.2f} ms/sentence   n={r['n']}"
+            f"{lat['medianMs']:.2f} ms median   n={r['n']}"
+        )
+        print(
+            f"      latency p05 {lat['p05Ms']:.2f}  p95 {lat['p95Ms']:.2f}  "
+            f"first run {lat['firstRunMs']:.2f}   "
+            + "  ".join(f"T={b['tokens']} {b['medianMs']:.2f}" for b in r["byLength"])
         )
 
     delta = round(results["int8"]["intentAccuracy"] - results["fp32"]["intentAccuracy"], 2)
@@ -213,6 +320,7 @@ def main() -> int:
 
     meta["quantisation"] = {
         "measuredAt": time.strftime("%Y-%m-%d"),
+        "measuredOn": runtime_facts(THREADS),
         "testSet": test_set,
         "bslm": repo_facts(args.bslm_repo),
         "rowsRead": results["fp32"]["rowsRead"],

@@ -14,8 +14,22 @@
 
 // The plain wasm build, not the default entry point. The default one reaches
 // for the jsep variant, which carries the WebGPU bridge this page has no use
-// for and which is a second multi megabyte file to serve. Five million
-// parameters at a 64 token context are a millisecond of CPU.
+// for and which is a second multi megabyte file to serve.
+//
+// This line used to end "five million parameters at a 64 token context are a
+// millisecond of CPU", which had never been measured and is wrong. Measured,
+// int8, native onnxruntime at one thread, 200 reps a length after warmup:
+//
+//   T=6   0.57 ms      T=14  0.94 ms      T=32  1.80 ms      T=64  3.66 ms
+//
+// Attention is quadratic in the token count, so there is no such thing as one
+// number here. wasm is several times slower again: the page's own live figure
+// is about 2.9 ms on a six token sentence, so call it 15 to 20 ms at a full
+// context. The case against the WebGPU bridge survives that, because 20 ms on
+// the worst input a visitor can type is still a page that answers instantly,
+// and the bridge costs a second multi megabyte download on every load. It is a
+// weaker case than the one that was written here, and it is the true one.
+// meta.json carries these numbers under quantisation.int8.byLength.
 import * as ort from 'onnxruntime-web/wasm'
 import { Tokenizer, type TokenizerData } from './tokenizer'
 
@@ -35,6 +49,15 @@ import mjsUrl from 'onnxruntime-web/ort-wasm-simd-threaded.mjs?url'
 
 ort.env.wasm.wasmPaths = { wasm: wasmUrl, mjs: mjsUrl }
 ort.env.wasm.numThreads = 1
+
+/** One graph's numbers, with the spread the single mean used to hide. */
+export interface Graph {
+  intentAccuracy: number
+  tagAccuracy: number
+  exactMatch: number
+  latency?: { medianMs: number; p05Ms: number; p95Ms: number; firstRunMs: number; runs: number }
+  byLength?: { tokens: number; medianMs: number; p95Ms: number; reps: number }[]
+}
 
 export interface Meta {
   parameters: number
@@ -85,8 +108,9 @@ export interface Meta {
     rowsRead: number
     rowsEvaluated: number
     heldOutSentences: number
-    fp32: { intentAccuracy: number; tagAccuracy: number; exactMatch: number }
-    int8: { intentAccuracy: number; tagAccuracy: number; exactMatch: number }
+    measuredOn?: { runtime: string; threads: number; cpu: string; notThePage: string }
+    fp32: Graph
+    int8: Graph
     bytesInt8: number
     shrink: number
   }

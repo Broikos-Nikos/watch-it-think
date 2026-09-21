@@ -2,6 +2,31 @@ import './style.css'
 import { Router, topIntents, wordTags, type Prediction } from './lib/router'
 import { concentration, drawField, fieldAt, peak, type AttentionCube } from './lib/attention'
 
+/**
+ * The number under the box, which used to be one unwarmed sample to a tenth of
+ * a millisecond.
+ *
+ * The first inference of a fresh session is several times the steady state one,
+ * and `boot()` ends by running one, so the first figure a visitor ever saw was
+ * the worst one the page will ever produce, printed to a precision that implied
+ * it was stable. Measured on the native runtime as a lower bound on the effect:
+ * first run 0.98 ms against a 0.72 ms median.
+ *
+ * So: a median of the last five, and the first run labelled as what it is
+ * rather than quietly averaged in.
+ */
+const latency = {
+  samples: [] as number[],
+  report(ms: number): string {
+    this.samples.push(ms)
+    if (this.samples.length > 5) this.samples.shift()
+    if (this.samples.length === 1) return `${ms.toFixed(1)} ms, first run`
+    const sorted = [...this.samples].sort((a, b) => a - b)
+    const median = sorted[Math.floor(sorted.length / 2)]
+    return `${median.toFixed(1)} ms, median of ${this.samples.length}`
+  },
+}
+
 const el = {
   input: document.querySelector<HTMLTextAreaElement>('#input')!,
   samples: document.querySelector<HTMLElement>('[data-samples]')!,
@@ -74,8 +99,8 @@ function render(p: Prediction) {
   )
 
   el.status.textContent =
-    `${p.dims.positions} tokens, ${p.dims.layers} layers, ${p.dims.heads} heads, ` +
-    `${p.ms.toFixed(1)} ms`
+    `${p.dims.positions} positions, ${p.dims.layers} layers, ${p.dims.heads} heads, ` +
+    `${latency.report(p.ms)}`
   el.result.hidden = false
 
   drawAttention(p)
