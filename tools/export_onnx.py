@@ -160,6 +160,17 @@ def main() -> int:
     ap.add_argument("--bslm-repo", type=Path, default=None,
                     help="the bslm repository, used only for the parity gate and the tokenizer")
     ap.add_argument("--out", type=Path, default=PROJECT / "public" / "model")
+    ap.add_argument(
+        "--exporter",
+        choices=("dynamo", "torchscript"),
+        default="torchscript",
+        help=(
+            "the legacy TorchScript path, or the torch.export based one. Read D6 in "
+            "DECISIONS.md before changing the default: dynamo passes every parity gate "
+            "in this file and then produces a graph onnxruntime cannot quantise, and "
+            "int8 is what the page actually loads."
+        ),
+    )
     args = ap.parse_args()
 
     repo = args.bslm_repo or args.checkpoint.resolve().parent.parent
@@ -211,21 +222,34 @@ def main() -> int:
     args.out.mkdir(parents=True, exist_ok=True)
     onnx_path = args.out / "router.onnx"
     example = samples[0]
-    torch.onnx.export(
-        model,
-        (torch.tensor([example[2]]), torch.tensor([example[3]])),
-        str(onnx_path),
+    ex = (torch.tensor([example[2]]), torch.tensor([example[3]]))
+    names = dict(
         input_names=["ids", "cases"],
         output_names=["intent_logits", "slot_logits", "attention"],
-        dynamic_axes={
-            "ids": {1: "tokens"},
-            "cases": {1: "tokens"},
-            "slot_logits": {1: "tokens"},
-            "attention": {3: "tokens", 4: "tokens"},
-        },
-        opset_version=17,
-        dynamo=False,
     )
+
+    if args.exporter == "dynamo":
+        # torch.export based, the default since torch 2.9. The token axis is
+        # dynamic because the page tokenizes whatever is typed, and a graph
+        # baked to the length of one example sentence is useless.
+        tokens = torch.export.Dim("tokens", min=2, max=cfg["max_len"])
+        torch.onnx.export(
+            model, ex, str(onnx_path),
+            dynamic_shapes={"ids": {1: tokens}, "cases": {1: tokens}},
+            opset_version=18, dynamo=True, **names,
+        )
+    else:
+        torch.onnx.export(
+            model, ex, str(onnx_path),
+            dynamic_axes={
+                "ids": {1: "tokens"},
+                "cases": {1: "tokens"},
+                "slot_logits": {1: "tokens"},
+                "attention": {3: "tokens", 4: "tokens"},
+            },
+            opset_version=17, dynamo=False, **names,
+        )
+    print(f"exporter: {args.exporter}")
     size = onnx_path.stat().st_size
     print(f"exported {onnx_path.name}, {size / 1e6:.1f} MB")
 
@@ -258,8 +282,22 @@ def main() -> int:
 
     # ---- what the page needs alongside the graph ------------------------
     shutil.copy(repo / "checkpoints" / "tokenizer.json", args.out / "tokenizer.json")
+    # A re-export invalidates any quantisation numbers already in meta.json,
+    # because they describe a graph that no longer exists. Dropping them is
+    # correct and doing it silently is not: it happened once and was noticed
+    # only by the file getting smaller.
+    meta_path = args.out / "meta.json"
+    if meta_path.exists():
+        try:
+            previous = json.loads(meta_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            previous = {}
+        if "quantisation" in previous:
+            print("note: dropping the quantisation block, it described the previous graph.")
+            print("      run tools/quantize.py again before shipping.")
+
     meta = {
-        "exportedAt": __import__("datetime").date.today().isoformat(),
+        "exporter": args.exporter,
         "source": "bslm router, trained from random init, no pretrained weights",
         "parameters": int(sum(v.numel() for v in ck["model"].values())),
         "config": cfg,

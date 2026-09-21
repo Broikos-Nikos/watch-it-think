@@ -1,5 +1,5 @@
 {
-  "exportedAt": "2026-09-21",
+  "exporter": "torchscript",
   "source": "bslm router, trained from random init, no pretrained weights",
   "parameters": 5086061,
   "config": {
@@ -178,26 +178,19 @@
       "intentAccuracy": 74.58,
       "tagAccuracy": 97.28,
       "exactMatch": 69.97,
-      "msPerSentence": 0.96
+      "msPerSentence": 1.17
     },
     "int8": {
       "n": 10578,
       "intentAccuracy": 74.53,
       "tagAccuracy": 97.28,
       "exactMatch": 69.86,
-      "msPerSentence": 0.75
+      "msPerSentence": 0.82
     },
     "intentAccuracyDelta": -0.05,
     "bytesFp32": 20420994,
     "bytesInt8": 5284077,
     "shrink": 3.86,
-    "ships": "int8",
-    "harnessCrossCheck": {
-      "against": "bslm.infer.Parser with threshold 0.00, the same argmax this graph reports",
-      "rows": 800,
-      "referenceIntentAccuracy": 74.38,
-      "onnxIntentAccuracy": 74.38,
-      "note": "The deployed Parser abstains below 0.50 and scores 72.00 on the same rows, abstaining on 114 of 800. That is a different question from what the model predicts, and this page draws what the model predicts."
-    }
+    "ships": "int8"
   }
 }
