@@ -251,3 +251,118 @@ footer {
     transition-duration: 1ms !important;
   }
 }
+
+/* ---------------------------------------------------------------- attention */
+
+.attention {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--edge);
+}
+
+.attention h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.attention-note {
+  margin: 0.35rem 0 0;
+  max-width: 62ch;
+  font-size: 0.82rem;
+  color: var(--faint);
+  line-height: 1.5;
+}
+
+.attention-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.1rem;
+  align-items: flex-start;
+}
+
+/* Six rows of four, laid out as the model is: layer down, head across. */
+.heads {
+  display: grid;
+  grid-template-columns: repeat(4, 44px);
+  gap: 4px;
+}
+
+.headcell {
+  padding: 0;
+  border: 1px solid var(--edge);
+  border-radius: 4px;
+  background: oklch(0.19 0.012 285);
+  line-height: 0;
+  cursor: pointer;
+}
+
+.headcell:hover {
+  border-color: var(--live);
+}
+
+.headcell.is-on {
+  border-color: var(--live);
+  box-shadow: 0 0 0 2px oklch(0.5 0.12 148 / 0.4);
+}
+
+.headcell:focus-visible {
+  outline: 2px solid var(--live);
+  outline-offset: 2px;
+}
+
+.field {
+  margin: 0;
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.field canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+  background: oklch(0.18 0.012 285);
+  image-rendering: pixelated;
+}
+
+.field figcaption {
+  margin-top: 0.5rem;
+  max-width: 54ch;
+  font-size: 0.78rem;
+  color: var(--faint);
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
+.axis {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+}
+
+.axis-token {
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  background: oklch(0.24 0.012 285);
+  color: var(--faint);
+  cursor: default;
+}
+
+.axis-token--cls {
+  color: oklch(0.8 0.1 148);
+}
+
+.axis-token.is-focus {
+  background: oklch(0.42 0.12 148);
+  color: oklch(0.97 0.02 148);
+}

@@ -33,6 +33,29 @@
         <ol class="race" data-race></ol>
 
         <div class="tags" data-tags></div>
+
+        <section class="attention" aria-label="Attention">
+          <div class="attention-head">
+            <h2>What it looked at</h2>
+            <p class="attention-note" data-attention-note></p>
+          </div>
+
+          <div class="attention-body">
+            <!--
+              Twenty four fields for one sentence. The point is not any single
+              one of them, it is how they differ, so all of them are on screen
+              and one is large.
+            -->
+            <div class="heads" data-heads role="tablist" aria-label="Layer and head"></div>
+
+            <figure class="field">
+              <canvas data-field width="520" height="520" aria-label="Attention field"></canvas>
+              <figcaption data-field-caption></figcaption>
+            </figure>
+          </div>
+
+          <ol class="axis" data-axis aria-label="Tokens, in order"></ol>
+        </section>
       </section>
     </main>
 

@@ -1,5 +1,6 @@
 import './style.css'
 import { Router, topIntents, wordTags, type Prediction } from './lib/router'
+import { concentration, drawField, fieldAt, peak, type AttentionCube } from './lib/attention'
 
 const el = {
   input: document.querySelector<HTMLTextAreaElement>('#input')!,
@@ -11,6 +12,11 @@ const el = {
   race: document.querySelector<HTMLElement>('[data-race]')!,
   tags: document.querySelector<HTMLElement>('[data-tags]')!,
   standfirst: document.querySelector<HTMLElement>('[data-standfirst]')!,
+  heads: document.querySelector<HTMLElement>('[data-heads]')!,
+  field: document.querySelector<HTMLCanvasElement>('[data-field]')!,
+  fieldCaption: document.querySelector<HTMLElement>('[data-field-caption]')!,
+  attentionNote: document.querySelector<HTMLElement>('[data-attention-note]')!,
+  axis: document.querySelector<HTMLElement>('[data-axis]')!,
   footer: document.querySelector<HTMLElement>('[data-footer]')!,
 }
 
@@ -25,6 +31,20 @@ const SAMPLES = [
 
 let router: Router | null = null
 let queued = 0
+
+/** The hue everything attention coloured uses, matching the page accent. */
+const HEAT_HUE = 148
+
+/**
+ * Which of the twenty four fields is large, and which token is highlighted.
+ *
+ * The selection survives a new sentence on purpose. Finding the head that
+ * watches the verb and then typing three sentences through it is the thing this
+ * page is for, and resetting to layer zero head zero every keystroke would make
+ * that impossible.
+ */
+let selected = { layer: 0, head: 0 }
+let focusToken: number | null = null
 
 function render(p: Prediction) {
   const meta = router!.meta
@@ -57,6 +77,122 @@ function render(p: Prediction) {
     `${p.dims.positions} tokens, ${p.dims.layers} layers, ${p.dims.heads} heads, ` +
     `${p.ms.toFixed(1)} ms`
   el.result.hidden = false
+
+  drawAttention(p)
+}
+
+/* -------------------------------------------------------------- attention */
+
+function cubeOf(p: Prediction): AttentionCube {
+  return {
+    layers: p.dims.layers,
+    heads: p.dims.heads,
+    positions: p.dims.positions,
+    raw: p.attention,
+  }
+}
+
+/** The token at a position, or the marker for the sentence vector. */
+function labelAt(p: Prediction, pos: number): string {
+  const w = p.tokens[pos]?.word ?? -1
+  if (pos === 0) return 'cls'
+  return w >= 0 ? p.words[w] : '..'
+}
+
+function drawSelected(p: Prediction) {
+  const cube = cubeOf(p)
+  const field = fieldAt(cube, selected.layer, selected.head)
+  const ctx = el.field.getContext('2d')
+  if (!ctx) return
+
+  const size = Math.min(520, Math.max(240, cube.positions * 26))
+  if (el.field.width !== size) {
+    el.field.width = size
+    el.field.height = size
+  }
+
+  drawField(ctx, field, cube.positions, {
+    focus: focusToken,
+    hue: HEAT_HUE,
+    grid: true,
+  })
+
+  const conc = concentration(field, cube.positions)
+  el.fieldCaption.textContent =
+    `layer ${selected.layer + 1} of ${cube.layers}, head ${selected.head + 1} of ` +
+    `${cube.heads}. Rows are the token doing the looking, columns are what it looked at. ` +
+    `Concentration ${(conc * 100).toFixed(0)} percent, strongest single link ` +
+    `${(peak(field) * 100).toFixed(0)} percent.`
+}
+
+function drawAttention(p: Prediction) {
+  const cube = cubeOf(p)
+
+  // Twenty four thumbnails, each a real field rather than an icon.
+  const frag = document.createDocumentFragment()
+  for (let layer = 0; layer < cube.layers; layer++) {
+    for (let head = 0; head < cube.heads; head++) {
+      const b = document.createElement('button')
+      b.type = 'button'
+      b.className = 'headcell'
+      b.role = 'tab'
+      const on = layer === selected.layer && head === selected.head
+      b.setAttribute('aria-selected', String(on))
+      b.classList.toggle('is-on', on)
+      b.title = `layer ${layer + 1}, head ${head + 1}`
+
+      const c = document.createElement('canvas')
+      c.width = 44
+      c.height = 44
+      const cx = c.getContext('2d')
+      if (cx) {
+        drawField(cx, fieldAt(cube, layer, head), cube.positions, { hue: HEAT_HUE })
+      }
+      b.append(c)
+      b.addEventListener('click', () => {
+        selected = { layer, head }
+        drawAttention(p)
+      })
+      frag.append(b)
+    }
+  }
+  el.heads.replaceChildren(frag)
+
+  // The tokens along the axis, hoverable, so a row can be read as a sentence
+  // rather than as a row index.
+  el.axis.replaceChildren(
+    ...Array.from({ length: cube.positions }, (_, pos) => {
+      const li = document.createElement('li')
+      li.textContent = labelAt(p, pos)
+      li.className = pos === 0 ? 'axis-token axis-token--cls' : 'axis-token'
+      li.addEventListener('pointerenter', () => {
+        focusToken = pos
+        drawSelected(p)
+        markAxis()
+      })
+      li.addEventListener('pointerleave', () => {
+        focusToken = null
+        drawSelected(p)
+        markAxis()
+      })
+      return li
+    }),
+  )
+
+  el.attentionNote.textContent =
+    `${cube.layers * cube.heads} fields for this sentence, one per layer and head. ` +
+    `Every row sums to one, so a bright row is a token that made up its mind and a ` +
+    `flat row is one that did not. The first position is the sentence vector, which ` +
+    `is what the intent is read from.`
+
+  drawSelected(p)
+  markAxis()
+}
+
+function markAxis() {
+  el.axis.querySelectorAll('.axis-token').forEach((n, i) => {
+    n.classList.toggle('is-focus', i === focusToken)
+  })
 }
 
 async function think() {
