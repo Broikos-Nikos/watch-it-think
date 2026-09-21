@@ -1,0 +1,253 @@
+:root {
+  --ink: oklch(0.16 0.02 285);
+  --lift: oklch(0.21 0.022 285);
+  --edge: oklch(0.31 0.026 285);
+  --text: oklch(0.94 0.008 285);
+  --dim: oklch(0.78 0.012 285);
+  --faint: oklch(0.645 0.016 285);
+  --live: oklch(0.8 0.17 148);
+  --slot: oklch(0.78 0.15 55);
+
+  --sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: ui-monospace, 'Cascadia Mono', 'Roboto Mono', monospace;
+  --gutter: clamp(1rem, 4vw, 3rem);
+
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(110% 70% at 50% -10%, oklch(0.26 0.06 148 / 0.4), transparent 62%),
+    var(--ink);
+  color: var(--text);
+  font-family: var(--sans);
+  line-height: 1.55;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+header,
+main,
+footer {
+  max-width: 62rem;
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+header {
+  padding-top: clamp(2rem, 6vw, 4rem);
+}
+
+.wordmark {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--live);
+}
+
+h1 {
+  margin: 0.6rem 0 0;
+  max-width: 20ch;
+  font-size: clamp(2.1rem, 1.2rem + 4vw, 4rem);
+  font-weight: 800;
+  line-height: 1.03;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.standfirst {
+  margin: 0.9rem 0 0;
+  max-width: 54ch;
+  color: var(--dim);
+}
+
+main {
+  padding-block: clamp(1.5rem, 4vw, 2.5rem);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 4.5rem;
+  padding: 0.95rem 1.1rem;
+  border: 1px solid var(--edge);
+  border-radius: 12px;
+  background: var(--lift);
+  color: var(--text);
+  font: inherit;
+  font-size: clamp(1rem, 0.9rem + 0.5vw, 1.2rem);
+}
+
+textarea:focus-visible {
+  outline: 2px solid var(--live);
+  outline-offset: 2px;
+}
+
+.samples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.samples button {
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  padding: 0.35rem 0.85rem;
+  background: transparent;
+  color: var(--faint);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.samples button:hover,
+.samples button:focus-visible {
+  color: var(--text);
+  border-color: var(--live);
+}
+
+.status {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  color: var(--faint);
+}
+
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.verdict {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.intent {
+  font-family: var(--mono);
+  font-size: clamp(1.5rem, 1rem + 2.2vw, 2.4rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--live);
+}
+
+.confidence {
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--dim);
+}
+
+/* The 44 candidates, or the six that matter. The bar is the probability, so a
+   model that is unsure looks unsure rather than looking decisive. */
+.race {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.race li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  isolation: isolate;
+}
+
+.race .bar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  z-index: -1;
+  width: calc(var(--p, 0) * 100%);
+  border-radius: 6px;
+  background: oklch(0.45 0.12 148 / 0.55);
+  transition: width 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.race li:first-child .bar {
+  background: oklch(0.55 0.16 148 / 0.6);
+}
+
+.race .pct {
+  font-variant-numeric: tabular-nums;
+  color: var(--dim);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0.9rem;
+  border: 1px solid var(--edge);
+  border-radius: 12px;
+  background: var(--lift);
+  font-family: var(--mono);
+  font-size: 0.95rem;
+}
+
+.word {
+  padding: 0.2em 0.45em;
+  border-radius: 5px;
+  background: oklch(0.28 0.012 285);
+  color: var(--dim);
+}
+
+/* A word the model pulled out as an argument, with the tag it gave it. */
+.word--slot {
+  background: oklch(0.32 0.08 55);
+  color: oklch(0.96 0.04 55);
+}
+
+.word small {
+  margin-left: 0.4em;
+  font-size: 0.62em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--slot);
+}
+
+footer {
+  padding-block: 2rem 3.5rem;
+  max-width: 62rem;
+  font-size: 0.78rem;
+  color: var(--faint);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 1ms !important;
+  }
+}

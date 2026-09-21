@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>watch it think</title>
+    <meta
+      name="description"
+      content="A five million parameter model, trained from random init, resolving a sentence into an intent in your browser."
+    />
+  </head>
+  <body>
+    <header>
+      <span class="wordmark">watch it think</span>
+      <h1 data-headline>Five million parameters, running on your machine.</h1>
+      <p class="standfirst" data-standfirst></p>
+    </header>
+
+    <main>
+      <label class="sr-only" for="input">A sentence for the model</label>
+      <textarea id="input" rows="2" spellcheck="false" autocomplete="off"></textarea>
+
+      <div class="samples" data-samples></div>
+
+      <p class="status" role="status" aria-live="polite" data-status>loading the model</p>
+
+      <section class="result" data-result hidden>
+        <div class="verdict">
+          <span class="intent" data-intent></span>
+          <span class="confidence" data-confidence></span>
+        </div>
+
+        <ol class="race" data-race></ol>
+
+        <div class="tags" data-tags></div>
+      </section>
+    </main>
+
+    <footer data-footer></footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

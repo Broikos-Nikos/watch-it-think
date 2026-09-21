@@ -178,14 +178,14 @@
       "intentAccuracy": 74.58,
       "tagAccuracy": 97.28,
       "exactMatch": 69.97,
-      "msPerSentence": 1.17
+      "msPerSentence": 1.1
     },
     "int8": {
       "n": 10578,
       "intentAccuracy": 74.53,
       "tagAccuracy": 97.28,
       "exactMatch": 69.86,
-      "msPerSentence": 0.82
+      "msPerSentence": 0.79
     },
     "intentAccuracyDelta": -0.05,
     "bytesFp32": 20420994,

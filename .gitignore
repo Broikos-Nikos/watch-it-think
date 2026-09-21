@@ -5,4 +5,5 @@ dist
 
 # The fp32 graph is an intermediate. npm run capture of the model is
 # tools/export_onnx.py, and the page only ever loads the int8 one.
-public/model/router.onnx
+build-model/router.onnx
+build-model/

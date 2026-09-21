@@ -159,7 +159,14 @@ def main() -> int:
     ap.add_argument("--checkpoint", required=True, type=Path)
     ap.add_argument("--bslm-repo", type=Path, default=None,
                     help="the bslm repository, used only for the parity gate and the tokenizer")
-    ap.add_argument("--out", type=Path, default=PROJECT / "public" / "model")
+    ap.add_argument("--out", type=Path, default=PROJECT / "public" / "model",
+                    help="what the page fetches: meta.json and tokenizer.json")
+    ap.add_argument("--fp32-out", type=Path, default=PROJECT / "build-model",
+                    help="the fp32 graph, an intermediate. Deliberately outside the
+"
+                         "served tree: it is 20 MB, the page never loads it, and it
+"
+                         "was being copied into dist.")
     ap.add_argument(
         "--exporter",
         choices=("dynamo", "torchscript"),
@@ -220,7 +227,8 @@ def main() -> int:
 
     # ---- export --------------------------------------------------------
     args.out.mkdir(parents=True, exist_ok=True)
-    onnx_path = args.out / "router.onnx"
+    args.fp32_out.mkdir(parents=True, exist_ok=True)
+    onnx_path = args.fp32_out / "router.onnx"
     example = samples[0]
     ex = (torch.tensor([example[2]]), torch.tensor([example[3]]))
     names = dict(

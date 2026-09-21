@@ -123,6 +123,7 @@ def main() -> int:
     ap.add_argument("--test", required=True, type=Path)
     ap.add_argument("--bslm-repo", required=True, type=Path)
     ap.add_argument("--model-dir", type=Path, default=PROJECT / "public" / "model")
+    ap.add_argument("--fp32-dir", type=Path, default=PROJECT / "build-model")
     ap.add_argument("--limit", type=int, default=None)
     args = ap.parse_args()
 
@@ -132,7 +133,7 @@ def main() -> int:
     import onnxruntime as ort
     from onnxruntime.quantization import quantize_dynamic, QuantType
 
-    fp32 = args.model_dir / "router.onnx"
+    fp32 = args.fp32_dir / "router.onnx"
     int8 = args.model_dir / "router.int8.onnx"
     meta_path = args.model_dir / "meta.json"
     meta = json.loads(meta_path.read_text(encoding="utf-8"))
