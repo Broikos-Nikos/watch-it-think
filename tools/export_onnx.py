@@ -28,6 +28,8 @@ from pathlib import Path
 
 import numpy as np
 import torch
+
+_erf = np.vectorize(math.erf)
 import torch.nn as nn
 
 HERE = Path(__file__).resolve().parent
@@ -36,6 +38,71 @@ PROJECT = HERE.parent
 # The gate: the largest absolute difference we will accept between the original
 # module, this copy, and the exported graph, on real sentences.
 PARITY_TOLERANCE = 1e-4
+
+
+def attention_from_weights(sd, cfg, ids, cases, layer, head):
+    """Recompute one attention field from the raw weights, in numpy.
+
+    This is the only independent witness the attention tensor has.
+
+    Gates 1 and 2 compare the intent and slot logits, and they cannot do more,
+    because `bslm/model.py` throws attention away and has nothing to compare
+    against. Gate 3 checks that the rows sum to one, which is true of any
+    softmax output including a completely wrong one. So the tensor that is the
+    entire reason this file re-declares the architecture was the one output
+    nothing checked: reversing the layer order or rolling the head axis passed
+    every gate here at 0.000e+00.
+
+    Nothing below imports the model. It reads the state dict and follows the
+    architecture by hand, so it fails if the layer index, the head index, the
+    axis order, the scaling or the softmax is wrong anywhere in the chain.
+    """
+    d_model, n_heads = cfg["d_model"], cfg["n_heads"]
+    dk = d_model // n_heads
+    T = len(ids)
+
+    x = (sd["tok.weight"][ids].numpy()
+         + sd["pos.weight"][:T].numpy()
+         + sd["case.weight"][cases].numpy())
+
+    def layer_norm(v, w, b, eps=1e-5):
+        m = v.mean(-1, keepdims=True)
+        s = v.var(-1, keepdims=True)
+        return (v - m) / np.sqrt(s + eps) * w + b
+
+    def gelu(v):
+        # The exact erf form, which is what nn.GELU() defaults to. The tanh
+        # approximation differs by up to 4.1e-04, which is invisible at layer 0
+        # because no feed forward has run yet, and then shows up from layer 1
+        # onward as a ~2e-04 divergence that looks exactly like a broken export.
+        # It cost this gate one false failure before the per layer numbers made
+        # the cause obvious.
+        return 0.5 * v * (1.0 + _erf(v / np.sqrt(2.0)))
+
+    for L in range(cfg["n_layers"]):
+        p_ = f"blocks.{L}."
+        h = layer_norm(x, sd[p_ + "n1.weight"].numpy(), sd[p_ + "n1.bias"].numpy())
+        qkv = h @ sd[p_ + "attn.qkv.weight"].numpy().T + sd[p_ + "attn.qkv.bias"].numpy()
+        q, k, v = np.split(qkv, 3, axis=-1)
+        q = q.reshape(T, n_heads, dk).transpose(1, 0, 2)
+        k = k.reshape(T, n_heads, dk).transpose(1, 0, 2)
+        v = v.reshape(T, n_heads, dk).transpose(1, 0, 2)
+
+        scores = q @ k.transpose(0, 2, 1) / math.sqrt(dk)
+        scores = scores - scores.max(-1, keepdims=True)
+        att = np.exp(scores)
+        att = att / att.sum(-1, keepdims=True)
+
+        if L == layer:
+            return att[head]
+
+        out = (att @ v).transpose(1, 0, 2).reshape(T, d_model)
+        x = x + out @ sd[p_ + "attn.proj.weight"].numpy().T + sd[p_ + "attn.proj.bias"].numpy()
+        h2 = layer_norm(x, sd[p_ + "n2.weight"].numpy(), sd[p_ + "n2.bias"].numpy())
+        ff = gelu(h2 @ sd[p_ + "ff.0.weight"].numpy().T + sd[p_ + "ff.0.bias"].numpy())
+        x = x + ff @ sd[p_ + "ff.2.weight"].numpy().T + sd[p_ + "ff.2.bias"].numpy()
+
+    raise ValueError(f"layer {layer} out of range")
 
 
 # --------------------------------------------------------------------------
@@ -286,7 +353,31 @@ def main() -> int:
 
     print(f"gate 2, graph against original: max abs diff {worst_onnx:.3e}")
     print(f"gate 3, attention rows sum to one: worst deviation {worst_attention_row:.3e}")
-    if worst_onnx > PARITY_TOLERANCE or worst_attention_row > 1e-5:
+
+    # ---- gate four: the attention itself, against an independent witness ---
+    #
+    # Every layer and every head, recomputed from the raw weights in numpy, on
+    # a short and a long sentence in both languages. This is what makes the
+    # layer index, the head index and the axis order checkable at all.
+    worst_att = 0.0
+    checked = 0
+    for text, words, ids, cases, widx, oi, os_, att in samples[:4]:
+        out = sess.run(None, {
+            "ids": np.array([ids], dtype=np.int64),
+            "cases": np.array([cases], dtype=np.int64),
+        })
+        cube = out[2]
+        for layer in range(cfg["n_layers"]):
+            for head in range(cfg["n_heads"]):
+                want = attention_from_weights(ck["model"], cfg, ids, cases, layer, head)
+                got = cube[layer, 0, head]
+                worst_att = max(worst_att, float(np.abs(got - want).max()))
+                checked += 1
+
+    print(f"gate 4, attention against an independent numpy witness: "
+          f"max abs diff {worst_att:.3e} over {checked} fields")
+
+    if worst_onnx > PARITY_TOLERANCE or worst_attention_row > 1e-5 or worst_att > PARITY_TOLERANCE:
         print("FAIL: the exported graph does not reproduce the model")
         onnx_path.unlink(missing_ok=True)
         return 2
@@ -322,6 +413,8 @@ def main() -> int:
             "copyAgainstOriginal": worst_copy,
             "graphAgainstOriginal": worst_onnx,
             "attentionRowSumDeviation": worst_attention_row,
+            "attentionAgainstNumpyWitness": worst_att,
+            "attentionFieldsChecked": checked,
             "sentences": len(GATE_SENTENCES),
         },
     }

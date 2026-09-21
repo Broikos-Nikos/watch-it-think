@@ -167,6 +167,8 @@
     "copyAgainstOriginal": 0.0,
     "graphAgainstOriginal": 6.9141387939453125e-06,
     "attentionRowSumDeviation": 2.384185791015625e-07,
+    "attentionAgainstNumpyWitness": 8.066936039163863e-07,
+    "attentionFieldsChecked": 96,
     "sentences": 20
   },
   "quantisation": {
@@ -178,14 +180,14 @@
       "intentAccuracy": 74.58,
       "tagAccuracy": 97.28,
       "exactMatch": 69.97,
-      "msPerSentence": 0.94
+      "msPerSentence": 1.03
     },
     "int8": {
       "n": 10578,
       "intentAccuracy": 74.53,
       "tagAccuracy": 97.28,
       "exactMatch": 69.86,
-      "msPerSentence": 0.68
+      "msPerSentence": 0.71
     },
     "intentAccuracyDelta": -0.05,
     "bytesFp32": 20420994,
