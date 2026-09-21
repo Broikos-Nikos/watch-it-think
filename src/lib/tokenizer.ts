@@ -44,6 +44,13 @@ const PAD = '<pad>'
 const UNK = '<unk>'
 const CLS = '<cls>'
 
+/**
+ * How many distinct words the merge cache keeps. Large enough that ordinary
+ * use never evicts, small enough that a session of pasting cannot grow the
+ * heap without limit. The vocabulary itself is 4,000 entries.
+ */
+const CACHE_LIMIT = 20_000
+
 
 /**
  * Python's whitespace, not JavaScript's. They are not the same set.
@@ -142,35 +149,163 @@ export class Tokenizer {
     this.size = this.vocab.size
   }
 
-  /** Greedy lowest rank merge, the same loop the trainer ran. */
+  /**
+   * Greedy lowest rank merge, the same result the trainer's loop gives, but not
+   * the same loop.
+   *
+   * The obvious version rescans every adjacent pair on every merge and rebuilds
+   * the array each time, so it is quadratic twice over. On words that is
+   * invisible. On a paste with no spaces in it, it is not: 32,000 characters
+   * took 13.8 seconds here and 21.6 in the browser, with the tab unusable
+   * throughout, and 128,000 characters took four and a quarter minutes.
+   *
+   * The tempting fix is to cut the word down first, since the model only ever
+   * sees `maxLen` tokens anyway. That is wrong, and measurably so: BPE is not
+   * prefix stable. Merging is greedy by rank across the whole word, so a merge
+   * at the far end can change which pairs exist earlier. Checked rather than
+   * reasoned: `'a'.repeat(80)` sliced to 64 characters gives different leading
+   * pieces, and so does a repeated Greek string. Slicing would have changed the
+   * ids the model is fed, quietly, in exactly the cases nobody tests.
+   *
+   * So the loop changes and the output does not. A doubly linked list over the
+   * symbols, and a heap of candidate pairs ordered by rank and then by original
+   * position, which is the same tie break as "leftmost of the lowest rank" that
+   * the scan gave. Merged nodes are left in place and marked dead, and stale
+   * heap entries are discarded when they surface. O(n log n).
+   *
+   * `check:tokenizer` holds the output to the Python tokenizer's, and
+   * `check:input` holds the time.
+   */
   encodeWord(word: string): number[] {
     const key = lower(word)
     const hit = this.cache.get(key)
-    if (hit) return hit
-
-    const chars = [...key]
-    let syms = chars.length === 0 ? [] : [chars[0], ...chars.slice(1).map((c) => `##${c}`)]
-
-    while (syms.length > 1) {
-      let best = -1
-      let rank: number | null = null
-      for (let i = 0; i < syms.length - 1; i++) {
-        const r = this.merges.get(`${syms[i]}\u0000${syms[i + 1]}`)
-        if (r !== undefined && (rank === null || r < rank)) {
-          best = i
-          rank = r
-        }
-      }
-      if (best === -1) break
-      const a = syms[best]
-      const b = syms[best + 1]
-      const merged = b.startsWith('##') ? a + b.slice(2) : a + b
-      syms = [...syms.slice(0, best), merged, ...syms.slice(best + 2)]
+    if (hit) {
+      // Refresh: this is the cheapest possible LRU, and the cache is bounded
+      // below, so an unbounded paste session cannot grow it without limit.
+      this.cache.delete(key)
+      this.cache.set(key, hit)
+      return hit
     }
 
-    const out = syms.map((s) => this.vocab.get(s) ?? this.unk)
-    this.cache.set(key, out)
+    const chars = [...key]
+    const n = chars.length
+    if (n === 0) {
+      this.remember(key, [])
+      return []
+    }
+
+    const sym = new Array<string>(n)
+    sym[0] = chars[0]
+    for (let i = 1; i < n; i++) sym[i] = `##${chars[i]}`
+
+    const prev = new Int32Array(n)
+    const next = new Int32Array(n)
+    for (let i = 0; i < n; i++) {
+      prev[i] = i - 1
+      next[i] = i + 1 < n ? i + 1 : -1
+    }
+
+    // A binary min heap of (rank, left) pairs. `left` breaks ties, and because
+    // node indices are original positions and never move, ordering by it is
+    // ordering by position, which is what the scan did.
+    let poppedRank = 0
+    const heapRank: number[] = []
+    const heapLeft: number[] = []
+    const less = (a: number, b: number) =>
+      heapRank[a] !== heapRank[b] ? heapRank[a] < heapRank[b] : heapLeft[a] < heapLeft[b]
+    const swap = (a: number, b: number) => {
+      const r = heapRank[a], l = heapLeft[a]
+      heapRank[a] = heapRank[b]; heapLeft[a] = heapLeft[b]
+      heapRank[b] = r; heapLeft[b] = l
+    }
+    const push = (rank: number, left: number) => {
+      heapRank.push(rank)
+      heapLeft.push(left)
+      let i = heapRank.length - 1
+      while (i > 0) {
+        const parent = (i - 1) >> 1
+        if (!less(i, parent)) break
+        swap(i, parent)
+        i = parent
+      }
+    }
+    const pop = (): number => {
+      const left = heapLeft[0]
+      poppedRank = heapRank[0]
+      const last = heapRank.length - 1
+      heapRank[0] = heapRank[last]; heapLeft[0] = heapLeft[last]
+      heapRank.pop(); heapLeft.pop()
+      let i = 0
+      for (;;) {
+        const l = 2 * i + 1
+        const r = l + 1
+        let small = i
+        if (l < heapRank.length && less(l, small)) small = l
+        if (r < heapRank.length && less(r, small)) small = r
+        if (small === i) break
+        swap(i, small)
+        i = small
+      }
+      return left
+    }
+
+    const offer = (left: number) => {
+      const right = next[left]
+      if (right < 0) return
+      const rank = this.merges.get(`${sym[left]}\u0000${sym[right]}`)
+      if (rank !== undefined) push(rank, left)
+    }
+
+    for (let i = 0; i < n; i++) offer(i)
+
+    const dead = new Uint8Array(n)
+    while (heapRank.length > 0) {
+      const left = pop()
+      if (dead[left]) continue
+      const right = next[left]
+      if (right < 0 || dead[right]) continue
+      // The pair may have been superseded since it was pushed. Comparing the
+      // rank, not merely checking that a rank exists, is what makes this
+      // equivalent to the scan: an entry whose symbols have changed carries an
+      // out of date priority, and acting on it fires a merge earlier than the
+      // scan would have. The first version of this checked only for existence
+      // and disagreed with Python on 48 of 242 sentences.
+      //
+      // Skipping is safe because every change to a symbol is followed by an
+      // offer() for each pair it touches, so a fresh entry with the right rank
+      // is already in the heap.
+      const rank = this.merges.get(`${sym[left]}\u0000${sym[right]}`)
+      if (rank === undefined || rank !== poppedRank) continue
+
+      const b = sym[right]
+      sym[left] = b.startsWith('##') ? sym[left] + b.slice(2) : sym[left] + b
+      dead[right] = 1
+      const after = next[right]
+      next[left] = after
+      if (after >= 0) prev[after] = left
+
+      offer(left)
+      if (prev[left] >= 0) offer(prev[left])
+    }
+
+    const out: number[] = []
+    for (let i = 0; i >= 0; i = next[i]) out.push(this.vocab.get(sym[i]) ?? this.unk)
+
+    this.remember(key, out)
     return out
+  }
+
+  /**
+   * The cache had no bound. Five 800 KB pastes took the heap from 17.2 MB to
+   * 62.9 MB and it did not come back down, and this page invites exactly that
+   * session. Oldest out, which with the refresh on hit above is an LRU.
+   */
+  private remember(key: string, value: number[]): void {
+    this.cache.set(key, value)
+    if (this.cache.size > CACHE_LIMIT) {
+      const oldest = this.cache.keys().next()
+      if (!oldest.done) this.cache.delete(oldest.value)
+    }
   }
 
   encode(words: string[], maxLen = 64): Encoded {
@@ -179,6 +314,11 @@ export class Tokenizer {
     const wordIndex: number[] = [-1]
 
     for (const [wi, w] of words.entries()) {
+      // The inner loop stopped at maxLen and the outer one did not, so every
+      // word past the cap was tokenised in full and thrown away. On a 32,000
+      // character paste that is the whole cost of the page freezing, paid for
+      // output nobody ever sees.
+      if (ids.length >= maxLen) break
       const pieces = this.encodeWord(w)
       const c = caseId(w)
       for (const [pi, p] of pieces.entries()) {
