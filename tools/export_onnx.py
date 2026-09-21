@@ -161,12 +161,15 @@ def main() -> int:
                     help="the bslm repository, used only for the parity gate and the tokenizer")
     ap.add_argument("--out", type=Path, default=PROJECT / "public" / "model",
                     help="what the page fetches: meta.json and tokenizer.json")
-    ap.add_argument("--fp32-out", type=Path, default=PROJECT / "build-model",
-                    help="the fp32 graph, an intermediate. Deliberately outside the
-"
-                         "served tree: it is 20 MB, the page never loads it, and it
-"
-                         "was being copied into dist.")
+    ap.add_argument(
+        "--fp32-out",
+        type=Path,
+        default=PROJECT / "build-model",
+        help=(
+            "the fp32 graph, an intermediate. Deliberately outside the served tree: "
+            "it is 20 MB, the page never loads it, and it was being copied into dist."
+        ),
+    )
     ap.add_argument(
         "--exporter",
         choices=("dynamo", "torchscript"),

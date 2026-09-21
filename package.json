@@ -6,11 +6,12 @@
   "description": "Watch a 5M parameter router, trained from random init, resolve a sentence into an intent.",
   "scripts": {
     "check:tokenizer": "tsx tools/check-tokenizer.ts",
-    "check": "npm run check:tokenizer",
+    "check": "npm run check:tools && npm run check:tokenizer",
     "typecheck": "tsc --noEmit",
     "dev": "vite",
     "build": "tsc --noEmit && npm run check && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check:tools": "node tools/check-tools.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.13.6",
