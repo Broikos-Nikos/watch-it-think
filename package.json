@@ -9,12 +9,13 @@
     "check": "npm run check:tools && npm run check:tokenizer && npm run check:meta && npm run check:input",
     "typecheck": "tsc --noEmit",
     "dev": "vite",
-    "build": "tsc --noEmit && npm run check && vite build && npm run check:layout",
+    "build": "tsc --noEmit && npm run check && vite build && npm run check:layout && npm run check:boot",
     "preview": "vite preview",
     "check:tools": "node tools/check-tools.mjs",
     "check:meta": "node tools/check-meta.mjs",
     "check:input": "tsx tools/check-input-bound.ts",
-    "check:layout": "node tools/check-layout.mjs"
+    "check:layout": "node tools/check-layout.mjs",
+    "check:boot": "node tools/check-boot.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.13.6",

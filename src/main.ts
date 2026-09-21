@@ -235,8 +235,25 @@ async function think() {
   }
 }
 
+/**
+ * Whether the visitor has done anything to the box.
+ *
+ * A cold visit is 19.8 MB and takes about a minute on a phone connection, so
+ * typing while you wait is the normal thing to do, and boot() used to end by
+ * overwriting whatever was there with the first sample and answering that
+ * instead. Not ignoring what the visitor wrote: replacing it, and showing a
+ * confident answer for a sentence they had not written.
+ *
+ * A test for an empty box would not be enough. Clicking a sample chip fills the
+ * box too, and a visitor who deliberately clears it has still acted. The
+ * question is whether they have touched the page at all, so that is what is
+ * recorded.
+ */
+let touched = false
+
 function wire() {
   el.input.addEventListener('input', () => {
+    touched = true
     cancelAnimationFrame(queued)
     queued = requestAnimationFrame(() => void think())
   })
@@ -246,6 +263,7 @@ function wire() {
     b.type = 'button'
     b.textContent = s
     b.addEventListener('click', () => {
+      touched = true
       el.input.value = s
       void think()
     })
@@ -304,7 +322,10 @@ async function boot() {
       floor
     : `${loadMs.toFixed(0)} ms to load.`
 
-  el.input.value = SAMPLES[0]
+  // The sample is an invitation, not an instruction. It is for the visitor who
+  // waited out the download without touching anything; anyone who typed during
+  // it gets their own sentence answered.
+  if (!touched) el.input.value = SAMPLES[0]
   await think()
 }
 
