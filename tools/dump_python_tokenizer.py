@@ -54,6 +54,23 @@ EDGE_CASES = [
     "ϊ ϋ ΐ ΰ",
     "a" * 80,
     "Θα είμαι εκεί σε δέκα λεπτά, έχει απαίσια κίνηση σήμερα.",
+    # The whitespace classes. Python's \s matches 29 code points and
+    # JavaScript's matches 25, and the difference is not symmetric: Python has
+    # U+001C to U+001F and U+0085, JavaScript has U+FEFF. Every one of these
+    # disagreed until 2026-09-21, and none of the 230 sentences above contains
+    # any of them, which is how a gate reports identical while being wrong.
+    "﻿turn off the kitchen lights",
+    "turn off the kitchen lights﻿",
+    "ab",
+    "ab",
+    "ab",
+    "ab",
+    "ab",
+    "a b",
+    "a b",
+    "a b",
+    "a​b",
+    "　  spaced   ",
 ]
 
 

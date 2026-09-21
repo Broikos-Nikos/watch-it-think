@@ -1327,6 +1327,361 @@
    ]
   },
   {
+   "text": "﻿turn off the kitchen lights",
+   "words": [
+    "﻿",
+    "turn",
+    "off",
+    "the",
+    "kitchen",
+    "lights"
+   ],
+   "caseIds": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "ids": [
+    2,
+    1,
+    797,
+    426,
+    157,
+    2879,
+    635
+   ],
+   "cases": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "wordIndex": [
+    -1,
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ]
+  },
+  {
+   "text": "turn off the kitchen lights﻿",
+   "words": [
+    "turn",
+    "off",
+    "the",
+    "kitchen",
+    "lights",
+    "﻿"
+   ],
+   "caseIds": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "ids": [
+    2,
+    797,
+    426,
+    157,
+    2879,
+    635,
+    1
+   ],
+   "cases": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "wordIndex": [
+    -1,
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ]
+  },
+  {
+   "text": "a\u001cb",
+   "words": [
+    "a",
+    "b"
+   ],
+   "caseIds": [
+    0,
+    0
+   ],
+   "ids": [
+    2,
+    96,
+    97
+   ],
+   "cases": [
+    0,
+    0,
+    0
+   ],
+   "wordIndex": [
+    -1,
+    0,
+    1
+   ]
+  },
+  {
+   "text": "a\u001db",
+   "words": [
+    "a",
+    "b"
+   ],
+   "caseIds": [
+    0,
+    0
+   ],
+   "ids": [
+    2,
+    96,
+    97
+   ],
+   "cases": [
+    0,
+    0,
+    0
+   ],
+   "wordIndex": [
+    -1,
+    0,
+    1
+   ]
+  },
+  {
+   "text": "a\u001eb",
+   "words": [
+    "a",
+    "b"
+   ],
+   "caseIds": [
+    0,
+    0
+   ],
+   "ids": [
+    2,
+    96,
+    97
+   ],
+   "cases": [
+    0,
+    0,
+    0
+   ],
+   "wordIndex": [
+    -1,
+    0,
+    1
+   ]
+  },
+  {
+   "text": "a\u001fb",
+   "words": [
+    "a",
+    "b"
+   ],
+   "caseIds": [
+    0,
+    0
+   ],
+   "ids": [
+    2,
+    96,
+    97
+   ],
+   "cases": [
+    0,
+    0,
+    0
+   ],
+   "wordIndex": [
+    -1,
+    0,
+    1
+   ]
+  },
+  {
+   "text": "ab",
+   "words": [
+    "a",
+    "b"
+   ],
+   "caseIds": [
+    0,
+    0
+   ],
+   "ids": [
+    2,
+    96,
+    97
+   ],
+   "cases": [
+    0,
+    0,
+    0
+   ],
+   "wordIndex": [
+    -1,
+    0,
+    1
+   ]
+  },
+  {
+   "text": "a b",
+   "words": [
+    "a",
+    "b"
+   ],
+   "caseIds": [
+    0,
+    0
+   ],
+   "ids": [
+    2,
+    96,
+    97
+   ],
+   "cases": [
+    0,
+    0,
+    0
+   ],
+   "wordIndex": [
+    -1,
+    0,
+    1
+   ]
+  },
+  {
+   "text": "a b",
+   "words": [
+    "a",
+    "b"
+   ],
+   "caseIds": [
+    0,
+    0
+   ],
+   "ids": [
+    2,
+    96,
+    97
+   ],
+   "cases": [
+    0,
+    0,
+    0
+   ],
+   "wordIndex": [
+    -1,
+    0,
+    1
+   ]
+  },
+  {
+   "text": "a b",
+   "words": [
+    "a",
+    "b"
+   ],
+   "caseIds": [
+    0,
+    0
+   ],
+   "ids": [
+    2,
+    96,
+    97
+   ],
+   "cases": [
+    0,
+    0,
+    0
+   ],
+   "wordIndex": [
+    -1,
+    0,
+    1
+   ]
+  },
+  {
+   "text": "a​b",
+   "words": [
+    "a",
+    "​",
+    "b"
+   ],
+   "caseIds": [
+    0,
+    0,
+    0
+   ],
+   "ids": [
+    2,
+    96,
+    1,
+    97
+   ],
+   "cases": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "wordIndex": [
+    -1,
+    0,
+    1,
+    2
+   ]
+  },
+  {
+   "text": "　  spaced   ",
+   "words": [
+    "spaced"
+   ],
+   "caseIds": [
+    0
+   ],
+   "ids": [
+    2,
+    3516,
+    18
+   ],
+   "cases": [
+    0,
+    0,
+    0
+   ],
+   "wordIndex": [
+    -1,
+    0,
+    -1
+   ]
+  },
+  {
    "text": "Can you free up space on the project",
    "words": [
     "Can",

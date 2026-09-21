@@ -7,8 +7,11 @@
  * trained. `tools/check-tokenizer.py` runs both over the same sentences and
  * fails on a single differing id.
  *
- * Two places where the obvious JavaScript is wrong, and one where the clever
- * JavaScript is wrong, all three found by that gate rather than by reading:
+ * Four places where the obvious JavaScript is wrong, or the clever JavaScript
+ * is. The gate found the first three. It did not find the fourth, and said so
+ * in the strongest terms available to it, by printing "identical to
+ * bslm/tokenizer.py" over 230 sentences none of which contained the character
+ * that breaks it. A gate is a statement about its inputs and nothing else.
  *
  * 1. Python's `\w` under `re.UNICODE` is letters, digits and underscore, which
  *    is `[\p{L}\p{N}_]` rather than JavaScript's ASCII only `\w`.
@@ -23,6 +26,10 @@
  *    broke it, producing `##σ` where the model expects `##ς`, two token ids
  *    apart. The comment asserting a difference had been written before anything
  *    was measured, which is how a defect gets an explanation attached to it.
+ * 4. `\s` is a different set of code points in each language, in both
+ *    directions. See the note on PY_SPACE below. Found by an audit reading the
+ *    two classes side by side, not by the gate, and the twelve sentences that
+ *    now cover it were added the same day.
  */
 
 export interface TokenizerData {
@@ -34,11 +41,47 @@ const PAD = '<pad>'
 const UNK = '<unk>'
 const CLS = '<cls>'
 
-/** The pre-tokenizer, character for character the one the corpus was built with. */
-const WORD_RE = /[\p{L}\p{N}_]+(?:['’´][\p{L}\p{N}_]+)?|[^\p{L}\p{N}_\s]/gu
+
+/**
+ * Python's whitespace, not JavaScript's. They are not the same set.
+ *
+ * `bslm/tokenizer.py` collapses runs of `\s` and then calls `.strip()`, both of
+ * which use Python's class. Enumerated from the two runtimes: Python matches 29
+ * code points and JavaScript 25, and the difference is not symmetric. Python has
+ * U+001C to U+001F and U+0085, which JavaScript does not. JavaScript has U+FEFF,
+ * which Python does not, and `String.prototype.trim` strips it while
+ * `str.strip()` leaves it in place.
+ *
+ * So a byte order mark at the front of a pasted sentence, which is the single
+ * most likely invisible character in text that has been through a file, becomes
+ * an `<unk>` token in Python and nothing at all in JavaScript. The model was
+ * trained on the Python behaviour.
+ *
+ * Generated from `[c for c in range(0x11000) if re.fullmatch(r'\s', chr(c))]`,
+ * not from memory.
+ */
+const PY_SPACE =
+  '\t\n\v\f\r\u001C-\u001F \u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000'
+const PY_SPACE_RUN = new RegExp(`[${PY_SPACE}]+`, 'gu')
+
+/**
+ * The pre-tokenizer, character for character the one the corpus was built with,
+ * including its whitespace class.
+ *
+ * `[^\w\s]` in Python is "not a word character and not whitespace", and after
+ * the fix above a byte order mark is no longer whitespace here either, so it
+ * falls into this class and becomes a token exactly as it does in Python. Built
+ * from PY_SPACE rather than written out, so the two can never drift apart.
+ */
+const W = String.raw`\p{L}\p{N}_`
+const WORD_RE = new RegExp(
+  `[${W}]+(?:['’´][${W}]+)?|[^${W}${PY_SPACE}]`,
+  'gu',
+)
+const PY_STRIP = new RegExp(`^[${PY_SPACE}]+|[${PY_SPACE}]+$`, 'gu')
 
 export function normalize(text: string): string {
-  return text.normalize('NFC').replace(/\s+/g, ' ').trim()
+  return text.normalize('NFC').replace(PY_SPACE_RUN, ' ').replace(PY_STRIP, '')
 }
 
 export function wordTokenize(text: string): string[] {
