@@ -9,17 +9,20 @@
     "check": "npm run check:tools && npm run check:tokenizer && npm run check:meta && npm run check:input",
     "typecheck": "tsc --noEmit",
     "dev": "vite",
-    "build": "tsc --noEmit && npm run check && vite build",
+    "build": "tsc --noEmit && npm run check && vite build && npm run check:layout",
     "preview": "vite preview",
     "check:tools": "node tools/check-tools.mjs",
     "check:meta": "node tools/check-meta.mjs",
-    "check:input": "tsx tools/check-input-bound.ts"
+    "check:input": "tsx tools/check-input-bound.ts",
+    "check:layout": "node tools/check-layout.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.13.6",
+    "playwright": "1.61.1",
     "tsx": "4.20.6",
     "typescript": "5.9.3",
-    "vite": "8.3.0"
+    "vite": "8.3.0",
+    "wait-on": "9.0.1"
   },
   "dependencies": {
     "onnxruntime-web": "1.30.0"

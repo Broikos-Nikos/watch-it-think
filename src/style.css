@@ -206,9 +206,15 @@ textarea:focus-visible {
   color: var(--dim);
 }
 
+/*
+ * min-width: 0 because a flex item will not shrink below its content's
+ * min-content width by default, so without it a single unbreakable token
+ * pushes this box, and the page, wider than the viewport.
+ */
 .tags {
   display: flex;
   flex-wrap: wrap;
+  min-width: 0;
   gap: 4px;
   padding: 0.9rem;
   border: 1px solid var(--edge);
@@ -218,7 +224,17 @@ textarea:focus-visible {
   font-size: 0.95rem;
 }
 
+/*
+ * A pasted sha256, a base64 fragment, a German compound or a long identifier
+ * are all ordinary things to put in a box that asks for a sentence, and a
+ * token has no spaces in it by construction. Without this, one of them gave a
+ * scrollWidth of 631 inside a 390 pixel phone and 285,214 on a desktop.
+ *
+ * `anywhere` rather than `break-word`: only `anywhere` reduces the
+ * min-content width, which is the number the flex layout above is reading.
+ */
 .word {
+  overflow-wrap: anywhere;
   padding: 0.2em 0.45em;
   border-radius: 5px;
   background: oklch(0.28 0.012 285);
@@ -343,6 +359,7 @@ footer {
   list-style: none;
   display: flex;
   flex-wrap: wrap;
+  min-width: 0;
   gap: 3px;
   margin: 0;
   padding: 0;
@@ -351,6 +368,7 @@ footer {
 }
 
 .axis-token {
+  overflow-wrap: anywhere;
   padding: 0.15em 0.4em;
   border-radius: 4px;
   background: oklch(0.24 0.012 285);
