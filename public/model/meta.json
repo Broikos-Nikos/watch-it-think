@@ -163,13 +163,43 @@
   ],
   "onnxBytes": 20420994,
   "parity": {
-    "tolerance": 0.0001,
-    "copyAgainstOriginal": 0.0,
-    "graphAgainstOriginal": 6.9141387939453125e-06,
-    "attentionRowSumDeviation": 2.384185791015625e-07,
-    "attentionAgainstNumpyWitness": 8.066936039163863e-07,
-    "attentionFieldsChecked": 96,
-    "sentences": 20
+    "copyAgainstOriginal": {
+      "value": 0.0,
+      "tolerance": 0.0001,
+      "sentences": 22,
+      "note": "the re-declared architecture against bslm/model.py"
+    },
+    "graphAgainstOriginal": {
+      "value": 9.059906005859375e-06,
+      "tolerance": 0.0001,
+      "sentences": 22,
+      "note": "the exported graph against the module it came from"
+    },
+    "attentionRowSumDeviation": {
+      "value": 3.5762786865234375e-07,
+      "tolerance": 1e-05,
+      "sentences": 22,
+      "note": "a sanity check on the softmax, not on the fields. Any attention cube passes this, including a wrong one: a cube with its layers reversed passes at 0."
+    },
+    "attentionAgainstNumpyWitness": {
+      "value": 1.0059445660903776e-06,
+      "tolerance": 0.0001,
+      "sentences": 4,
+      "languages": [
+        "el",
+        "en"
+      ],
+      "sentenceTokens": [
+        4,
+        4,
+        63,
+        62
+      ],
+      "fields": 96,
+      "values": 188280,
+      "valueMean": 0.016953473548765568,
+      "note": "every layer and head recomputed from the raw weights in numpy. The tolerance is the one that means something: reversing the layers or rolling the head axis fails it at about 9.8e-01."
+    }
   },
   "quantisation": {
     "measuredAt": "2026-09-21",
@@ -180,14 +210,14 @@
       "intentAccuracy": 74.58,
       "tagAccuracy": 97.28,
       "exactMatch": 69.97,
-      "msPerSentence": 1.03
+      "msPerSentence": 0.9
     },
     "int8": {
       "n": 10578,
       "intentAccuracy": 74.53,
       "tagAccuracy": 97.28,
       "exactMatch": 69.86,
-      "msPerSentence": 0.71
+      "msPerSentence": 0.69
     },
     "intentAccuracyDelta": -0.05,
     "bytesFp32": 20420994,

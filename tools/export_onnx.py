@@ -39,6 +39,12 @@ PROJECT = HERE.parent
 # module, this copy, and the exported graph, on real sentences.
 PARITY_TOLERANCE = 1e-4
 
+# Attention rows are a softmax output, so they sum to one by construction and a
+# looser bound here would mean nothing. This is float32 rounding and nothing
+# else, which is why gate 3 is labelled a sanity check wherever it is reported:
+# a cube with its layers reversed passes it at exactly zero.
+ROW_SUM_TOLERANCE = 1e-5
+
 
 def attention_from_weights(sd, cfg, ids, cases, layer, head):
     """Recompute one attention field from the raw weights, in numpy.
@@ -195,6 +201,14 @@ class RouterWithAttention(nn.Module):
 # --------------------------------------------------------------------------
 # Sentences the gate runs on. Real ones, both languages, spread over the task
 # list, including the short ones where a single token decides the intent.
+#
+# The last two are long on purpose. Until 2026-09-21 the numpy witness ran on
+# the first four entries of this list, which are all English and 6 to 14
+# tokens, while the comment above it claimed both languages and the page's own
+# worst case is a 64 token context. Every sentence here was shorter than a
+# quarter of that, so the witness had never checked a large field at all. These
+# two are 63 and 62 tokens, which is as close to the 64 the page allows as a
+# sentence gets without being truncated.
 # --------------------------------------------------------------------------
 
 GATE_SENTENCES = [
@@ -218,7 +232,44 @@ GATE_SENTENCES = [
     "πρόσθεσε γάλα και ψωμί στη λίστα",
     "πάρε τηλέφωνο τη Μαρία",
     "σταμάτα τη μουσική",
+    "remind me to call my sister on Friday afternoon about the invoice for the "
+    "kitchen lights and then add milk bread and coffee to the shopping list "
+    "before the weather changes in Thessaloniki and cancel the alarm I set for "
+    "seven thirty tomorrow morning and send Maria a message saying I am "
+    "running late again and play something quiet",
+    "πρόσθεσε γάλα ψωμί και καφέ στη λίστα για αύριο το πρωί και μετά βάλε "
+    "ξυπνητήρι στις εφτά και μισή και σβήσε όλα τα φώτα στην κουζίνα και στο "
+    "υπνοδωμάτιο και πες μου τι καιρό κάνει αύριο στη Θεσσαλονίκη και πάρε "
+    "τηλέφωνο τη Μαρία να της πεις ότι άργησα πάλι και βάλε λίγη μουσική",
 ]
+
+
+def is_greek(text: str) -> bool:
+    """Any Greek letter, monotonic or polytonic."""
+    return any("Ͱ" <= c <= "Ͽ" or "ἀ" <= c <= "῿" for c in text)
+
+
+def witness_sample(samples):
+    """Which sentences the numpy witness recomputes, and why those.
+
+    The shortest and the longest of each language. Derived from the sentences
+    rather than written as indices, because the defect this replaces was a
+    literal slice, `samples[:4]`, that silently stopped meaning what its
+    comment said the moment the list was reordered or extended.
+
+    Four sentences, the same count as before, so the gate costs what it cost.
+    What changes is that two of them are Greek and one of them is nearly a full
+    context, which is what the comment had been claiming all along.
+    """
+    by_lang: dict[str, list[int]] = {}
+    for i, s in enumerate(samples):
+        by_lang.setdefault("el" if is_greek(s[0]) else "en", []).append(i)
+
+    picked: list[int] = []
+    for lang in sorted(by_lang):
+        idx = sorted(by_lang[lang], key=lambda i: len(samples[i][2]))
+        picked += [idx[0], idx[-1]]
+    return sorted(set(picked))
 
 
 def main() -> int:
@@ -357,11 +408,29 @@ def main() -> int:
     # ---- gate four: the attention itself, against an independent witness ---
     #
     # Every layer and every head, recomputed from the raw weights in numpy, on
-    # a short and a long sentence in both languages. This is what makes the
-    # layer index, the head index and the axis order checkable at all.
+    # the shortest and longest sentence of each language. This is what makes
+    # the layer index, the head index and the axis order checkable at all.
+    witness = witness_sample(samples)
+
+    # The gate on the gate. The sample above is chosen by a function, and the
+    # claim made about it downstream is that it covers both languages and the
+    # longest sentence there is. Nothing checked that before, which is exactly
+    # how this gate spent nine ticks reading four English sentences under a
+    # comment that said otherwise. An assertion is cheaper than a comment.
+    witness_langs = {"el" if is_greek(samples[i][0]) else "en" for i in witness}
+    longest = max(range(len(samples)), key=lambda i: len(samples[i][2]))
+    if witness_langs != {"el", "en"} or longest not in witness:
+        print(f"FAIL: the witness sample is {sorted(witness_langs)} and "
+              f"{'includes' if longest in witness else 'excludes'} the longest "
+              f"sentence. It must cover both languages and the longest.")
+        return 2
+
+    witness_tokens = [len(samples[i][2]) for i in witness]
     worst_att = 0.0
     checked = 0
-    for text, words, ids, cases, widx, oi, os_, att in samples[:4]:
+    value_sum = 0.0
+    value_n = 0
+    for text, words, ids, cases, widx, oi, os_, att in (samples[i] for i in witness):
         out = sess.run(None, {
             "ids": np.array([ids], dtype=np.int64),
             "cases": np.array([cases], dtype=np.int64),
@@ -373,11 +442,21 @@ def main() -> int:
                 got = cube[layer, 0, head]
                 worst_att = max(worst_att, float(np.abs(got - want).max()))
                 checked += 1
+                # The scale the tolerance is judged against. A tight absolute
+                # difference means nothing without it: on a quantity that is
+                # always near zero it would be free.
+                value_sum += float(want.sum())
+                value_n += want.size
 
+    value_mean = value_sum / value_n if value_n else 0.0
     print(f"gate 4, attention against an independent numpy witness: "
-          f"max abs diff {worst_att:.3e} over {checked} fields")
+          f"max abs diff {worst_att:.3e} over {checked} fields, "
+          f"{value_n:,} values, mean value {value_mean:.4f}")
+    print(f"        sample: {len(witness)} sentences, {sorted(witness_langs)}, "
+          f"{min(witness_tokens)} to {max(witness_tokens)} tokens, "
+          f"up to {max(witness_tokens) ** 2:,} cells a field")
 
-    if worst_onnx > PARITY_TOLERANCE or worst_attention_row > 1e-5 or worst_att > PARITY_TOLERANCE:
+    if worst_onnx > PARITY_TOLERANCE or worst_attention_row > ROW_SUM_TOLERANCE or worst_att > PARITY_TOLERANCE:
         print("FAIL: the exported graph does not reproduce the model")
         onnx_path.unlink(missing_ok=True)
         return 2
@@ -408,14 +487,47 @@ def main() -> int:
         "slotTags": tags,
         "slots": slots,
         "onnxBytes": size,
+        # Each gate carries its own sample and its own tolerance. They used to
+        # share one `tolerance` and one `sentences`, and both were wrong for
+        # two of the four: gate 3 is gated ten times tighter, and the witness
+        # saw four sentences rather than all of them. Four small numbers in a
+        # row read as four pieces of evidence, so each one has to say what it
+        # is evidence of.
         "parity": {
-            "tolerance": PARITY_TOLERANCE,
-            "copyAgainstOriginal": worst_copy,
-            "graphAgainstOriginal": worst_onnx,
-            "attentionRowSumDeviation": worst_attention_row,
-            "attentionAgainstNumpyWitness": worst_att,
-            "attentionFieldsChecked": checked,
-            "sentences": len(GATE_SENTENCES),
+            "copyAgainstOriginal": {
+                "value": worst_copy,
+                "tolerance": PARITY_TOLERANCE,
+                "sentences": len(GATE_SENTENCES),
+                "note": "the re-declared architecture against bslm/model.py",
+            },
+            "graphAgainstOriginal": {
+                "value": worst_onnx,
+                "tolerance": PARITY_TOLERANCE,
+                "sentences": len(GATE_SENTENCES),
+                "note": "the exported graph against the module it came from",
+            },
+            "attentionRowSumDeviation": {
+                "value": worst_attention_row,
+                "tolerance": ROW_SUM_TOLERANCE,
+                "sentences": len(GATE_SENTENCES),
+                "note": "a sanity check on the softmax, not on the fields. "
+                        "Any attention cube passes this, including a wrong "
+                        "one: a cube with its layers reversed passes at 0.",
+            },
+            "attentionAgainstNumpyWitness": {
+                "value": worst_att,
+                "tolerance": PARITY_TOLERANCE,
+                "sentences": len(witness),
+                "languages": sorted(witness_langs),
+                "sentenceTokens": witness_tokens,
+                "fields": checked,
+                "values": value_n,
+                "valueMean": value_mean,
+                "note": "every layer and head recomputed from the raw weights "
+                        "in numpy. The tolerance is the one that means "
+                        "something: reversing the layers or rolling the head "
+                        "axis fails it at about 9.8e-01.",
+            },
         },
     }
     (args.out / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n",

@@ -52,7 +52,25 @@ export interface Meta {
   intents: string[]
   slotTags: string[]
   slots: string[]
-  parity: Record<string, number>
+  /**
+   * One entry per gate, each carrying its own sample and its own tolerance.
+   * They shared a single tolerance and a single sentence count until
+   * 2026-09-21, and it was wrong for two of the four.
+   */
+  parity: Record<
+    string,
+    {
+      value: number
+      tolerance: number
+      sentences: number
+      note: string
+      languages?: string[]
+      sentenceTokens?: number[]
+      fields?: number
+      values?: number
+      valueMean?: number
+    }
+  >
   quantisation?: {
     heldOutSentences: number
     fp32: { intentAccuracy: number; tagAccuracy: number; exactMatch: number }
