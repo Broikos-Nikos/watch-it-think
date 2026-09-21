@@ -1,6 +1,33 @@
 {
   "exporter": "torchscript",
   "source": "bslm router, trained from random init, no pretrained weights",
+  "inputs": {
+    "bslm": {
+      "name": "bslm",
+      "remote": "https://github.com/Broikos-Nikos/bslm.git",
+      "commit": "50aafae",
+      "dirty": true
+    },
+    "checkpoint": {
+      "bytes": 20370911,
+      "sha256": "ff9d84451a7f72fa9c501a8d23d578b03c77e078c0d0c2e02dadc84120e453f0",
+      "path": "checkpoints/bslm.pt",
+      "obtainable": false,
+      "note": "not committed to that repository, so this file cannot be obtained from it. The hash identifies it; nothing here produces it."
+    },
+    "architecture": {
+      "bytes": 3841,
+      "sha256": "95b37168bcf0fb297e00bdd87f25d0f195dffd7a7aeb593e922cc59975ed7188",
+      "path": "bslm/model.py",
+      "obtainable": true
+    },
+    "vocabulary": {
+      "bytes": 161501,
+      "sha256": "b190df569d28d63f41e513e4f9a56d46939cbc81a64cc6fe2672cc6198e4bab1",
+      "path": "checkpoints/tokenizer.json",
+      "obtainable": true
+    }
+  },
   "parameters": 5086061,
   "config": {
     "vocab_size": 4000,
@@ -203,6 +230,22 @@
   },
   "quantisation": {
     "measuredAt": "2026-09-21",
+    "testSet": {
+      "bytes": 2526137,
+      "sha256": "e3828414e3dc3d4f94dd75dbdf45d2721c649bb84282fe0e51c77d98efc0f682",
+      "path": "data/test.jsonl",
+      "obtainable": false,
+      "note": "not committed to that repository, so this file cannot be obtained from it. The hash identifies it; nothing here produces it.",
+      "split": "adversarial"
+    },
+    "bslm": {
+      "name": "bslm",
+      "remote": "https://github.com/Broikos-Nikos/bslm.git",
+      "commit": "50aafae",
+      "dirty": true
+    },
+    "rowsRead": 10578,
+    "rowsEvaluated": 10578,
     "heldOutSentences": 10578,
     "budgetPoints": 1.0,
     "fp32": {
@@ -210,14 +253,22 @@
       "intentAccuracy": 74.58,
       "tagAccuracy": 97.28,
       "exactMatch": 69.97,
-      "msPerSentence": 0.9
+      "msPerSentence": 0.92,
+      "rowsRead": 10578,
+      "rowsEvaluated": 10578,
+      "skippedEmptyWords": 0,
+      "skippedUnseenIntent": 0
     },
     "int8": {
       "n": 10578,
       "intentAccuracy": 74.53,
       "tagAccuracy": 97.28,
       "exactMatch": 69.86,
-      "msPerSentence": 0.69
+      "msPerSentence": 0.73,
+      "rowsRead": 10578,
+      "rowsEvaluated": 10578,
+      "skippedEmptyWords": 0,
+      "skippedUnseenIntent": 0
     },
     "intentAccuracyDelta": -0.05,
     "bytesFp32": 20420994,

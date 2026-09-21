@@ -71,7 +71,19 @@ export interface Meta {
       valueMean?: number
     }
   >
+  /**
+   * Which files the numbers below were made from. `obtainable` is false for
+   * the checkpoint and the test set: they are named and hashed here, and a
+   * reader cannot fetch them from the repository that holds them.
+   */
+  inputs?: Record<
+    string,
+    { path?: string; bytes?: number; sha256?: string; obtainable?: boolean; note?: string }
+  >
   quantisation?: {
+    testSet?: { path: string; sha256: string; split: string; bytes: number; obtainable: boolean }
+    rowsRead: number
+    rowsEvaluated: number
     heldOutSentences: number
     fp32: { intentAccuracy: number; tagAccuracy: number; exactMatch: number }
     int8: { intentAccuracy: number; tagAccuracy: number; exactMatch: number }

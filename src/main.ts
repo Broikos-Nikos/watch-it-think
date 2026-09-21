@@ -247,11 +247,21 @@ async function boot() {
     `and ${m.config.n_heads} attention heads, and it decides which of ` +
     `${m.intents.length} things you are asking for. Nothing you type leaves this page.`
 
+  // The sentence about the split used to be a string literal, printed whatever
+  // file had been evaluated, including the training set. The quantiser now
+  // records which file it read and whether that file is the adversarial split,
+  // so the claim appears only when it is true of the run that produced these
+  // numbers.
+  const floor =
+    q?.testSet?.split === 'adversarial'
+      ? ' That set is the adversarial one, so it is a floor rather than a headline.'
+      : ''
+
   el.footer.textContent = q
     ? `${(q.bytesInt8 / 1e6).toFixed(2)} MB over the wire, ${loadMs.toFixed(0)} ms to load. ` +
-      `Intent accuracy ${q.int8.intentAccuracy}% on ${q.heldOutSentences.toLocaleString('en-US')} ` +
-      `held out sentences, against ${q.fp32.intentAccuracy}% before quantisation. ` +
-      `That set is the adversarial one, so it is a floor rather than a headline.`
+      `Intent accuracy ${q.int8.intentAccuracy}% on ${q.rowsEvaluated.toLocaleString('en-US')} ` +
+      `held out sentences, against ${q.fp32.intentAccuracy}% before quantisation.` +
+      floor
     : `${loadMs.toFixed(0)} ms to load.`
 
   el.input.value = SAMPLES[0]

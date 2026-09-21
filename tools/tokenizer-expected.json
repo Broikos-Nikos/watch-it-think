@@ -1,5 +1,26 @@
 {
  "tokenizer": "bslm/tokenizer.py",
+ "source": {
+  "bslm": {
+   "name": "bslm",
+   "remote": "https://github.com/Broikos-Nikos/bslm.git",
+   "commit": "50aafae",
+   "dirty": true
+  },
+  "tokenizer": {
+   "bytes": 5792,
+   "sha256": "6ed2fbce05911c4c999843982b7bb0bf9950dc34e89fca02f80ea8ea39cb3ccc",
+   "path": "bslm/tokenizer.py",
+   "obtainable": true
+  },
+  "vocabulary": {
+   "bytes": 161501,
+   "sha256": "b190df569d28d63f41e513e4f9a56d46939cbc81a64cc6fe2672cc6198e4bab1",
+   "path": "checkpoints/tokenizer.json",
+   "obtainable": true
+  },
+  "generated": "2026-09-21"
+ },
  "maxLen": 64,
  "cases": [
   {

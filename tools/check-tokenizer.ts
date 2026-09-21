@@ -8,6 +8,15 @@
  * produces ids the model has never seen, and the page then shows a worse model
  * than the one that was actually trained, with nothing on screen to say so. So
  * the bar is not "close": one differing id fails the build.
+ *
+ * What this actually compares, stated plainly because the line it prints is the
+ * strongest claim in the repository: it runs the TypeScript tokenizer here and
+ * compares against `tools/tokenizer-expected.json`, a fixture the Python wrote
+ * at some earlier moment. It does not run Python. So "identical to
+ * bslm/tokenizer.py" is a claim about the fixture, and it would keep printing
+ * after that file changed. The fixture now records which bslm commit and which
+ * sha256 it came from, and that is printed with the pass line, so the claim
+ * names its own date.
  */
 
 import { readFileSync } from 'node:fs'
@@ -20,6 +29,11 @@ const expectedPath = resolve(root, 'tools/tokenizer-expected.json')
 
 let expected: {
   maxLen: number
+  source?: {
+    bslm: { commit: string; dirty: boolean; remote: string | null }
+    tokenizer: { path: string; sha256: string }
+    generated: string
+  }
   cases: {
     text: string
     words: string[]
@@ -85,7 +99,25 @@ if (failed > 0) {
   process.exit(1)
 }
 
+// Before the pass line, not after it. A fixture with no provenance cannot
+// support the sentence below, so there is nothing to report but the problem.
+const src = expected.source
+if (!src) {
+  console.error(
+    'FAIL  the fixture has no source block, so "identical to bslm/tokenizer.py" ' +
+      'would be a claim about an undated snapshot.\n' +
+      '      Regenerate it: python tools/dump_python_tokenizer.py --bslm-repo <path>',
+  )
+  process.exit(1)
+}
+
 const tokens = expected.cases.reduce((a, c) => a + c.ids.length, 0)
 console.log(
-  `${expected.cases.length} sentences, ${tokens} tokens, identical to bslm/tokenizer.py`,
+  `${expected.cases.length} sentences, ${tokens} tokens, identical to the fixture ` +
+    `dumped from bslm/tokenizer.py`,
+)
+console.log(
+  `  fixture: bslm ${src.bslm.commit}${src.bslm.dirty ? ' (dirty)' : ''}, ` +
+    `${src.tokenizer.path} sha256 ${src.tokenizer.sha256.slice(0, 12)}, ` +
+    `dumped ${src.generated}`,
 )

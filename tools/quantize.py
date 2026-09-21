@@ -8,9 +8,14 @@ between a page that starts working and a page that is still downloading.
 
 Quantisation is lossy, so the only question that matters is how lossy, and the
 answer has to be measured on held out data rather than asserted. This runs both
-graphs over the same 10,578 held out sentences and reports three numbers for
-each: intent accuracy, per word slot tag accuracy, and the share of sentences
-where the intent and every tag are right together.
+graphs over whatever `--test` points at, and records in meta.json which file
+that was, how many rows it held, how many were evaluated and which it hashed to.
+The docstring used to say "the same 10,578 held out sentences", which is a
+property of one invocation and not of this tool: `--test` takes any path and
+`--limit` truncates.
+
+Three numbers for each graph: intent accuracy, per word slot tag accuracy, and
+the share of sentences where the intent and every tag are right together.
 
 The rule, decided before running it: if int8 costs more than one point of intent
 accuracy, ship fp32 and say why. A page that loads faster and answers worse is
@@ -25,6 +30,8 @@ import time
 from pathlib import Path
 
 import numpy as np
+
+from provenance import describe, repo_facts
 
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parent
@@ -59,15 +66,22 @@ def evaluate(session, tok, meta, rows):
     tag_hits = 0
     both = 0
     unseen_intents = set()
+    # Two different counts have both been called "the held out set": the rows
+    # read from the file, and the rows actually evaluated. They are equal on the
+    # current data and there is nothing in the arithmetic that keeps them equal.
+    skipped_empty = 0
+    skipped_unseen = 0
     started = time.perf_counter()
 
     for row in rows:
         words = row["words"]
         if not words:
+            skipped_empty += 1
             continue
         gold_intent = row["intent"]
         if gold_intent not in intent_index:
             unseen_intents.add(gold_intent)
+            skipped_unseen += 1
             continue
 
         ids, cases, widx = tok.encode(words, max_len)
@@ -114,6 +128,10 @@ def evaluate(session, tok, meta, rows):
         "tagAccuracy": round(100 * tag_hits / tag_total, 2) if tag_total else 0.0,
         "exactMatch": round(100 * both / n, 2) if n else 0.0,
         "msPerSentence": round(1000 * elapsed / n, 2) if n else 0.0,
+        "rowsRead": len(rows),
+        "rowsEvaluated": n,
+        "skippedEmptyWords": skipped_empty,
+        "skippedUnseenIntent": skipped_unseen,
         "unseenIntents": sorted(unseen_intents),
     }
 
@@ -152,7 +170,17 @@ def main() -> int:
     print(f"wrote {int8.name} ({int8.stat().st_size / 1e6:.1f} MB)")
 
     rows = load_rows(args.test, args.limit)
-    print(f"held out set: {len(rows)} sentences\n")
+    test_set = describe(args.test, args.bslm_repo)
+    # The page tells the visitor this is the adversarial split, so the claim is
+    # checked against the file that was actually read rather than recalled.
+    # bslm/benchmark.py:244, run_adversarial, reads data/test.jsonl.
+    test_set["split"] = (
+        "adversarial" if test_set.get("path") == "data/test.jsonl" else "unknown"
+    )
+    if args.limit:
+        test_set["limit"] = args.limit
+    print(f"test set: {test_set['path']}, {len(rows)} rows read, "
+          f"split {test_set['split']}, sha256 {test_set['sha256'][:12]}\n")
 
     results = {}
     for name, path in (("fp32", fp32), ("int8", int8)):
@@ -176,8 +204,19 @@ def main() -> int:
         + ("int8" if ship_int8 else "fp32, and the README says why")
     )
 
+    if results["fp32"]["unseenIntents"]:
+        print(
+            f"\nnote: {len(results['fp32']['unseenIntents'])} intents in the test set "
+            f"are not in the checkpoint and were skipped: "
+            f"{', '.join(results['fp32']['unseenIntents'][:6])}"
+        )
+
     meta["quantisation"] = {
         "measuredAt": time.strftime("%Y-%m-%d"),
+        "testSet": test_set,
+        "bslm": repo_facts(args.bslm_repo),
+        "rowsRead": results["fp32"]["rowsRead"],
+        "rowsEvaluated": results["fp32"]["rowsEvaluated"],
         "heldOutSentences": results["fp32"]["n"],
         "budgetPoints": ACCURACY_BUDGET,
         "fp32": {k: v for k, v in results["fp32"].items() if k != "unseenIntents"},
@@ -190,13 +229,6 @@ def main() -> int:
     }
     meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"wrote {meta_path.name}")
-
-    if results["fp32"]["unseenIntents"]:
-        print(
-            f"\nnote: {len(results['fp32']['unseenIntents'])} intents in the test set "
-            f"are not in the checkpoint and were skipped: "
-            f"{', '.join(results['fp32']['unseenIntents'][:6])}"
-        )
     return 0
 
 

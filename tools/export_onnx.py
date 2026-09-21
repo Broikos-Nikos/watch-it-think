@@ -32,6 +32,8 @@ import torch
 _erf = np.vectorize(math.erf)
 import torch.nn as nn
 
+from provenance import describe, repo_facts
+
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parent
 
@@ -480,6 +482,15 @@ def main() -> int:
     meta = {
         "exporter": args.exporter,
         "source": "bslm router, trained from random init, no pretrained weights",
+        # Which files these numbers were made from. Two of them cannot be
+        # obtained from the repository that holds them, and the record says so
+        # rather than leaving a reader to discover it. See tools/provenance.py.
+        "inputs": {
+            "bslm": repo_facts(repo),
+            "checkpoint": describe(args.checkpoint, repo),
+            "architecture": describe(repo / "bslm" / "model.py", repo),
+            "vocabulary": describe(repo / "checkpoints" / "tokenizer.json", repo),
+        },
         "parameters": int(sum(v.numel() for v in ck["model"].values())),
         "config": cfg,
         "maxLen": max_len,

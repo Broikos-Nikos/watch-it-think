@@ -16,10 +16,13 @@ characters, where the case rules have no second character to look at.
 from __future__ import annotations
 
 import argparse
+import datetime
 import json
 import random
 import sys
 from pathlib import Path
+
+from provenance import describe, repo_facts
 
 HERE = Path(__file__).resolve().parent
 
@@ -109,12 +112,27 @@ def main() -> int:
             }
         )
 
+    # What this fixture is a snapshot of. Without it, check-tokenizer prints
+    # "identical to bslm/tokenizer.py" forever, including after that file has
+    # changed, because the thing it compares against is this frozen JSON and
+    # not the Python. The gate can now say which Python it means.
+    source = {
+        "bslm": repo_facts(args.bslm_repo),
+        "tokenizer": describe(args.bslm_repo / "bslm" / "tokenizer.py", args.bslm_repo),
+        "vocabulary": describe(args.bslm_repo / "checkpoints" / "tokenizer.json", args.bslm_repo),
+        "generated": datetime.date.today().isoformat(),
+    }
+
     args.out.write_text(
-        json.dumps({"tokenizer": "bslm/tokenizer.py", "maxLen": 64, "cases": cases},
+        json.dumps({"tokenizer": "bslm/tokenizer.py", "source": source,
+                    "maxLen": 64, "cases": cases},
                    ensure_ascii=False, indent=1) + "\n",
         encoding="utf-8",
     )
     print(f"wrote {args.out.name}: {len(cases)} sentences, {len(EDGE_CASES)} of them edge cases")
+    print(f"  from bslm {source['bslm']['commit']}"
+          f"{' (dirty)' if source['bslm']['dirty'] else ''}, "
+          f"tokenizer.py sha256 {source['tokenizer']['sha256'][:12]}")
     return 0
 
 

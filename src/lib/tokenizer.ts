@@ -4,8 +4,11 @@
  * This is a port, not a reimplementation. The model was trained on ids produced
  * by `bslm/tokenizer.py`, so a port that is merely close produces ids the model
  * has never seen and the page quietly shows a worse model than the one that was
- * trained. `tools/check-tokenizer.py` runs both over the same sentences and
- * fails on a single differing id.
+ * trained. `tools/check-tokenizer.ts` compares this against a fixture the
+ * Python dumped, over 242 sentences, and fails on a single differing id. It
+ * does not run Python: the fixture records which bslm commit and which sha256
+ * it came from, and the gate prints them, because otherwise "identical" is a
+ * claim about a snapshot with no date on it.
  *
  * Four places where the obvious JavaScript is wrong, or the clever JavaScript
  * is. The gate found the first three. It did not find the fourth, and said so
