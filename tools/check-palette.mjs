@@ -24,14 +24,11 @@
  * drift apart.
  */
 
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const css = readFileSync(resolve(root, 'src/style.css'), 'utf8')
-const main = readFileSync(resolve(root, 'src/main.ts'), 'utf8')
-const guide = readFileSync(resolve(root, '../../STYLEGUIDE.md'), 'utf8')
 
 let failed = 0
 const fail = (what, detail) => {
@@ -39,19 +36,53 @@ const fail = (what, detail) => {
   console.error(`FAIL  ${what}`)
   if (detail) console.error(`      ${detail}`)
 }
+const css = readFileSync(resolve(root, 'src/style.css'), 'utf8')
+const main = readFileSync(resolve(root, 'src/main.ts'), 'utf8')
+
+/*
+ * The house values, read from a file that is actually in this repository.
+ *
+ * This gate used to read `../../STYLEGUIDE.md`, which lives in the workspace
+ * above and is not tracked anywhere, so `npm run build` died here with an
+ * ENOENT in any clean clone. It was the third step of `npm run check`, on a
+ * repository a day from being published, and the maintainer audit found it by
+ * doing the one thing nobody had done: cloning it.
+ *
+ * `house-tokens.json` is generated from the guide by `npm run vendor:tokens`
+ * and committed. The guide is still the source of truth, and the check below
+ * re-verifies the copy against it whenever the guide happens to be present.
+ */
+const house = JSON.parse(readFileSync(resolve(root, 'house-tokens.json'), 'utf8')).tokens
 
 const declared = (name) => {
   const m = css.match(new RegExp(`--${name}:\\s*([^;]+);`))
   return m ? m[1].trim() : null
 }
 
-// ---- the neutrals and the accent come from the guide, not from taste --------
-//
-// Read out of STYLEGUIDE.md rather than copied here, so the guide stays the one
-// place the palette is written down and this cannot drift from it quietly.
-const fromGuide = (token) => {
-  const m = guide.match(new RegExp(`--${token}:\\s*(#[0-9a-fA-F]{6})`))
-  return m ? m[1].toLowerCase() : null
+// ---- the neutrals and the accent come from the house, not from taste -------
+const fromGuide = (token) => house[token] ?? null
+
+// If the workspace guide is reachable, the vendored copy is held to it. If it
+// is not, which is every machine except the one this was written on, the gate
+// still runs. A gate that only works where it was written is not a gate.
+const guidePath = resolve(root, '../../STYLEGUIDE.md')
+if (existsSync(guidePath)) {
+  const guide = readFileSync(guidePath, 'utf8')
+  const live = Object.fromEntries(
+    [...guide.matchAll(/--([a-z0-9-]+):\s*(#[0-9a-fA-F]{6})/g)].map((m) => [m[1], m[2].toLowerCase()]),
+  )
+  const drifted = Object.entries(house).filter(([k, v]) => live[k] && live[k] !== v)
+  if (drifted.length > 0) {
+    fail(
+      `house-tokens.json is ${drifted.length} values behind STYLEGUIDE.md`,
+      drifted.map(([k, v]) => `--${k}: vendored ${v}, guide ${live[k]}`).join(' | ') +
+        '. Run npm run vendor:tokens.',
+    )
+  } else {
+    console.log('  ok      the vendored tokens still match the workspace guide')
+  }
+} else {
+  console.log('  note    STYLEGUIDE.md is not here, so the vendored tokens are the authority')
 }
 
 const REQUIRED = [

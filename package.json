@@ -30,7 +30,8 @@
     "check:weight": "node tools/check-weight.mjs",
     "dev": "vite",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "vendor:tokens": "node tools/vendor-house-tokens.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.13.6",
