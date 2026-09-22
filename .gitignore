@@ -7,3 +7,8 @@ dist
 # tools/export_onnx.py, and the page only ever loads the int8 one.
 build-model/router.onnx
 build-model/
+
+# Playwright's working directory while npm run capture is filming. It is removed
+# when the run finishes and left behind when the run dies, which is exactly when
+# somebody is committing in a hurry.
+.capture
