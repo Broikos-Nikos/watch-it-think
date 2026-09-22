@@ -183,4 +183,12 @@ npm run build                     # typecheck, all eight gates, then the bundle
 
 Built by **Nikos Broikos**. [broikos.gr](https://broikos.gr)
 
-Code MIT. The model weights are not distributed here.
+Code MIT, in [`LICENSE`](LICENSE). The model weights are not distributed here
+and are not covered by it.
+
+The page ships other people's code, and the licences that cover it require their
+notices to travel with it. They do:
+[`public/THIRD-PARTY-NOTICES.md`](public/THIRD-PARTY-NOTICES.md), served
+alongside the page, names every one of the sixteen packages that reach the
+browser and both fonts. `npm run check:licences` derives that list from the
+lockfile, so a new dependency that ships without a notice fails the build.
