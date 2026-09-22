@@ -152,6 +152,16 @@ const looked = await page.evaluate(() => {
   const out = {}
   for (const k of pick) out[k] = s.getPropertyValue(k).trim()
   out.bodyFont = getComputedStyle(document.body).fontFamily
+
+  // The words, not only the paint.
+  //
+  // The first version of this recorded eight colours and a typeface, and the
+  // headline changed one commit after the recording was made without anything
+  // noticing. The recruiter's whole complaint had been about that headline, so
+  // the gate written to stop a stale picture was watching everything except the
+  // thing the picture was stale about.
+  out.headline = document.querySelector('h1')?.textContent?.trim() ?? ''
+  out.standfirst = document.querySelector('[data-standfirst]')?.textContent?.trim() ?? ''
   return out
 })
 

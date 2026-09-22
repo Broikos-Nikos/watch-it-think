@@ -9,6 +9,8 @@
     "--flame-bright": "#ff8a1f",
     "--scale-hue": "235",
     "--focus": "#ff8a1f",
-    "bodyFont": "Manrope, system-ui, -apple-system, \"Segoe UI\", sans-serif"
+    "bodyFont": "Manrope, system-ui, -apple-system, \"Segoe UI\", sans-serif",
+    "headline": "I trained this model. Watch it think.",
+    "standfirst": "5,086,061 parameters, trained from nothing, 6 layers and 4 attention heads. It decides which of 44 things you are asking for, on your machine, and nothing you type leaves this page."
   }
 }
