@@ -2,6 +2,8 @@
 
 ### I trained this model. Here it is thinking, in your browser.
 
+**[Open it](https://broikos-nikos.github.io/watch-it-think/)** and type a sentence into it.
+
 The model is mine: 5,086,061 parameters, trained from nothing on a corpus I
 generate myself. No pretrained weights, nothing distilled from a bigger model,
 no API behind it. It runs on your machine and nothing you type leaves the page.

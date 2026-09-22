@@ -97,6 +97,27 @@ if (above.length > BUDGET) {
   console.log(`  ok      ${above.length} characters before the picture, under ${BUDGET}`)
 }
 
+// ---- there is somewhere to click ------------------------------------------
+//
+// WE-F3, open from the first audit to the day this published, and unclosable
+// before it: "the whole pitch is open the page and watch it happen, and there
+// is nowhere to click". The recruiter then ranked tokenlab above this project
+// twice, both times for that reason and for no reason to do with either README.
+//
+// The link is checked for shape rather than fetched. A gate that requests its
+// own Pages URL fails on the first push, when the deploy that would serve it is
+// waiting on this gate to pass, and a gate that cannot pass the first time it
+// runs gets deleted rather than fixed.
+const LIVE = /https:\/\/broikos-nikos\.github\.io\/watch-it-think\//
+if (!LIVE.test(above)) {
+  fail(
+    'there is no live link above the picture, so there is nowhere to click',
+    'the pitch is "open it and watch it happen" and a reader cannot open a repository',
+  )
+} else {
+  console.log('  ok      the live page is linked above the picture')
+}
+
 // ---- the proof is linked in the opening, not necessarily above the picture --
 //
 // This used to require the link above the picture, which is half of why there
