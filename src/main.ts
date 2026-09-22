@@ -199,7 +199,29 @@ function render(p: Prediction) {
  */
 const raceRows = new Map<string, HTMLLIElement>()
 
+/**
+ * One animation per row at a time, and none at all when motion is refused.
+ *
+ * Two things the second deep review found. A row that moves twice before the
+ * first move finishes ended up with four transform animations running at once,
+ * the newest replacing the others mid flight. And `prefers-reduced-motion` was
+ * honoured by the stylesheet and ignored here, so the gate that reports "it all
+ * stops when asked" was reading the one transition that had stopped while four
+ * script driven animations carried on.
+ *
+ * Cancelling first is what makes a travel a travel rather than a pile.
+ */
+const stillMoving = new WeakMap<Element, Animation>()
+
+function animate(row: Element, frames: Keyframe[]): void {
+  stillMoving.get(row)?.cancel()
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  const a = row.animate(frames, { duration: 320, easing: 'cubic-bezier(.16, 1, .3, 1)' })
+  stillMoving.set(row, a)
+}
+
 function drawRace(top: { intent: string; prob: number }[]): void {
+  const arriving: HTMLLIElement[] = []
   // Where everything is now, before the DOM is touched. This is the F of FLIP
   // and it has to be read in one pass, or the first write forces a layout and
   // every later read is of the new position.
@@ -238,8 +260,8 @@ function drawRace(top: { intent: string; prob: number }[]): void {
     row.querySelector('.pct')!.textContent = `${(prob * 100).toFixed(1)}%`
     row.classList.toggle('is-leader', rank === 0)
     row.style.order = String(rank)
-    if (isNew) row.classList.add('is-new')
     if (!row.isConnected) el.race.append(row)
+    if (isNew) arriving.push(row)
   }
 
   // Then put each row back where it was and let it travel. Reading every new
@@ -247,19 +269,31 @@ function drawRace(top: { intent: string; prob: number }[]): void {
   const after = new Map<string, number>()
   for (const [intent, row] of raceRows) after.set(intent, row.getBoundingClientRect().top)
 
+  for (const row of arriving) {
+    // Entry is an animation, not a class.
+    //
+    // It used to add `is-new` here and remove it in the loop below, both inside
+    // one task, so the browser never saw the element with the class on it and
+    // the keyframes never ran. That is the same defect as the transition this
+    // render was written to fix: a style applied and removed before a frame is
+    // a style that did not happen. The second deep review found it in the code
+    // that fixed the first one.
+    animate(row, [
+      { opacity: 0, transform: 'translateX(-6px)' },
+      { opacity: 1, transform: 'translateX(0)' },
+    ])
+  }
+
   for (const [intent, row] of raceRows) {
     const was = before.get(intent)
     const now = after.get(intent)!
-    if (was === undefined) {
-      row.classList.remove('is-new')
-      continue
-    }
+    if (was === undefined) continue
     const delta = was - now
     if (Math.abs(delta) < 1) continue
-    row.animate(
-      [{ transform: `translateY(${delta}px)` }, { transform: 'translateY(0)' }],
-      { duration: 320, easing: 'cubic-bezier(.16, 1, .3, 1)' },
-    )
+    animate(row, [
+      { transform: `translateY(${delta}px)` },
+      { transform: 'translateY(0)' },
+    ])
   }
 }
 

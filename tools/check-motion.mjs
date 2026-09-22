@@ -63,6 +63,8 @@ try {
     await new Promise((r) => setTimeout(r, 400))
 
     let running = 0
+    let entries = 0
+    let travels = 0
     const leaders = new Set()
     const identities = new Map()
     let rowsReplaced = 0
@@ -73,7 +75,24 @@ try {
       el.dispatchEvent(new Event('input', { bubbles: true }))
       await new Promise((r) => setTimeout(r, 70))
 
-      running += document.getAnimations().filter((a) => a.playState === 'running').length
+      // Counted by kind, not just counted.
+      //
+      // "Something animated" was true the whole time the entry animation was
+      // dead: the travels were running and the arrivals were not. An entry is a
+      // translateX and a travel is a translateY, so the two are separable and
+      // the gate can require both.
+      for (const a of document.getAnimations()) {
+        if (a.playState !== 'running') continue
+        running++
+        let kind = ''
+        try {
+          kind = JSON.stringify(a.effect.getKeyframes())
+        } catch {
+          kind = ''
+        }
+        if (kind.includes('translateX')) entries++
+        else if (kind.includes('translateY')) travels++
+      }
 
       const leader = race.querySelector('li.is-leader .name')
       if (leader) leaders.add(leader.textContent)
@@ -103,6 +122,8 @@ try {
 
     return {
       running,
+      entries,
+      travels,
       leaders: [...leaders],
       rowsReplaced,
       fieldWidths: [...fieldWidths],
@@ -128,6 +149,18 @@ try {
     )
   } else {
     console.log('  ok      every race row for a given intent is the same element across renders')
+  }
+
+  // ---- 2b. both kinds of movement actually happen --------------------------
+  if (seen.entries === 0) {
+    fail(
+      'no row was ever seen arriving',
+      'the entry animation was added and removed inside one task for two days, so it never ran once',
+    )
+  } else if (seen.travels === 0) {
+    fail('no row was ever seen travelling, so the reordering is still a jump')
+  } else {
+    console.log(`  ok      ${seen.entries} arrivals and ${seen.travels} travels observed, both kinds move`)
   }
 
   // ---- 3. there was something worth animating ------------------------------
@@ -157,21 +190,47 @@ try {
   const rp = await reduced.newPage()
   await rp.goto(BASE, { waitUntil: 'domcontentloaded' })
   await rp.waitForFunction(() => !!document.querySelector('.race li'), null, { timeout: 180_000 })
-  const longest = await rp.evaluate(() => {
-    const d = getComputedStyle(document.querySelector('.race .bar')).transitionDuration
-    return d
+  // Both halves. The stylesheet's transition AND anything the script starts.
+  //
+  // This used to read the transition alone and report "it all stops when
+  // asked", while four script driven animations per row carried on. A gate that
+  // checks the half that was already fixed is a gate that agrees with you.
+  const longest = await rp.evaluate(async () => {
+    const el = document.querySelector('textarea')
+    el.value = 'set an alarm for seven thirty tomorrow'
+    el.dispatchEvent(new Event('input', { bubbles: true }))
+
+    // Sampled while an animation would still be running, not after it would
+    // have finished. The first version waited 900 ms and then counted, which is
+    // long after a 320 ms animation ends, so it reported zero whether the guard
+    // was there or not: removing the guard entirely still passed.
+    let running = 0
+    for (let i = 0; i < 30; i++) {
+      await new Promise((r) => requestAnimationFrame(r))
+      running = Math.max(running, document.getAnimations().filter((a) => a.playState === 'running').length)
+    }
+
+    return {
+      transition: getComputedStyle(document.querySelector('.race .bar')).transitionDuration,
+      running,
+    }
   })
   // Parsed as a duration rather than matched as a string. The stylesheet sets
   // 1ms and the computed value comes back as "0.001s", which the first version
   // of this check read as a failure: it was testing the spelling.
   const ms = (() => {
-    const v = longest.trim()
+    const v = longest.transition.trim()
     return v.endsWith('ms') ? parseFloat(v) : parseFloat(v) * 1000
   })()
   if (!(ms <= 1)) {
-    fail(`with reduced motion the bar still transitions over ${longest.trim()}, which is ${ms} ms`)
+    fail(`with reduced motion the bar still transitions over ${longest.transition.trim()}`)
+  } else if (longest.running > 0) {
+    fail(
+      `with reduced motion ${longest.running} script driven animations are still running`,
+      'the stylesheet stopped and the script did not, which is the half this check used to miss',
+    )
   } else {
-    console.log(`  ok      reduced motion cuts the transition to ${longest.trim()}`)
+    console.log(`  ok      reduced motion stops the transition and the script, ${longest.transition.trim()} and 0 running`)
   }
   await reduced.close()
 

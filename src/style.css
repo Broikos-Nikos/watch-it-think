@@ -263,17 +263,12 @@ textarea:focus-visible {
   background: oklch(0.58 0.14 45 / 0.55);
 }
 
-/* A row that has just entered arrives rather than appearing. */
-.race li.is-new {
-  animation: race-in 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-@keyframes race-in {
-  from {
-    opacity: 0;
-    transform: translateX(-6px);
-  }
-}
+/*
+ * The entry animation lived here, driven by a class the render added and
+ * removed inside one task, so it never ran. It is script driven now, next to
+ * the travel it belongs with, which also means one place decides what happens
+ * under prefers-reduced-motion instead of two.
+ */
 
 .race .pct {
   font-variant-numeric: tabular-nums;
