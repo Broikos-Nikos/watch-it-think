@@ -106,14 +106,67 @@ try {
     }
   }
 
+  // 3. The visitor types before the page's own script has even run.
+  //
+  // The first two cases delay the model, which is the minute long window. This
+  // is the other one, and the fix for the first left it open: `touched` was set
+  // by a listener attached in boot(), and boot() cannot run until the module has
+  // downloaded, parsed and executed. The textarea is in index.html and is
+  // typeable from first paint. The second deep review measured that window at
+  // 1,356 ms on a slow connection.
+  //
+  // So the bundle is held back rather than the model, which is the only way to
+  // be inside it.
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 800 } })
+    const page = await context.newPage()
+
+    // Every script, not the first one: the bundle is more than one file and
+    // holding only one of them let the rest through, so the app booted anyway
+    // and this timed out waiting for a box that had already been overwritten.
+    let open = true
+    const waiting = []
+    await page.route('**/*.js', async (route) => {
+      if (open) await new Promise((r) => waiting.push(r))
+      await route.continue()
+    })
+
+    // `commit`, not `domcontentloaded`: DOMContentLoaded waits for module
+    // scripts, and this test works by not letting them arrive. Waiting for it
+    // here hung for thirty seconds against a page that was rendered and
+    // typeable the whole time, which is the point being tested.
+    await page.goto(BASE, { waitUntil: 'commit' })
+    await page.waitForSelector('textarea')
+
+    const EARLY = 'typed before the script existed'
+    await page.fill('textarea', EARLY)
+
+    // Only now let the application load.
+    open = false
+    for (const release of waiting) release()
+    await page.waitForFunction(() => !!document.querySelector('.word'), null, { timeout: 120_000 })
+    await page.waitForTimeout(900)
+
+    const value = await page.inputValue('textarea')
+    if (value !== EARLY) {
+      failed++
+      console.error('FAIL  a sentence typed before the page script ran was overwritten')
+      console.error(`        typed: ${JSON.stringify(EARLY)}`)
+      console.error(`        after boot: ${JSON.stringify(value)}`)
+    } else {
+      console.log('  ok      typed before the script ran, kept')
+    }
+    await context.close()
+  }
+
   await browser.close()
 } finally {
   server.stop()
 }
 
 if (failed > 0) {
-  console.error(`\n${failed} of 2 boot cases wrong.`)
+  console.error(`\n${failed} of 3 boot cases wrong.`)
   process.exit(1)
 }
 
-console.log('2 boot cases: what the visitor typed survives, and an untouched box still gets the sample')
+console.log('3 boot cases: what the visitor typed survives, before the script and during the download, and an untouched box still gets the sample')

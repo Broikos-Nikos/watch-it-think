@@ -639,7 +639,21 @@ async function boot() {
   // The sample is an invitation, not an instruction. It is for the visitor who
   // waited out the download without touching anything; anyone who typed during
   // it gets their own sentence answered.
-  if (!touched) el.input.value = SAMPLES[0]
+  //
+  // Two conditions, and the second is the one that matters. `touched` is set by
+  // listeners this file attaches, and it cannot be set before this file runs:
+  // the box is in index.html and is typeable from first paint, so on a slow
+  // connection there was a 1,356 ms window in which everything typed was
+  // silently replaced. Asking whether the box already has something in it needs
+  // no listener and therefore has no window.
+  //
+  // I also wrote an inline script in index.html to set a flag from first paint,
+  // and then deleted it: the gate proved either one alone closes the case, and
+  // shipping both would have meant shipping a non module script tag and a
+  // window global for a case this line already covers. The one thing it caught
+  // that this does not is somebody typing and then clearing the box before the
+  // page loads, and an empty box should get the sample anyway.
+  if (!touched && !el.input.value) el.input.value = SAMPLES[0]
   await think()
 }
 
