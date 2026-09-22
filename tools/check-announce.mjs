@@ -15,20 +15,10 @@
  * screen reader user switches off, which leaves them where they started.
  */
 
-import { spawn } from 'node:child_process'
 import { chromium } from 'playwright'
 
-const PORT = 5185
-const BASE = `http://localhost:${PORT}/`
 const SENTENCE = 'turn off the kitchen lights in the bedroom at seven thirty tomorrow'
 
-const server = spawn('npm', ['run', 'preview', '--', '--port', String(PORT), '--strictPort'], {
-  stdio: 'ignore', shell: true,
-})
-const stop = () => {
-  if (server.pid) spawn('taskkill', ['/PID', String(server.pid), '/T', '/F'], { stdio: 'ignore', shell: true })
-}
-process.on('exit', stop)
 
 let failed = 0
 const fail = (what) => {
@@ -36,9 +26,20 @@ const fail = (what) => {
   console.error(`FAIL  ${what}`)
 }
 
+/*
+ * The server comes from tools/serve.mjs: one preview on a port the operating
+ * system hands out, proved to be serving this build. Each gate used to spawn
+ * its own on a hardcoded number, which is how ten of them leaked and how one
+ * was caught reporting green against a page it never started.
+ *
+ * WIT_URL, when set, is a server somebody else already started, which is what
+ * npm run verify does for the whole browser pass.
+ */
+const { serve, useShared } = await import('./serve.mjs')
+const server = process.env.WIT_URL ? await useShared(process.env.WIT_URL) : await serve()
+const BASE = server.url
+
 try {
-  const { default: waitOn } = await import('wait-on')
-  await waitOn({ resources: [`http-get://localhost:${PORT}/`], timeout: 60_000 })
   const browser = await chromium.launch()
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
   await page.goto(BASE, { waitUntil: 'domcontentloaded' })
@@ -122,7 +123,7 @@ try {
 
   await browser.close()
 } finally {
-  stop()
+  server.stop()
 }
 
 if (failed > 0) {

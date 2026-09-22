@@ -21,16 +21,13 @@
  * container is reading. Asserting the text of the CSS would assert the fix and
  * not the property.
  *
- * It starts and stops its own preview server, because a gate that assumes
- * somebody already ran `npm run dev` is a gate that fails on the one machine
- * that matters.
+ * The server comes from tools/serve.mjs, shared with every other browser gate,
+ * so this does not assume anybody ran `npm run dev` and does not pay for its
+ * own `vite preview` either.
  */
 
-import { spawn } from 'node:child_process'
 import { chromium } from 'playwright'
 
-const PORT = 5177
-const BASE = `http://localhost:${PORT}/`
 
 /** Widths a phone actually is, plus a desktop one for the long word case. */
 const VIEWPORTS = [
@@ -48,23 +45,24 @@ const INPUTS = [
   { name: 'an ordinary sentence', text: 'turn off the kitchen lights' },
 ]
 
-const server = spawn('npm', ['run', 'preview', '--', '--port', String(PORT), '--strictPort'], {
-  stdio: 'ignore',
-  shell: true,
-})
 
-const stop = () => {
-  if (server.pid) {
-    spawn('taskkill', ['/PID', String(server.pid), '/T', '/F'], { stdio: 'ignore', shell: true })
-  }
-}
-process.on('exit', stop)
 
 let failed = 0
 
+/*
+ * The server comes from tools/serve.mjs: one preview on a port the operating
+ * system hands out, proved to be serving this build. Each gate used to spawn
+ * its own on a hardcoded number, which is how ten of them leaked and how one
+ * was caught reporting green against a page it never started.
+ *
+ * WIT_URL, when set, is a server somebody else already started, which is what
+ * npm run verify does for the whole browser pass.
+ */
+const { serve, useShared } = await import('./serve.mjs')
+const server = process.env.WIT_URL ? await useShared(process.env.WIT_URL) : await serve()
+const BASE = server.url
+
 try {
-  const { default: waitOn } = await import('wait-on')
-  await waitOn({ resources: [`http-get://localhost:${PORT}/`], timeout: 60_000 })
 
   const browser = await chromium.launch()
 
@@ -112,7 +110,7 @@ try {
 
   await browser.close()
 } finally {
-  stop()
+  server.stop()
 }
 
 if (failed > 0) {

@@ -173,9 +173,21 @@ do not need any of it to run the page.
 Before committing:
 
 ```bash
-npx playwright install chromium   # once, for the four browser driven gates
-npm run build                     # typecheck, all eight gates, then the bundle
+npm run build     # typecheck, nine file gates, then the bundle. About 11 seconds.
 ```
+
+Before pushing:
+
+```bash
+npx playwright install chromium   # once
+npm run verify    # ten browser gates against one shared server. About 70 seconds.
+```
+
+The split is deliberate. The two used to be one command taking 87 seconds, of
+which 75 were ten separate `vite preview` servers, and a check suite that slow
+is one people stop running. `npm run build` is now cheap enough to run on every
+commit; `npm run verify` is the one that drives a real browser and belongs
+before a push.
 
 ---
 

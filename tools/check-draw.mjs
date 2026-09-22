@@ -21,14 +21,12 @@
  * The browser is the authority on what `oklch(0.6 0.12 148)` looks like.
  */
 
-import { spawn } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const PORT = 5181
 
 // The function under test, lifted out of the module as source so the page can
 // run exactly what ships rather than a copy that has drifted.
@@ -46,22 +44,26 @@ const plain = fn
            'function oklchToRgb(L, C, hDeg) {')
   .replace('}) as [number, number, number]', '})')
 
-const server = spawn('npm', ['run', 'preview', '--', '--port', String(PORT), '--strictPort'], {
-  stdio: 'ignore', shell: true,
-})
-const stop = () => {
-  if (server.pid) spawn('taskkill', ['/PID', String(server.pid), '/T', '/F'], { stdio: 'ignore', shell: true })
-}
-process.on('exit', stop)
 
 let failed = 0
 
+/*
+ * The server comes from tools/serve.mjs: one preview on a port the operating
+ * system hands out, proved to be serving this build. Each gate used to spawn
+ * its own on a hardcoded number, which is how ten of them leaked and how one
+ * was caught reporting green against a page it never started.
+ *
+ * WIT_URL, when set, is a server somebody else already started, which is what
+ * npm run verify does for the whole browser pass.
+ */
+const { serve, useShared } = await import('./serve.mjs')
+const server = process.env.WIT_URL ? await useShared(process.env.WIT_URL) : await serve()
+const BASE = server.url
+
 try {
-  const { default: waitOn } = await import('wait-on')
-  await waitOn({ resources: [`http-get://localhost:${PORT}/`], timeout: 60_000 })
   const browser = await chromium.launch()
   const page = await browser.newPage()
-  await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'domcontentloaded' })
+  await page.goto(BASE, { waitUntil: 'domcontentloaded' })
 
   // ---- half one: my conversion against the browser's ----------------------
   const colour = await page.evaluate(({ plain }) => {
@@ -192,7 +194,7 @@ try {
 
   await browser.close()
 } finally {
-  stop()
+  server.stop()
 }
 
 if (failed > 0) {
