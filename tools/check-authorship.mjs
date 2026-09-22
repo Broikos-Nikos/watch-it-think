@@ -84,10 +84,23 @@ if (credited.length > 0) {
 const release = process.env.RELEASE === '1'
 const head = git('symbolic-ref', '--short', 'HEAD').trim()
 
-const branches = git('branch', '--format=%(refname:short)').trim().split('\n').map((b) => b.trim())
+// Remote refs count. A fresh clone checks out one branch and leaves the rest as
+// `remotes/origin/*`, so asking for a local `main` fails on every clone that is
+// not the working directory this was written in. That is the same defect as the
+// palette gate reading a file from outside the repository, in a second gate,
+// and it turned up the same way: by cloning the thing and running it.
+const branches = git('branch', '-a', '--format=%(refname:short)')
+  .trim()
+  .split('\n')
+  .map((b) => b.trim().replace(/^remotes\/[^/]+\//, ''))
+
 if (!branches.includes('main')) {
-  failed++
-  console.error("FAIL  there is no 'main' branch")
+  if (release) {
+    failed++
+    console.error("FAIL  there is no 'main' branch, local or remote")
+  } else {
+    console.log("  note    no 'main' branch here, which is normal in a single branch clone")
+  }
 } else {
   let ahead = '0'
   try {
