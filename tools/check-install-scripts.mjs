@@ -27,6 +27,33 @@
  *
  * Every entry below was looked at. That is the whole point: the list is not a
  * filter, it is a record that somebody read them.
+ *
+ * ---
+ *
+ * A correction, 2026-09-22, and it runs the other way to most of them.
+ *
+ * The supply chain audit reported `allowScripts` in package.json as dead
+ * configuration for `@lavamoat/allow-scripts`, a package not installed here,
+ * and called it a security control that does nothing. I agreed, deleted the
+ * block, and wrote the first version of this file to catch the class.
+ *
+ * Both of us were wrong. npm 11 reads `allowScripts` itself. Verified on npm
+ * 11.16.0 rather than argued: with the block removed, `npm ci` prints
+ *
+ *   npm warn allow-scripts 2 packages have install scripts not yet covered
+ *     protobufjs@7.6.6 (postinstall: node scripts/postinstall)
+ *     esbuild@0.25.12 (postinstall: node install.js)
+ *
+ * and with it restored it prints nothing and esbuild's binary is still linked.
+ * So the block was a working control, `"protobufjs": false` was genuinely
+ * stopping that script, and deleting it removed protection rather than theatre.
+ *
+ * The maintainer audit found the consequence from the other end: this gate
+ * would have failed the build on whatever `npm approve-scripts` wrote.
+ *
+ * What survives is the part that was always this file's own idea, the reviewed
+ * list, plus a new job: npm warns about uncovered install scripts and a warning
+ * is a thing people scroll past, so here it is a failure.
  */
 
 import { readFileSync } from 'node:fs'
@@ -48,7 +75,7 @@ const REVIEWED = {
   'node_modules/protobufjs':
     'scripts/postinstall.js warns about a version scheme when pkg.versionScheme is set. It is not set, so the script returns on its fourth line and does nothing.',
   'node_modules/fsevents':
-    'macOS file watching, optional, never installed on any machine that builds this. Pulled in by vite.',
+    'macOS file watching, optional, and never installed on Windows, which is why npm does not warn about it here. Its install script builds the native binding; blocking it on a Mac would quietly drop vite back to polling, so it is allowed rather than refused.',
   'node_modules/playwright/node_modules/fsevents':
     'the same package again, under playwright.',
 }
@@ -81,13 +108,40 @@ if (failed === 0) {
   console.log(`  ok      ${found.length} packages run install scripts, each one reviewed and written down`)
 }
 
+// ---- every install script is covered by npm's own allow list --------------
+//
+// npm prints a warning for these and nobody reads warnings. A package that
+// starts running code at install time should stop the build, not colour some
+// text yellow.
+const allow = pkg.allowScripts ?? {}
+const uncovered = found.filter((path) => {
+  const name = path.slice(path.lastIndexOf('node_modules/') + 'node_modules/'.length)
+  const version = lock.packages[path]?.version
+  // npm keys these as name@version, and accepts a bare name too.
+  return !(`${name}@${version}` in allow) && !(name in allow)
+})
+
+if (uncovered.length > 0) {
+  failed++
+  console.error(`FAIL  ${uncovered.length} packages run install scripts that allowScripts does not cover`)
+  for (const u of uncovered) {
+    const name = u.slice(u.lastIndexOf('node_modules/') + 'node_modules/'.length)
+    console.error(`      ${name}@${lock.packages[u]?.version}`)
+  }
+  console.error('      npm approve-scripts writes these. Decide true or false for each.')
+} else {
+  console.log(`  ok      all ${found.length} install scripts are covered by allowScripts, npm's own list`)
+}
+
 // ---- no configuration block that nothing reads ----------------------------
 //
 // The general shape of the defect, not just the one instance of it: a key in
 // package.json that configures a tool which is not installed reads as a policy
 // and is a decoration.
 const OWNERS = {
-  allowScripts: '@lavamoat/allow-scripts',
+  // `allowScripts` is deliberately NOT here. It was, and it was wrong: npm 11
+  // reads that key natively, so the gate failed the build on the exact block
+  // `npm approve-scripts` writes. See the note above the coverage check below.
   lavamoat: 'lavamoat',
   eslintConfig: 'eslint',
   prettier: 'prettier',
