@@ -399,12 +399,26 @@ footer {
   cursor: pointer;
 }
 
+/*
+ * Smooth, not pixelated, and the difference matters here.
+ *
+ * The thumbnail is drawn at 128 and shown at about 58, so the browser is
+ * downscaling. `pixelated` on a downscale picks one source pixel and throws the
+ * rest away, which is exactly the defect this canvas already had once: past 44
+ * tokens the field lost half its cells and ten of the twenty four thumbnails no
+ * longer contained their own strongest link.
+ *
+ * Smoothing averages the neighbours instead, so a bright cell survives as a
+ * bright area even when four cells share one screen pixel. The large field
+ * below keeps `pixelated`, because that one is an upscale and there every cell
+ * should be a crisp square.
+ */
 .headcell canvas {
   width: 100%;
   height: auto;
   aspect-ratio: 1;
   border-radius: 2px;
-  image-rendering: pixelated;
+  image-rendering: auto;
 }
 
 /* The coordinates, and the number that says where to look first. */

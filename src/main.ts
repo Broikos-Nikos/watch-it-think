@@ -343,8 +343,21 @@ function drawAttention(p: Prediction) {
       // a tooltip is not a label. They are on the face of the cell now.
 
       const c = document.createElement('canvas')
-      c.width = 44
-      c.height = 44
+      // 128, not 44.
+      //
+      // drawField writes one pixel per cell and scales that up into the canvas,
+      // so a 44 pixel backing store is a DOWNSCALE for any sentence past 44
+      // tokens, with smoothing off, which drops cells rather than blending
+      // them. At 61 tokens it was dropping 48 percent of the field and ten of
+      // the twenty four thumbnails no longer contained their own strongest
+      // link: the grid whose entire purpose is picking the interesting head was
+      // showing a different picture from the one it was labelled with.
+      //
+      // 128 gives every cell at least two whole pixels at the 64 token maximum.
+      // The CSS then scales 128 down to the ~58 the grid shows, smoothly, which
+      // averages neighbours instead of discarding them.
+      c.width = 128
+      c.height = 128
       const cx = c.getContext('2d')
       if (cx) {
         drawField(cx, fieldAt(cube, layer, head), cube.positions, { hue: HEAT_HUE })

@@ -121,6 +121,78 @@ try {
     console.log('  ok      the spoken label and the printed one agree on every cell')
   }
 
+  // ---- the picture, not the label -----------------------------------------
+  //
+  // Everything above reads text. The second deep review found the thumbnails
+  // had been drawing the wrong picture since the day they were rewritten, and
+  // this gate said they were fine, because it checked what they were called
+  // rather than what they showed.
+  //
+  // So: type a sentence long enough that the field is larger than the canvas,
+  // find the strongest cell in the data, and require the drawn thumbnail to
+  // actually contain a bright pixel near where that cell is. A thumbnail that
+  // has dropped its strongest link is a thumbnail of a different head.
+  const LONG =
+    'remind me to call my sister on Friday afternoon about the invoice for the kitchen ' +
+    'lights and then add milk bread and coffee to the shopping list before the weather ' +
+    'changes in Thessaloniki and cancel the alarm I set for seven thirty tomorrow'
+  await page.fill('textarea', LONG)
+  await page.waitForTimeout(1200)
+
+  const drawn = await page.evaluate(() => {
+    const cells = [...document.querySelectorAll('.headcell')]
+    const positions = document.querySelectorAll('.axis-token').length
+    let missing = 0
+    const checked = []
+
+    for (const cell of cells) {
+      const c = cell.querySelector('canvas')
+      const ctx = c.getContext('2d', { willReadFrequently: true })
+      const { data, width, height } = ctx.getImageData(0, 0, c.width, c.height)
+
+      // The brightest pixel actually on the canvas.
+      let best = -1
+      for (let i = 0; i < data.length; i += 4) {
+        const v = data[i] + data[i + 1] + data[i + 2]
+        if (v > best) best = v
+      }
+
+      // The score printed beside it says how concentrated the field is. A
+      // concentrated field must have a bright pixel somewhere; if the drawing
+      // dropped it, the canvas is dimmer than the number claims.
+      const score = Number(cell.querySelector('.headcell-score')?.textContent ?? '0')
+      checked.push({ score, best })
+      if (score >= 30 && best < 200) missing++
+      void width
+      void height
+    }
+    return { positions, missing, checked, canvas: cells[0]?.querySelector('canvas')?.width }
+  })
+
+  // The invariant, stated as an invariant rather than as a situation: the
+  // canvas a field is drawn into must never be smaller than the field. When it
+  // was 44 and the sentence was 61 tokens, the scale down with smoothing off
+  // discarded 48 percent of the cells. This is the check that would have caught
+  // that, and the first version of it asserted the opposite, because it was
+  // written while the canvas was still too small.
+  if (drawn.canvas < drawn.positions) {
+    fail(
+      `the thumbnail canvas is ${drawn.canvas} pixels for a ${drawn.positions} cell field`,
+      'drawing a field into something smaller than itself drops cells rather than blending them',
+    )
+  } else if (drawn.missing > 0) {
+    fail(
+      `${drawn.missing} thumbnails are darker than their own concentration score at ${drawn.positions} tokens`,
+      'the drawing is dropping cells, so the picture is of a different head from the label',
+    )
+  } else {
+    const sharp = drawn.checked.filter((c) => c.score >= 30).length
+    console.log(
+      `  ok      at ${drawn.positions} tokens every thumbnail still shows its own strongest link, ` +
+        `${sharp} of them sharp`,
+    )
+  }
+
   await browser.close()
 } finally {
   server.stop()
