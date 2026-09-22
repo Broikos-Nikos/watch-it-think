@@ -22,6 +22,18 @@
  * not try. It asserts that the claim exists above the picture, that the page
  * makes the same claim, and that the first thing a reader meets after the
  * picture is not a shell command.
+ *
+ * The same recruiter came back and read it again. The claim had moved to the
+ * top and it worked, and the fix had grown its own defect: 760 characters and
+ * eighteen lines of prose before the picture, against 555 in `tokenlab`, which
+ * is the repository they said they would open first. Two of the four paragraphs
+ * were about where the evidence lives rather than about what the thing does.
+ * The strongest asset here had gone from second and wrong to fifth and right.
+ *
+ * So there is now a budget on the words above the picture, and the rule about
+ * the proof link is a rule about the opening section rather than about the
+ * picture. Under the picture is still one click away, and it costs the reader
+ * who does not care nothing. See D13.
  */
 
 import { readFileSync } from 'node:fs'
@@ -30,7 +42,11 @@ import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const readme = readFileSync(resolve(root, 'README.md'), 'utf8')
+// Line endings normalised before anything counts characters. On this machine
+// the working copy is CRLF and in CI it is LF, so the budget below measured 327
+// here and would have measured 319 there: a gate whose number depends on the
+// checkout is a gate that can fail on one machine and pass on the other.
+const readme = readFileSync(resolve(root, 'README.md'), 'utf8').replace(/\r\n/g, '\n')
 
 let failed = 0
 const fail = (what, detail) => {
@@ -66,14 +82,36 @@ if (!saysTrained) {
   console.log(`  ok      the claim is above the picture: ${JSON.stringify(line?.slice(0, 68))}`)
 }
 
-// ---- the proof is linked where the claim is made ---------------------------
-if (!/github\.com\/Broikos-Nikos\/bslm/.test(above)) {
+// ---- the picture is not buried under the prose -----------------------------
+//
+// 500, because tokenlab opens in 555 and that is the one a reader said they
+// would open first. It leaves room for the claim and a paragraph under it, and
+// it fails at the 760 this README carried for eleven ticks.
+const BUDGET = 500
+if (above.length > BUDGET) {
   fail(
-    'the training repository is not linked above the picture',
-    'a claim to have trained a model should be one click from the evidence',
+    `there are ${above.length} characters before the picture, over the ${BUDGET} budget`,
+    'the recording is the strongest thing here and every sentence above it is a sentence between a reader and it',
   )
 } else {
-  console.log('  ok      the training repository is linked above the picture')
+  console.log(`  ok      ${above.length} characters before the picture, under ${BUDGET}`)
+}
+
+// ---- the proof is linked in the opening, not necessarily above the picture --
+//
+// This used to require the link above the picture, which is half of why there
+// were eighteen lines up there. The claim needs its evidence one click away,
+// not one click away and before the thing that makes anybody want the evidence.
+// The opening section is everything before the first horizontal rule.
+const opening = readme.split('\n---')[0]
+if (!/github\.com\/Broikos-Nikos\/bslm/.test(opening)) {
+  fail(
+    'the training repository is not linked in the opening section',
+    'a claim to have trained a model should be one click from the evidence, and not below a fold',
+  )
+} else {
+  const side = /github\.com\/Broikos-Nikos\/bslm/.test(above) ? 'above' : 'under'
+  console.log(`  ok      the training repository is linked in the opening, ${side} the picture`)
 }
 
 // ---- and the first thing after it is not a command -------------------------

@@ -6,21 +6,18 @@ The model is mine: 5,086,061 parameters, trained from nothing on a corpus I
 generate myself. No pretrained weights, nothing distilled from a bigger model,
 no API behind it. It runs on your machine and nothing you type leaves the page.
 
-Type a sentence and watch it decide what you meant: the answer, the words it
-pulled the details out of, and all 24 of the attention patterns it used to get
-there.
-
-The training code, the data generator and its own benchmarks are at
-**[github.com/Broikos-Nikos/bslm](https://github.com/Broikos-Nikos/bslm)**, so
-the claim above is one click from its evidence.
-
-Most demonstrations of a model show you the answer. This one shows the working.
-
 ![Typing a Greek sentence, the intent resolving to light.control at 95.6 percent, the words getting their slot tags, and the twenty four attention fields appearing underneath](docs/think.gif)
 
 That is the real page, recorded by `npm run capture` from a real browser. The
 sentence is Greek because the model is bilingual: `σβήσε τα φώτα στην κουζίνα`
 is "turn off the kitchen lights".
+
+You are watching it decide what you meant: the answer, the words it pulled the
+details out of, and all 24 of the attention patterns it used to get there. Most
+demonstrations of a model show you the answer. This one shows the working.
+
+The training code, the data generator and its own benchmarks are at
+**[github.com/Broikos-Nikos/bslm](https://github.com/Broikos-Nikos/bslm)**.
 
 ---
 
