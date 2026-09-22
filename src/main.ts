@@ -548,10 +548,14 @@ async function boot() {
   const m = router.meta
   const q = m.quantisation
 
+  // The numbers stay, under the claim rather than instead of it. They are read
+  // from meta.json, so the page cannot say a parameter count the export did not
+  // produce.
   el.standfirst.textContent =
-    `It has ${m.parameters.toLocaleString('en-US')} of them, ${m.config.n_layers} layers ` +
-    `and ${m.config.n_heads} attention heads, and it decides which of ` +
-    `${m.intents.length} things you are asking for. Nothing you type leaves this page.`
+    `${m.parameters.toLocaleString('en-US')} parameters, trained from nothing, ` +
+    `${m.config.n_layers} layers and ${m.config.n_heads} attention heads. ` +
+    `It decides which of ${m.intents.length} things you are asking for, on your ` +
+    `machine, and nothing you type leaves this page.`
 
   // The sentence about the split used to be a string literal, printed whatever
   // file had been evaluated, including the training set. The quantiser now

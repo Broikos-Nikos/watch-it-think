@@ -1,11 +1,18 @@
 # watch it think
 
-### A language model, running entirely in your browser, with the lid off.
+### I trained this model. Here it is thinking, in your browser.
 
-Type a sentence. A five million parameter model decides which of 44 things you
-are asking for, tags the words that carry the details, and shows you every one
-of the 24 attention patterns it used to get there. No server, no API key,
-nothing leaves the page.
+The model is mine: 5,086,061 parameters, trained from nothing on a corpus I
+generate myself. No pretrained weights, nothing distilled from a bigger model,
+no API behind it. It runs on your machine and nothing you type leaves the page.
+
+Type a sentence and watch it decide what you meant: the answer, the words it
+pulled the details out of, and all 24 of the attention patterns it used to get
+there.
+
+The training code, the data generator and its own benchmarks are at
+**[github.com/Broikos-Nikos/bslm](https://github.com/Broikos-Nikos/bslm)**, so
+the claim above is one click from its evidence.
 
 Most demonstrations of a model show you the answer. This one shows the working.
 
@@ -32,14 +39,9 @@ nothing to download, no key to get and no service to sign up for.
 ## What it is
 
 A router: the part of an assistant that reads what you said and decides what you
-wanted. 5,086,061 parameters, 6 layers, 4 attention heads, a 4,000 token
-vocabulary, 64 token context. It ships as 5.28 MB of int8, which is 3.86 times
-smaller than the float model it was quantised from.
-
-It was trained from random initialisation on a corpus its own repository
-generates. No pretrained weights, nothing distilled from a larger model. The
-training code, the data generator and its own benchmarks are at
-**[github.com/Broikos-Nikos/bslm](https://github.com/Broikos-Nikos/bslm)**.
+wanted. 6 layers, 4 attention heads, a 4,000 token vocabulary, 64 token context.
+It ships as 5.28 MB of int8, which is 3.86 times smaller than the float model it
+was quantised from.
 
 The three things the page draws:
 

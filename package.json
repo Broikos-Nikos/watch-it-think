@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Watch a 5M parameter router, trained from random init, resolve a sentence into an intent.",
   "scripts": {
-    "build": "tsc --noEmit && npm run check && vite build && npm run check:layout && npm run check:boot && npm run check:draw && npm run check:announce && npm run check:keyboard && npm run check:weight && npm run check:motion && npm run check:attention && npm run check:capture",
+    "build": "tsc --noEmit && npm run check && vite build && npm run check:layout && npm run check:boot && npm run check:draw && npm run check:announce && npm run check:keyboard && npm run check:weight && npm run check:motion && npm run check:attention && npm run check:capture && npm run check:first-screen",
     "capture": "node tools/capture.mjs",
     "check": "npm run check:authorship && npm run check:install && npm run check:palette && npm run check:claims && npm run check:tools && npm run check:tokenizer && npm run check:meta && npm run check:input",
     "check:announce": "node tools/check-announce.mjs",
@@ -15,6 +15,7 @@
     "check:capture": "node tools/check-capture.mjs",
     "check:claims": "node tools/check-claims.mjs",
     "check:draw": "node tools/check-draw.mjs",
+    "check:first-screen": "node tools/check-first-screen.mjs",
     "check:input": "tsx tools/check-input-bound.ts",
     "check:install": "node tools/check-install-scripts.mjs",
     "check:keyboard": "node tools/check-keyboard.mjs",
