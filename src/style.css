@@ -1,15 +1,64 @@
-:root {
-  --ink: oklch(0.16 0.02 285);
-  --lift: oklch(0.21 0.022 285);
-  --edge: oklch(0.31 0.026 285);
-  --text: oklch(0.94 0.008 285);
-  --dim: oklch(0.78 0.012 285);
-  --faint: oklch(0.645 0.016 285);
-  --live: oklch(0.8 0.17 148);
-  --slot: oklch(0.78 0.15 55);
+@font-face {
+  font-family: 'Manrope';
+  src: url('/fonts/manrope-var.woff2') format('woff2-variations');
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
 
-  --sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --mono: ui-monospace, 'Cascadia Mono', 'Roboto Mono', monospace;
+@font-face {
+  font-family: 'Roboto Mono';
+  src: url('/fonts/robotomono-var.woff2') format('woff2-variations');
+  font-weight: 100 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /*
+   * The house palette, from broikos.gr by way of ../../STYLEGUIDE.md, with the
+   * four exceptions that file records for an instrument rather than a page of
+   * prose. This project was a cool default dark with the hue turned green, and
+   * its published sibling was warm near black with orange spent on one thing.
+   *
+   * The blacks are warm. #080604 has more red in it than blue, and that single
+   * fact is the difference between this and every other dark template.
+   */
+  --ink: #080604;
+  --ink-deep: #000000;
+  --lift: #141010;
+  --edge: #2e2621;
+  --text: #ffffff;
+  --dim: #9a8f88;
+  --faint: #8a7f76;
+
+  /*
+   * Flame, and the rule that makes it worth having: it appears on the winning
+   * intent and its confidence, and on the focus ring, and nowhere else.
+   *
+   * The audit's line is the reason. A heat map has 98,304 cells in it, and an
+   * accent that points at 98,304 things points at nothing. So the scale below
+   * is not this colour, on purpose.
+   */
+  --flame: #ff6a00;
+  --flame-bright: #ff8a1f;
+  --flame-deep: #e63c00;
+  --focus: #ff8a1f;
+
+  /*
+   * The quantitative encoding, and deliberately not the brand.
+   *
+   * Attention is a scale from nothing to everything and it needs a hue that
+   * reads as a measurement rather than as an opinion. Cool, so it sits back
+   * from the orange rather than competing with it, and far enough from it that
+   * the two can never be confused: 235 against flame's 45 is 170 degrees.
+   */
+  --scale-hue: 235;
+  --live: oklch(0.78 0.13 235);
+  --slot: oklch(0.72 0.1 235);
+
+  --sans: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'Roboto Mono', ui-monospace, 'Cascadia Mono', monospace;
   --gutter: clamp(1rem, 4vw, 3rem);
 
   color-scheme: dark;
@@ -29,7 +78,7 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    radial-gradient(110% 70% at 50% -10%, oklch(0.26 0.06 148 / 0.4), transparent 62%),
+    radial-gradient(110% 70% at 50% -10%, rgb(255 106 0 / 0.10), transparent 62%),
     var(--ink);
   color: var(--text);
   font-family: var(--sans);
@@ -57,12 +106,13 @@ header {
   padding-top: clamp(2rem, 6vw, 4rem);
 }
 
+/* Identity is not data and not the argument. House grey. */
 .wordmark {
   font-family: var(--mono);
   font-size: 0.78rem;
   letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: var(--live);
+  color: var(--dim);
 }
 
 h1 {
@@ -149,28 +199,35 @@ textarea:focus-visible {
   flex-wrap: wrap;
 }
 
+/*
+ * The answer, and the one thing on this page that gets the accent.
+ *
+ * Mono rather than a display face on purpose: `light.control` is a machine
+ * identifier that a reader compares character by character, which is the second
+ * of the four exceptions in ../../STYLEGUIDE.md.
+ */
 .intent {
   font-family: var(--mono);
   font-size: clamp(1.5rem, 1rem + 2.2vw, 2.4rem);
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: var(--live);
+  color: var(--flame-bright);
 }
 
 .confidence {
   font-size: 1.05rem;
   font-variant-numeric: tabular-nums;
-  color: var(--dim);
+  color: var(--flame);
 }
 
 /* The 44 candidates, or the six that matter. The bar is the probability, so a
    model that is unsure looks unsure rather than looking decisive. */
 .race {
+  display: flex;
+  flex-direction: column;
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
   gap: 2px;
 }
 
@@ -193,12 +250,29 @@ textarea:focus-visible {
   z-index: -1;
   width: calc(var(--p, 0) * 100%);
   border-radius: 6px;
-  background: oklch(0.45 0.12 148 / 0.55);
+  background: oklch(0.45 0.1 var(--scale-hue) / 0.55);
   transition: width 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.race li:first-child .bar {
-  background: oklch(0.55 0.16 148 / 0.6);
+/*
+ * The leader is a class now, not :first-child. The rows are reordered with
+ * `order`, so the first child in the DOM is whichever intent happened to be
+ * created first and has nothing to do with who is winning.
+ */
+.race li.is-leader .bar {
+  background: oklch(0.58 0.14 45 / 0.55);
+}
+
+/* A row that has just entered arrives rather than appearing. */
+.race li.is-new {
+  animation: race-in 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes race-in {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
 }
 
 .race .pct {
@@ -237,14 +311,14 @@ textarea:focus-visible {
   overflow-wrap: anywhere;
   padding: 0.2em 0.45em;
   border-radius: 5px;
-  background: oklch(0.28 0.012 285);
+  background: var(--edge);
   color: var(--dim);
 }
 
 /* A word the model pulled out as an argument, with the tag it gave it. */
 .word--slot {
-  background: oklch(0.32 0.08 55);
-  color: oklch(0.96 0.04 55);
+  background: oklch(0.32 0.07 235);
+  color: oklch(0.96 0.03 235);
 }
 
 .word small {
@@ -301,19 +375,61 @@ footer {
 }
 
 /* Six rows of four, laid out as the model is: layer down, head across. */
+/*
+ * Six layers down, four heads across, which is the shape of the model rather
+ * than an arbitrary grid. Wide enough now to carry a label, because twenty four
+ * unlabelled squares made "find the head that watches the verb" an instruction
+ * to open twenty four things one at a time.
+ */
 .heads {
   display: grid;
-  grid-template-columns: repeat(4, 44px);
-  gap: 4px;
+  grid-template-columns: repeat(4, 66px);
+  gap: 5px;
 }
 
 .headcell {
-  padding: 0;
+  position: relative;
+  display: grid;
+  gap: 2px;
+  padding: 3px;
   border: 1px solid var(--edge);
   border-radius: 4px;
-  background: oklch(0.19 0.012 285);
-  line-height: 0;
+  background: var(--ink-deep);
+  line-height: 1;
   cursor: pointer;
+}
+
+.headcell canvas {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: 2px;
+  image-rendering: pixelated;
+}
+
+/* The coordinates, and the number that says where to look first. */
+.headcell-tag,
+.headcell-score {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.02em;
+}
+
+.headcell-tag {
+  color: var(--faint);
+}
+
+/*
+ * Concentration, brightened by its own value. The sharp heads are the
+ * interesting ones and this is the only place on the page where a number is
+ * allowed to make itself louder.
+ */
+.headcell-score {
+  position: absolute;
+  right: 4px;
+  bottom: 3px;
+  color: oklch(calc(0.5 + var(--conc, 0) * 0.42) calc(0.02 + var(--conc, 0) * 0.1) var(--scale-hue));
+  font-variant-numeric: tabular-nums;
 }
 
 .headcell:hover {
@@ -322,13 +438,11 @@ footer {
 
 .headcell.is-on {
   border-color: var(--live);
-  box-shadow: 0 0 0 2px oklch(0.5 0.12 148 / 0.4);
+  box-shadow: 0 0 0 2px oklch(0.5 0.1 var(--scale-hue) / 0.4);
 }
 
-.headcell:focus-visible {
-  outline: 2px solid var(--live);
-  outline-offset: 2px;
-}
+/* Superseded by the shared focus rule further down, which uses the house
+   orange so focus and selection cannot be confused. */
 
 .field {
   margin: 0;
@@ -336,13 +450,26 @@ footer {
   min-width: 0;
 }
 
+/*
+ * A square that does not change size when the sentence does.
+ *
+ * The canvas backing store is sized to the token count, so its layout size used
+ * to change with every word typed, and the design audit's line about it is the
+ * whole problem in one sentence: the only thing that moved on this page was the
+ * layout. Everything below the field slid up and down while the picture inside
+ * it stayed a blink.
+ *
+ * `width: 100%` and `aspect-ratio: 1` mean the element is the column's width,
+ * always, whatever resolution is being drawn into it.
+ */
 .field canvas {
   display: block;
-  max-width: 100%;
+  width: 100%;
+  aspect-ratio: 1;
   height: auto;
   border: 1px solid var(--edge);
   border-radius: 8px;
-  background: oklch(0.18 0.012 285);
+  background: var(--ink-deep);
   image-rendering: pixelated;
 }
 
@@ -367,20 +494,47 @@ footer {
   font-size: 0.72rem;
 }
 
+/*
+ * A real button now, not a list item. Hover was the only way to use these,
+ * which meant they did nothing on a phone and nothing from a keyboard.
+ */
 .axis-token {
+  appearance: none;
+  border: 1px solid transparent;
+  font: inherit;
   overflow-wrap: anywhere;
   padding: 0.15em 0.4em;
   border-radius: 4px;
-  background: oklch(0.24 0.012 285);
+  background: var(--lift);
   color: var(--faint);
-  cursor: default;
+  cursor: pointer;
 }
 
 .axis-token--cls {
-  color: oklch(0.8 0.1 148);
+  color: oklch(0.8 0.09 var(--scale-hue));
 }
 
 .axis-token.is-focus {
-  background: oklch(0.42 0.12 148);
-  color: oklch(0.97 0.02 148);
+  background: oklch(0.42 0.1 var(--scale-hue));
+  color: oklch(0.97 0.02 var(--scale-hue));
+}
+
+/*
+ * Pinned reads as chosen rather than as hovered: the same hue, held, with a
+ * border so it survives being looked at next to a highlighted neighbour.
+ */
+.axis-token.is-pinned {
+  border-color: oklch(0.72 0.13 var(--scale-hue));
+}
+
+/*
+ * The focus ring is the house orange and the selection is green, on purpose.
+ * The access audit found a focus ring that looked exactly like the selection,
+ * which leaves a keyboard visitor unable to tell where they are from what they
+ * have chosen. Two different questions, two different colours.
+ */
+.axis-token:focus-visible,
+.headcell:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }

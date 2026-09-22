@@ -22,16 +22,35 @@
 
       <div class="samples" data-samples></div>
 
-      <p class="status" role="status" aria-live="polite" data-status>loading the model</p>
+      <!--
+        Telemetry, and deliberately not a live region any more. It changes on
+        every keystroke, so announcing it meant a screen reader read out
+        "6 positions, 6 layers, 4 heads, 3.0 ms" over and over while the one
+        number this page computes was never spoken at all.
+
+        The announcement moved to [data-announce] below, which says the answer.
+      -->
+      <p class="status" data-status>loading the model</p>
+
+      <!--
+        What a screen reader is told. Polite, atomic, and written once per
+        settled prediction rather than per keystroke: the intent, its
+        confidence, the arguments it pulled out, and what the attention grid
+        shows, which is otherwise twenty five canvases carrying no text at all.
+      -->
+      <p class="sr-only" role="status" aria-live="polite" aria-atomic="true" data-announce></p>
 
       <section class="result" data-result hidden>
+        <h2 class="sr-only">The answer</h2>
         <div class="verdict">
           <span class="intent" data-intent></span>
           <span class="confidence" data-confidence></span>
         </div>
 
+        <h3 class="sr-only">The six likeliest intents</h3>
         <ol class="race" data-race></ol>
 
+        <h3 class="sr-only">The words, and the arguments it pulled out of them</h3>
         <div class="tags" data-tags></div>
 
         <section class="attention" aria-label="Attention">
@@ -49,7 +68,7 @@
             <div class="heads" data-heads role="tablist" aria-label="Layer and head"></div>
 
             <figure class="field">
-              <canvas data-field width="520" height="520" aria-label="Attention field"></canvas>
+              <canvas data-field width="520" height="520" role="img" data-field-alt></canvas>
               <figcaption data-field-caption></figcaption>
             </figure>
           </div>
