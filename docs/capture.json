@@ -1,0 +1,14 @@
+{
+  "recorded": "2026-09-22",
+  "sentence": "σβήσε τα φώτα στην κουζίνα",
+  "looked": {
+    "--ink": "#080604",
+    "--lift": "#141010",
+    "--text": "#fff",
+    "--flame": "#ff6a00",
+    "--flame-bright": "#ff8a1f",
+    "--scale-hue": "235",
+    "--focus": "#ff8a1f",
+    "bodyFont": "Manrope, system-ui, -apple-system, \"Segoe UI\", sans-serif"
+  }
+}

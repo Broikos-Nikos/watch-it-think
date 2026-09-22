@@ -25,7 +25,7 @@
  */
 
 import { execFileSync, spawn } from 'node:child_process'
-import { mkdirSync, renameSync, rmSync, readdirSync } from 'node:fs'
+import { mkdirSync, renameSync, rmSync, readdirSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
@@ -37,11 +37,25 @@ const OUT = resolve(root, 'docs/think.gif')
 const WORK = resolve(root, '.capture')
 
 const SENTENCE = process.env.WIT_SENTENCE ?? 'σβήσε τα φώτα στην κουζίνα'
-const SIZE = { width: 1240, height: 900 }
-const FPS = 12
+const SIZE = { width: 1000, height: 820 }
+const FPS = 10
 const WIDTH = 880
-/** The band worth watching: the box, the verdict, and the fields under it. */
-const CROP = 'crop=1240:820:0:40'
+/*
+ * Ten frames a second and sixty four colours, not twelve and two hundred and
+ * fifty six. This is a heat map in one hue and a few chips of text: the palette
+ * is not where the information is, and the recruiter audit was right that a
+ * better encoder is not the fix. Fewer frames and a shorter run are.
+ */
+/*
+ * The band worth watching: the box, the verdict, and the fields under it.
+ *
+ * Captured at 1000 wide rather than 1240 and scaled to the same 880, so
+ * everything in frame is about a quarter larger. The recruiter audit looked at
+ * this on a phone, where the README image lands at 356 pixels, and called it a
+ * smear. A tighter frame is the only lever: the output width is what GitHub
+ * renders into, and the type size is set by how much page is in shot.
+ */
+const CROP = 'crop=1000:760:0:30'
 
 const server = spawn('npm', ['run', 'preview', '--', '--port', String(PORT), '--strictPort'], {
   stdio: 'ignore', shell: true,
@@ -115,13 +129,31 @@ await page.evaluate(() => {
 await page.waitForTimeout(1200)
 
 const count = await page.locator('.headcell').count()
-for (const i of [9, 17, 22]) {
+for (const i of [9, 21]) {
   if (i < count) {
     await page.locator('.headcell').nth(i).click()
     await page.waitForTimeout(950)
   }
 }
 await page.waitForTimeout(700)
+
+// What the page looked like when this was recorded.
+//
+// A GIF cannot go stale loudly. The palette was replaced two ticks after this
+// recording was made, the README kept saying "that is the real page in a real
+// browser", and nothing anywhere failed: the recruiter audit found it by
+// looking at a green picture of a page that is now flame and blue.
+//
+// So the recording writes down the tokens it was made under, and check:capture
+// compares them against the page that exists.
+const looked = await page.evaluate(() => {
+  const s = getComputedStyle(document.documentElement)
+  const pick = ['--ink', '--lift', '--text', '--flame', '--flame-bright', '--scale-hue', '--focus']
+  const out = {}
+  for (const k of pick) out[k] = s.getPropertyValue(k).trim()
+  out.bodyFont = getComputedStyle(document.body).fontFamily
+  return out
+})
 
 const seconds = (Date.now() - startedAt) / 1000
 await context.close()
@@ -153,7 +185,7 @@ const LEAD_IN = 0.4
 const offset = Math.max(0, (startedAt - videoStart) / 1000 - LEAD_IN)
 const trim = ['-ss', String(offset)]
 
-ff([...trim, '-i', webm, '-vf', `${filters},palettegen=stats_mode=diff`, palette])
+ff([...trim, '-i', webm, '-vf', `${filters},palettegen=max_colors=64:stats_mode=diff`, palette])
 ff([
   ...trim, '-i', webm,
   '-i', palette,
@@ -164,6 +196,11 @@ ff([
 
 renameSync(webm, resolve(root, 'docs/think.webm'))
 rmSync(WORK, { recursive: true, force: true })
+
+writeFileSync(
+  resolve(root, 'docs/capture.json'),
+  JSON.stringify({ recorded: new Date().toISOString().slice(0, 10), sentence: SENTENCE, looked }, null, 2) + '\n',
+)
 
 const { size } = await import('node:fs').then((m) => m.promises.stat(OUT))
 console.log(`docs/think.gif   ${(size / 1e6).toFixed(2)} MB at ${FPS} fps, ${WIDTH}px wide`)
