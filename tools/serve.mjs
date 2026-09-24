@@ -28,7 +28,7 @@
  * `npm run preview` cost 74 of the 87 seconds the build used to take.
  */
 
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { createServer } from 'node:net'
 import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
@@ -95,24 +95,55 @@ export async function serve({ timeoutMs = 60_000 } = {}) {
     cwd: root,
   })
 
+  /*
+   * Killing it, synchronously, and never throwing while doing so.
+   *
+   * The first version of this called `spawn`, asynchronously, from a
+   * `process.on('exit')` handler. An exit handler runs after the event loop has
+   * drained, so an async spawn from inside one never gets to start: the kill was
+   * queued into a loop that was already finished, every single time. The server
+   * survived its own cleanup and nothing said so.
+   *
+   * Measured on 2026-09-24, on the machine this was written on: 65 leaked
+   * `vite preview` processes, 62 of them from these projects, going back far
+   * enough that they had to be counted rather than listed. They took the machine
+   * to the point where `spawn` began failing with UNKNOWN, which is how they
+   * were found: two gate runs died in cleanup and hid the result they had just
+   * computed.
+   *
+   * So: `spawnSync`, which an exit handler can complete, and a try/catch around
+   * everything, because a cleanup that throws in a `finally` replaces the real
+   * error with its own and that is exactly how the first two runs were lost.
+   */
+  let stopped = false
   const stop = () => {
-    if (!child.pid) return
-    if (process.platform === 'win32') {
-      spawn('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore', shell: true })
-    } else {
-      // vite preview under npm is a child of a child, so the group goes.
-      try {
-        process.kill(-child.pid, 'SIGTERM')
-      } catch {
+    if (stopped || !child.pid) return
+    stopped = true
+    try {
+      if (process.platform === 'win32') {
+        spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' })
+      } else {
+        // vite preview under npm is a child of a child, so the group goes.
         try {
-          child.kill('SIGTERM')
+          process.kill(-child.pid, 'SIGTERM')
         } catch {
-          // already gone
+          child.kill('SIGTERM')
         }
       }
+    } catch {
+      // Already gone, or unkillable. Either way this must not become the error
+      // the caller sees instead of the one they were measuring.
     }
   }
   process.on('exit', stop)
+  // Ctrl-C does not run exit handlers on its own, and a browser gate is long
+  // enough that interrupting one is normal.
+  for (const sig of ['SIGINT', 'SIGTERM']) {
+    process.on(sig, () => {
+      stop()
+      process.exit(130)
+    })
+  }
 
   const wanted = readFileSync(resolve(root, 'dist/index.html'), 'utf8')
   const deadline = Date.now() + timeoutMs

@@ -24,7 +24,7 @@
  * nothing can check, and the README quotes what this recording shows.
  */
 
-import { execFileSync, spawn } from 'node:child_process'
+import { execFileSync, spawn, spawnSync } from 'node:child_process'
 import { mkdirSync, renameSync, rmSync, readdirSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -60,10 +60,28 @@ const CROP = 'crop=1000:760:0:30'
 const server = spawn('npm', ['run', 'preview', '--', '--port', String(PORT), '--strictPort'], {
   stdio: 'ignore', shell: true,
 })
+/*
+ * Synchronous, because an exit handler runs after the event loop has drained and
+ * an async spawn from inside one never starts. That mistake leaked 62 vite
+ * servers on this machine before anybody counted them. See tools/serve.mjs.
+ */
+let stopped = false
 const stop = () => {
-  if (server.pid) spawn('taskkill', ['/PID', String(server.pid), '/T', '/F'], { stdio: 'ignore', shell: true })
+  if (stopped || !server.pid) return
+  stopped = true
+  try {
+    spawnSync('taskkill', ['/PID', String(server.pid), '/T', '/F'], { stdio: 'ignore' })
+  } catch {
+    // Already gone. Never the error the caller sees.
+  }
 }
 process.on('exit', stop)
+for (const sig of ['SIGINT', 'SIGTERM']) {
+  process.on(sig, () => {
+    stop()
+    process.exit(130)
+  })
+}
 
 rmSync(WORK, { recursive: true, force: true })
 mkdirSync(WORK, { recursive: true })
