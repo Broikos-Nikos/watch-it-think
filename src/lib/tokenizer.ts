@@ -99,6 +99,34 @@ export function wordTokenize(text: string): string[] {
 }
 
 /**
+ * Whether there is anything here for the model, by this tokenizer's definition.
+ *
+ * The page used to decide with `el.input.value.trim() === ''`, and
+ * `String.prototype.trim` disagrees with Python in both directions, which broke
+ * two things at once.
+ *
+ * It strips **U+FEFF**, and the twenty lines above about the byte order mark
+ * exist because Python's `str.strip()` does not: a pasted sentence that has been
+ * through a file carries one, Python keeps it and turns it into a token, and
+ * `PY_SPACE` was built to match. Measured before this was fixed: "﻿hello"
+ * gave 2 positions, byte for byte identical to "hello", where Python gives 3. So
+ * the page was quietly correcting an input that the model was trained to see.
+ *
+ * And it does **not** strip U+0085 or U+001C to U+001F, which Python calls
+ * whitespace. An input of one of those survived the empty check, normalised away
+ * to nothing inside the tokenizer, and reached the model as `<cls>` alone. The
+ * page then printed a verdict, a race of six intents with bars, and twenty four
+ * flat squares captioned "strongest single link 100 percent": a full, confident
+ * answer to nothing.
+ *
+ * Asking the tokenizer is the only way to get both right, because the question
+ * is the tokenizer's question.
+ */
+export function hasWords(text: string): boolean {
+  return wordTokenize(normalize(text)).length > 0
+}
+
+/**
  * Whole word, contextual rules and all, because that is what `str.lower()` does.
  * See note 3 in the header before changing this.
  */
@@ -131,8 +159,34 @@ export interface Encoded {
   wordIndex: number[]
 }
 
+/**
+ * A printable stand in for a token that draws nothing.
+ *
+ * The word regex emits one token for any single code point that is not a
+ * letter, a digit, an underscore or Python whitespace, and that includes zero
+ * width joiners, variation selectors, U+200B, U+0000 and U+202E. Each one got
+ * its own chip on the page and each chip rendered as an empty sliver: the
+ * hostile stranger pass pasted a zero width space into "hello" and got "hel", a
+ * blank orange chip carrying the slot tag B-TOPIC with no word in front of it,
+ * and "lo". A tag attached to nothing visible.
+ *
+ * So anything with no ink in it is shown as its code point. The model still
+ * sees exactly what it saw; this is only what the reader is shown.
+ */
+// Written as escapes on purpose. The first version of this line was pasted
+// through a shell and arrived with a literal U+FEFF and U+200B to U+200F sitting
+// inside the character class: it worked, and the source contained six invisible
+// characters in a rule about invisible characters.
+const INVISIBLE = /^[\p{Cf}\p{Cc}\p{Zs}\p{Mn}\uFEFF\u200B-\u200F\u2028\u2029]+$/u
+
+export function visibleLabel(text: string): string {
+  if (text.length === 0 || !INVISIBLE.test(text)) return text
+  return [...text].map((c) => 'U+' + (c.codePointAt(0) ?? 0).toString(16).toUpperCase().padStart(4, '0')).join(' ')
+}
+
 export class Tokenizer {
   private readonly vocab: Map<string, number>
+  private reverse: Map<number, string> | null = null
   private readonly merges: Map<string, number>
   private readonly cache = new Map<string, number[]>()
   readonly unk: number
@@ -176,6 +230,23 @@ export class Tokenizer {
    * `check:tokenizer` holds the output to the Python tokenizer's, and
    * `check:input` holds the time.
    */
+  /**
+   * The vocabulary string for an id, for labelling rather than for decoding.
+   *
+   * The axis under the large field had one chip per position and every
+   * continuation piece read `..`, so a sentence containing a long word became
+   * sixty four chips of which fifty nine said nothing. The caption says "rows
+   * are the token doing the looking" and there was no way to tell which token
+   * any row was. The pieces are right here in the vocabulary.
+   *
+   * Reversed lazily, because nothing needed it until the axis did and the map is
+   * four thousand entries.
+   */
+  tokenText(id: number): string {
+    if (!this.reverse) this.reverse = new Map([...this.vocab].map(([text, i]) => [i, text]))
+    return this.reverse.get(id) ?? UNK
+  }
+
   encodeWord(word: string): number[] {
     const key = lower(word)
     const hit = this.cache.get(key)

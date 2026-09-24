@@ -3,8 +3,13 @@ dist
 .DS_Store
 *.local
 
-# The fp32 graph is an intermediate. npm run capture of the model is
-# tools/export_onnx.py, and the page only ever loads the int8 one.
+# The fp32 graph is an intermediate: tools/export_onnx.py writes it and
+# tools/quantize.py reads it, and the page only ever loads the int8 one.
+#
+# This used to say "npm run capture of the model is tools/export_onnx.py",
+# written when there was no npm run capture. There is one now and it records the
+# page as a GIF, so the sentence pointed a reader at a real command that does
+# something else entirely.
 build-model/router.onnx
 build-model/
 

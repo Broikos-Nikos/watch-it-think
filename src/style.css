@@ -186,6 +186,39 @@ textarea:focus-visible {
   color: var(--faint);
 }
 
+/*
+ * The download, drawn under the words rather than beside them.
+ *
+ * `--progress` is set by boot() while the graph arrives and removed when it
+ * has. A background gradient rather than a child element, so nothing enters
+ * the layout when the download starts and nothing is removed from it when the
+ * download ends: the line is the same line, the same height, in the same
+ * place, before during and after. The audit that produced this finding also
+ * produced the layout one, and adding a bar that shifts the page down would
+ * have traded a stalled looking page for a jumping one.
+ *
+ * No transition. The value updates four times a second from real bytes, which
+ * is its own smoothness, and a width transition here would animate under
+ * prefers-reduced-motion unless separately guarded. The rule this project
+ * follows is that motion is opt in, not opt out.
+ *
+ * Neutral, not flame, and check:palette is why. The first version of this filled
+ * the bar with the accent and the gate named the selector: flame is reserved for
+ * the answer, the leader, focus and selection, because "the question is not how
+ * much orange there is, it is what the orange is pointing at". A download bar is
+ * furniture. It was the right call and I would have spent the accent on it.
+ */
+.status[role='progressbar'] {
+  padding: 0.35rem 0.5rem;
+  border-radius: 3px;
+  color: var(--text);
+  background-image: linear-gradient(
+    to right,
+    color-mix(in oklab, var(--text) 20%, transparent) var(--progress, 0%),
+    color-mix(in oklab, var(--text) 6%, transparent) var(--progress, 0%)
+  );
+}
+
 .result {
   display: flex;
   flex-direction: column;

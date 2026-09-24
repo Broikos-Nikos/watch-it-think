@@ -74,6 +74,13 @@ guessing, and scored that way it gets 72.63% and says nothing on 834 of the
 word scores 74.98%, because most words carry no slot. 97.28% is good, and it is
 not as good as it looks next to the intent number.
 
+That baseline is the one number on this page that no command here reproduces: it
+was counted over the gold tags in the held out set, and that file is not
+distributed by this repository or by `bslm`. It is pinned in
+[`docs/upstream.json`](docs/upstream.json) with the file's sha256 and the method,
+and `npm run check:upstream` asserts that every percentage in this README is
+either rebuilt from `meta.json` or pinned there.
+
 Latency, int8, native onnxruntime at one thread, 200 repeats a length:
 
 | tokens | 6 | 14 | 32 | 64 |
@@ -133,7 +140,9 @@ Not one of them was written before the defect it exists for.
   either.** `meta.json` records their size and sha256 and says `obtainable:
   false` for both. You can check that you have the same files; you cannot get
   them from here. The int8 graph the page runs on *is* committed, so the
-  accuracy numbers can be reproduced from this clone alone.
+  accuracy numbers can be reproduced from this clone alone. The MIT licence
+  covers everything that is in this repository, that graph included. The
+  training checkpoint and the held out set are simply not distributed.
 - **A first visit is about 8.1 MB over the wire.** That is 19.8 MB of files,
   gzipped by the host: GitHub Pages compresses `application/wasm`, which was
   checked against a real response rather than assumed. Most of it is the
@@ -179,7 +188,7 @@ Before pushing:
 
 ```bash
 npx playwright install chromium   # once
-npm run verify    # ten browser gates against one shared server. About 70 seconds.
+npm run verify    # twelve browser gates against one shared server. About two minutes.
 ```
 
 The split is deliberate. The two used to be one command taking 87 seconds, of

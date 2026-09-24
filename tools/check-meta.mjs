@@ -130,6 +130,49 @@ if (q) {
   }
 }
 
+/*
+ * `config` describes the graph, and nothing in it describes the training run.
+ *
+ * It used to be the training config copied verbatim, which carries
+ * `dropout: 0.1`. An exported ONNX graph has no dropout in it at all, because
+ * dropout is a training time regulariser that leaves no node behind, so a reader
+ * of this file was told the shipped model has something it does not have, in a
+ * block where everything else is measured. The measurement audit put it as: the
+ * two fields that are transcribed look measured too.
+ *
+ * The value is kept under `trainingOnly`, because it is true of the run that
+ * produced the weights and somebody will want it. `tools/export_onnx.py` splits
+ * them on the same list.
+ */
+const TRAINING_ONLY = ['dropout']
+for (const k of TRAINING_ONLY) {
+  if (meta.config && k in meta.config) {
+    fail('config', `carries ${k}, which describes the training run and not the exported graph`)
+  }
+  if (!meta.trainingOnly || !(k in meta.trainingOnly)) {
+    fail('trainingOnly', `does not carry ${k}, so moving it out of config lost it`)
+  }
+}
+
+/*
+ * The project's central claim, in one place rather than four.
+ *
+ * "trained from random init" appears in meta.json, index.html's description,
+ * package.json and the router's docstring, sourced from one literal that no
+ * gate touched. Four copies of a claim drift one at a time, and this is the
+ * claim the whole repository rests on.
+ */
+const CLAIM = 'trained from random init'
+const carriers = ['index.html', 'package.json', 'src/lib/router.ts']
+if (!meta.source?.includes(CLAIM)) {
+  fail('source', `does not say "${CLAIM}", which is the claim this project rests on`)
+} else {
+  const silent = carriers.filter((f) => !readFileSync(resolve(root, f), 'utf8').includes(CLAIM))
+  if (silent.length > 0) {
+    fail('source', `meta.json says "${CLAIM}" and ${silent.join(', ')} ${silent.length === 1 ? 'does' : 'do'} not`)
+  }
+}
+
 if (problems.length > 0) {
   console.error('meta.json ships numbers without their method:\n')
   for (const p of problems) console.error(`  FAIL  ${p}`)

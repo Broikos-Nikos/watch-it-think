@@ -1,15 +1,16 @@
 # Build, gate, and publish the page.
 #
-# Nineteen gates, and all nineteen run here.
+# Twenty three gates, and all of them run here.
 #
-# `npm run build` runs nine of them before vite writes anything: every number in
+# `npm run build` runs eleven of them before vite writes anything: every number in
 # the README is checked against `meta.json`, the tokenizer is round tripped
 # against the Python that trained the model, the install scripts allowlist is
 # asserted, every font's licence is read out of its own binary, and the input
 # bounds are proved in TypeScript.
 #
-# The other ten need a served page and a real browser, so they run against the
-# built output in their own job, all ten against one server rather than ten.
+# The other twelve need a served page and a real browser, so they run against
+# the built output in their own job, in `npm run verify`, all twelve against one
+# server rather than twelve.
 # They exist because of specific regressions, each one recorded in the file that
 # gates it: a sentence typed during the download being overwritten by the sample,
 # a reduced motion check that sampled 900 ms after a 320 ms animation had
@@ -96,7 +97,7 @@ jobs:
       - run: npm run verify
 
   deploy:
-    # Only after all nineteen, and the only job holding the permissions that can
+    # Only after all of them, and the only job holding the permissions that can
     # publish anything. A page that looks broken on a healthy load must not
     # reach anyone just because the numbers happened to be right.
     needs: [build, verify]

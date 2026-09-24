@@ -25,6 +25,8 @@ import { serve } from './serve.mjs'
 const GATES = [
   'check:layout',
   'check:boot',
+  'check:progress',
+  'check:degraded',
   'check:draw',
   'check:announce',
   'check:keyboard',

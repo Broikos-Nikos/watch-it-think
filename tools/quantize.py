@@ -160,6 +160,17 @@ def evaluate(session, tok, meta, rows):
 
     return {
         "n": n,
+        # Unrounded, kept beside the rounded one and never printed.
+        #
+        # `delta` used to be the difference of two values that had already been
+        # rounded to two places, and `ship_int8` compared that to the budget.
+        # The measurement audit put it exactly: the true difference here is
+        # 74.5793 minus 74.5320, which is 0.0473 points and was reported as
+        # 0.05, so the rounding can move the decision quantity by up to 0.01 in
+        # either direction. It cannot change this outcome, where the cost is a
+        # twentieth of the budget, but a threshold is written to be trusted at
+        # the boundary and at the boundary it was not exact.
+        "intentAccuracyExact": (100 * intent_hits / n) if n else 0.0,
         "intentAccuracy": round(100 * intent_hits / n, 2) if n else 0.0,
         "tagAccuracy": round(100 * tag_hits / tag_total, 2) if tag_total else 0.0,
         "exactMatch": round(100 * both / n, 2) if n else 0.0,
@@ -336,14 +347,21 @@ def main() -> int:
             + "  ".join(f"T={b['tokens']} {b['medianMs']:.2f}" for b in r["byLength"])
         )
 
-    delta = round(results["int8"]["intentAccuracy"] - results["fp32"]["intentAccuracy"], 2)
+    # From the unrounded figures, rounded only for the report.
+    delta_exact = results["int8"]["intentAccuracyExact"] - results["fp32"]["intentAccuracyExact"]
+    delta = round(delta_exact, 2)
     shrink = round(fp32.stat().st_size / int8.stat().st_size, 2)
     print(f"\nint8 costs {-delta:+.2f} points of intent accuracy and is {shrink}x smaller")
 
-    ship_int8 = -delta <= ACCURACY_BUDGET
+    ship_int8 = -delta_exact <= ACCURACY_BUDGET
     print(
         f"budget is {ACCURACY_BUDGET} point, so shipping "
-        + ("int8" if ship_int8 else "fp32, and the README says why")
+        + (
+            "int8"
+            if ship_int8
+            else "fp32. Write why into README.md under The honest limits, "
+                 "beside the accuracy table, before that ships"
+        )
     )
 
     if results["fp32"]["unseenIntents"]:

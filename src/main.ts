@@ -1,6 +1,7 @@
 import './style.css'
-import { Router, topIntents, wordTags, type Prediction } from './lib/router'
-import { concentration, drawField, fieldAt, peak, type AttentionCube } from './lib/attention'
+import { Router, topIntents, wordTags, type Meta, type Prediction } from './lib/router'
+import { hasWords, visibleLabel } from './lib/tokenizer'
+import { concentration, cubePeak, drawField, fieldAt, peak, type AttentionCube } from './lib/attention'
 
 /**
  * The number under the box, which used to be one unwarmed sample to a tenth of
@@ -136,11 +137,31 @@ function render(p: Prediction) {
 
   drawRace(top)
 
+  /*
+   * textContent and a real element, not innerHTML with a string in it.
+   *
+   * `word` comes from the tokenizer running over whatever the visitor typed, so
+   * this was user input reaching innerHTML. Nothing exploitable was found, and
+   * the reason is an accident of the word regex rather than a defence: a single
+   * non word code point becomes its own token, so an injected tag arrives split
+   * across several chips in several spans. That is a property of a regex that
+   * exists for a different purpose, one edit away from not holding, and this
+   * costs two lines.
+   *
+   * `visibleLabel` handles the other half: a zero width space is its own token
+   * and rendered as an empty chip, and an empty chip can still be handed a slot
+   * tag. A tag attached to nothing visible is worse than no chip at all.
+   */
   el.tags.replaceChildren(
     ...wordTags(p, meta).map(({ word, tag }) => {
       const span = document.createElement('span')
       span.className = tag === 'O' ? 'word' : 'word word--slot'
-      span.innerHTML = `${word}${tag === 'O' ? '' : `<small>${tag}</small>`}`
+      span.textContent = visibleLabel(word)
+      if (tag !== 'O') {
+        const small = document.createElement('small')
+        small.textContent = tag
+        span.append(small)
+      }
       return span
     }),
   )
@@ -308,11 +329,26 @@ function cubeOf(p: Prediction): AttentionCube {
   }
 }
 
-/** The token at a position, or the marker for the sentence vector. */
+/**
+ * The token at a position, or the marker for the sentence vector.
+ *
+ * The first piece of a word shows the word as it was typed, so the axis lines
+ * up with the chips above it and keeps the original case. **Every other piece
+ * shows itself**, which it did not: continuations all read `..`, so
+ * `the hash is 9f86...a08 ok` gave sixty four chips of which fifty nine said
+ * nothing, and the axis is the only label the 520 pixel field has. The grid
+ * became unreadable exactly when it was fullest.
+ *
+ * Anything with no ink in it is shown as its code point, because a chip that
+ * renders as an empty sliver can still be handed a slot tag, and a tag attached
+ * to nothing visible is worse than no chip at all.
+ */
 function labelAt(p: Prediction, pos: number): string {
-  const w = p.tokens[pos]?.word ?? -1
   if (pos === 0) return 'cls'
-  return w >= 0 ? p.words[w] : '..'
+  const w = p.tokens[pos]?.word ?? -1
+  if (w >= 0) return visibleLabel(p.words[w])
+  const id = p.tokens[pos]?.id
+  return id === undefined ? '..' : visibleLabel(router?.tokenizer.tokenText(id) ?? '..')
 }
 
 function drawSelected(p: Prediction) {
@@ -362,6 +398,18 @@ function drawSelected(p: Prediction) {
 function drawAttention(p: Prediction) {
   const cube = cubeOf(p)
 
+  /*
+   * One scale for the whole grid, computed once.
+   *
+   * Every thumbnail used to divide by its own peak. Measured on the shipped
+   * graph for one sentence, the twenty four peaks ran from 0.267 to 0.999, and
+   * all twenty four rendered their hottest cell at full chroma, so the head that
+   * had learned almost nothing looked exactly as decisive as the head that had
+   * learned the most. The measurement audit put it as a chart whose panels have
+   * different y axes with no labels saying so.
+   */
+  const gridMax = cubePeak(cube)
+
   // Twenty four thumbnails, each a real field rather than an icon.
   const frag = document.createDocumentFragment()
   for (let layer = 0; layer < cube.layers; layer++) {
@@ -394,7 +442,10 @@ function drawAttention(p: Prediction) {
       c.height = 128
       const cx = c.getContext('2d')
       if (cx) {
-        drawField(cx, fieldAt(cube, layer, head), cube.positions, { hue: HEAT_HUE })
+        // One scale across all twenty four, so a dim head looks dim. The large
+        // canvas above keeps its own, because it is not being compared to
+        // anything beside it and its caption prints the strongest link outright.
+        drawField(cx, fieldAt(cube, layer, head), cube.positions, { hue: HEAT_HUE, max: gridMax })
       }
       // What this head is and how sharp it is, on the face of it.
       //
@@ -516,7 +567,9 @@ function drawAttention(p: Prediction) {
     `${cube.layers * cube.heads} fields for this sentence, one per layer and head. ` +
     `Every row sums to one, so a bright row is a token that made up its mind and a ` +
     `flat row is one that did not. The first position is the sentence vector, which ` +
-    `is what the intent is read from.`
+    `is what the intent is read from. All twenty four share one scale, so a faint ` +
+    `field really is a faint one, and the colour is the square root of the value ` +
+    `so the weak ones stay readable. The exact figure is on every label.`
 
   drawSelected(p)
   markAxis()
@@ -532,8 +585,16 @@ function markAxis() {
 
 async function think() {
   if (!router) return
-  const text = el.input.value.trim()
-  if (text === '') {
+  /*
+   * Untrimmed, deliberately. `String.prototype.trim` strips the byte order mark
+   * that this tokenizer was written to preserve, so the page was correcting an
+   * input the model was trained to see, and it leaves the characters Python
+   * calls whitespace and JavaScript does not, so an input of one of those got a
+   * full confident answer to nothing. `hasWords` asks the tokenizer instead,
+   * which is whose question it is.
+   */
+  const text = el.input.value
+  if (!hasWords(text)) {
     el.result.hidden = true
     el.status.textContent = 'type something'
     return
@@ -581,28 +642,121 @@ function wire() {
   }
 }
 
-async function boot() {
-  wire()
-  const started = performance.now()
-  try {
-    router = await Router.load()
-  } catch (err) {
-    el.status.textContent =
-      `The model did not load: ${(err as Error).message}. Reloading is worth a try.`
-    return
-  }
-  const loadMs = performance.now() - started
-  const m = router.meta
-  const q = m.quantisation
-
-  // The numbers stay, under the claim rather than instead of it. They are read
-  // from meta.json, so the page cannot say a parameter count the export did not
-  // produce.
+/**
+ * What the page can say about itself from `meta.json` alone.
+ *
+ * Called as soon as the 10 KB metadata lands, which is about a hundred
+ * milliseconds, rather than after the 5.28 MB graph. Two things follow. Every
+ * visitor reads the paragraph under the headline while the model downloads
+ * instead of looking at a blank, and a visitor whose download fails still gets
+ * a page that describes itself, which is the finding the hostile stranger pass
+ * made twice, two days apart.
+ */
+function describe(m: Meta) {
   el.standfirst.textContent =
     `${m.parameters.toLocaleString('en-US')} parameters, trained from nothing, ` +
     `${m.config.n_layers} layers and ${m.config.n_heads} attention heads. ` +
     `It decides which of ${m.intents.length} things you are asking for, on your ` +
     `machine, and nothing you type leaves this page.`
+}
+
+/**
+ * The page when the model is not coming.
+ *
+ * The samples and the box stayed fully interactive and completely inert: every
+ * chip still looked like a button and answered nothing. Saying so is better
+ * than leaving a visitor to discover it by clicking.
+ */
+function inert(why: string) {
+  el.status.textContent = why
+  el.input.disabled = true
+  el.input.placeholder = 'the model did not load'
+  for (const b of el.samples.querySelectorAll('button')) b.disabled = true
+}
+
+async function boot() {
+  wire()
+
+  // The description first, from 10 KB, so the page is not blank for the length
+  // of a 5.28 MB download and is not blank for ever if that download fails.
+  // Deliberately not fatal on its own: if this is the request that is broken,
+  // the graph will fail next and say so properly.
+  try {
+    describe(await Router.loadMeta())
+  } catch {
+    // The load below reports it.
+  }
+
+  const started = performance.now()
+  try {
+    /*
+     * Say how far along the download is, in megabytes, while it happens.
+     *
+     * Measured on the live host the morning this published: 41.2 seconds to the
+     * first answer at 1.6 Mbit with 150 ms of latency, and for all of it the
+     * page said "loading the model" and nothing else. That string ships in
+     * index.html so it is there from first paint, which is better than nothing
+     * and is why the finding was corrected down from "no sign anything is
+     * happening". It is still three words that never move, and a visitor cannot
+     * tell a slow download from a stalled one by looking at a word.
+     *
+     * Throttled to four updates a second. The reader fires per chunk, which is
+     * hundreds of times a second on a fast connection, and rewriting textContent
+     * that often is work the page is doing instead of downloading. The
+     * arithmetic is in bytes and only the display is throttled, so the last
+     * update is always exact.
+     */
+    let painted = 0
+    router = await Router.load('./model/', (received, total) => {
+      const now = performance.now()
+      const done = received >= total
+      if (!done && now - painted < 250) return
+      painted = now
+      const mb = (n: number) => (n / 1e6).toFixed(1)
+      el.status.textContent = done
+        ? `${mb(total)} MB of model downloaded, starting it`
+        : `downloading the model, ${mb(received)} of ${mb(total)} MB`
+      el.status.setAttribute('role', 'progressbar')
+      el.status.setAttribute('aria-valuemin', '0')
+      el.status.setAttribute('aria-valuemax', String(total))
+      el.status.setAttribute('aria-valuenow', String(received))
+      // The bar is the background of the line rather than a second element, so
+      // nothing moves when it appears and nothing is left behind when it goes.
+      el.status.style.setProperty('--progress', `${((received / total) * 100).toFixed(1)}%`)
+    })
+  } catch (err) {
+    inert(`The model did not load: ${(err as Error).message}. Reloading is worth a try.`)
+    return
+  } finally {
+    /*
+     * The line stops being a progress bar whatever happened, and `finally` is
+     * the whole point of this block.
+     *
+     * These four lines used to sit after the `await` inside the `try`, so a
+     * throw skipped them. Going offline mid download then wrote "The model did
+     * not load" into an element still carrying `role="progressbar"` and
+     * `aria-valuenow="5284077"`, and a screen reader was told a completed
+     * progress bar while the text inside it said the opposite. The hostile
+     * stranger pass found it by pulling the network out three hours after I
+     * wrote it.
+     *
+     * `aria-valuemax` and `aria-valuemin` are here too, and they were missing
+     * from the original cleanup on the success path as well: a line that is no
+     * longer a progress bar was still carrying two of a progress bar's values.
+     */
+    for (const a of ['role', 'aria-valuemin', 'aria-valuemax', 'aria-valuenow']) {
+      el.status.removeAttribute(a)
+    }
+    el.status.style.removeProperty('--progress')
+  }
+  const loadMs = performance.now() - started
+  const m = router.meta
+  const q = m.quantisation
+
+  // The numbers stay, under the claim rather than instead of it. Written from
+  // meta.json alone, so it is already on the page by the time the graph starts
+  // arriving. See describe().
+  describe(m)
 
   // The sentence about the split used to be a string literal, printed whatever
   // file had been evaluated, including the training set. The quantiser now
@@ -628,8 +782,32 @@ async function boot() {
       `of them and scores ${a.intentAccuracy}%.`
     : ''
 
+  /*
+   * What this visit cost this visitor, measured, not recorded.
+   *
+   * This line used to print `q.bytesInt8`, which is meta.json's record of the
+   * int8 graph **on disk**, under the words "over the wire". Measured against
+   * the live host on the day it published: that file arrives as 4.33 MB, gzipped
+   * by GitHub Pages, and a first visit is 8.23 MB across ten requests. So the
+   * sentence overstated the file by 22 percent and understated the visit by 35.
+   *
+   * The README's version of the same claim was right the whole time, because
+   * check:weight holds it against a measurement. The page's version was never
+   * gated. The measurement existed and the gate existed and neither was pointed
+   * here.
+   *
+   * `encodedBodySize` is what came down the wire after compression, per
+   * resource, and everything this page loads is same origin so none of them are
+   * zeroed. Adding it up makes the number true on every connection for the same
+   * reason `loadMs` beside it is true on every connection: nothing is stored,
+   * so nothing can go stale.
+   */
+  const wireBytes =
+    performance.getEntriesByType('resource').reduce((sum, r) => sum + ((r as PerformanceResourceTiming).encodedBodySize || 0), 0) +
+    ((performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)?.encodedBodySize ?? 0)
+
   el.footer.textContent = q
-    ? `${(q.bytesInt8 / 1e6).toFixed(2)} MB over the wire, ${loadMs.toFixed(0)} ms to load. ` +
+    ? `${(wireBytes / 1e6).toFixed(2)} MB over the wire, ${loadMs.toFixed(0)} ms to load. ` +
       `Intent accuracy ${q.int8.intentAccuracy}% on ${q.rowsEvaluated.toLocaleString('en-US')} ` +
       `held out sentences, against ${q.fp32.intentAccuracy}% before quantisation.` +
       both +

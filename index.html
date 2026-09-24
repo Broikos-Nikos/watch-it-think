@@ -40,6 +40,30 @@
       <p class="status" data-status>loading the model</p>
 
       <!--
+        And the one case where "loading the model" is a lie.
+
+        With javascript off nothing here ever runs, so that line would say
+        loading for as long as the visitor stayed, and it is told to exactly the
+        people most likely to have turned scripts off deliberately. The hostile
+        stranger pass found it on 21 September and again on the 23rd.
+
+        It replaces the status line rather than sitting beside it, because two
+        sentences that contradict each other are worse than either.
+      -->
+      <noscript>
+        <style>
+          [data-status] { display: none }
+        </style>
+        <p class="status" data-noscript>
+          This page runs a five million parameter model in your browser, so it
+          needs javascript to do anything at all. Nothing is sent anywhere
+          either way: the model runs on your machine anyway, which is the whole
+          point of it. The training code and the numbers are at
+          <a href="https://github.com/Broikos-Nikos/bslm">github.com/Broikos-Nikos/bslm</a>.
+        </p>
+      </noscript>
+
+      <!--
         What a screen reader is told. Polite, atomic, and written once per
         settled prediction rather than per keystroke: the intent, its
         confidence, the arguments it pulled out, and what the attention grid

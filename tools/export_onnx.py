@@ -48,6 +48,11 @@ PARITY_TOLERANCE = 1e-4
 ROW_SUM_TOLERANCE = 1e-5
 
 
+# Keys in the training config that describe the training run rather than the
+# graph. Anything here is moved out of `config` and into `trainingOnly`.
+TRAINING_ONLY = {"dropout"}
+
+
 def attention_from_weights(sd, cfg, ids, cases, layer, head):
     """Recompute one attention field from the raw weights, in numpy.
 
@@ -492,7 +497,18 @@ def main() -> int:
             "vocabulary": describe(repo / "checkpoints" / "tokenizer.json", repo),
         },
         "parameters": int(sum(v.numel() for v in ck["model"].values())),
-        "config": cfg,
+        # The architecture the graph has, and only that.
+        #
+        # This used to be `cfg` verbatim, which carries `dropout` from the
+        # training run. An exported graph has no dropout in it at all: it is a
+        # training time regulariser and it leaves no node behind. A reader of
+        # meta.json was told the shipped model has dropout 0.1, and it has none,
+        # sitting in a block where everything else is measured. The measurement
+        # audit's line: the two fields that are transcribed look measured too.
+        "config": {k: v for k, v in cfg.items() if k not in TRAINING_ONLY},
+        # Kept rather than dropped, because it is true of the run that produced
+        # the weights and somebody will want it. Named for what it describes.
+        "trainingOnly": {k: v for k, v in cfg.items() if k in TRAINING_ONLY},
         "maxLen": max_len,
         "intents": intents,
         "slotTags": tags,

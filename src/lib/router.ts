@@ -160,7 +160,32 @@ export class Router {
     readonly meta: Meta,
   ) {}
 
-  static async load(base = './model/'): Promise<Router> {
+  /**
+   * @param onProgress called with the bytes of the graph that have arrived and
+   *   the bytes expected. Both are uncompressed, and that is deliberate: see
+   *   the comment on `total` below.
+   */
+  /**
+   * Just the description, without the 5.28 MB.
+   *
+   * `meta.json` is 10 KB and arrives in a hundred milliseconds. Everything the
+   * page says about itself before a sentence is typed, the parameter count, the
+   * layers, the heads, the intent count, comes out of it, and until now all of
+   * it waited for the graph. So the page spent the whole download with an empty
+   * paragraph under its headline, and if the graph never arrived it stayed empty
+   * for ever: the hostile stranger pass found a page that had forgotten how to
+   * describe itself, twice, two days apart.
+   */
+  static async loadMeta(base = './model/'): Promise<Meta> {
+    const res = await fetch(new URL(base + 'meta.json', document.baseURI).href)
+    if (!res.ok) throw new Error(`meta.json did not arrive (${res.status})`)
+    return (await res.json()) as Meta
+  }
+
+  static async load(
+    base = './model/',
+    onProgress?: (received: number, total: number) => void,
+  ): Promise<Router> {
     const url = (name: string) => new URL(base + name, document.baseURI).href
     const [metaRes, tokRes] = await Promise.all([fetch(url('meta.json')), fetch(url('tokenizer.json'))])
     if (!metaRes.ok || !tokRes.ok) {
@@ -169,7 +194,53 @@ export class Router {
     const meta = (await metaRes.json()) as Meta
     const tokenizer = new Tokenizer((await tokRes.json()) as TokenizerData)
 
-    const session = await ort.InferenceSession.create(url('router.int8.onnx'), {
+    /*
+     * The graph is fetched here rather than by onnxruntime, for one reason:
+     * `InferenceSession.create(url)` fetches it internally and reports nothing,
+     * so the page could not say how far along it was.
+     *
+     * Measured on the live host, this download is 41.2 seconds at 1.6 Mbit,
+     * which is a phone on a train, and for all of it the page said "loading the
+     * model" and nothing else. Three static words cannot distinguish a download
+     * in progress from one that has stalled.
+     *
+     * `total` comes from meta.json rather than from Content-Length, and the
+     * difference matters. GitHub Pages sends this file gzipped, so
+     * Content-Length is the compressed size, 4,331,506 bytes, while the stream
+     * below yields the decompressed bytes, 5,284,077. Dividing one by the other
+     * runs the bar to 122 percent and then stops. `bytesInt8` is what the
+     * quantiser recorded and it is exactly what the reader will deliver.
+     */
+    const total = meta.quantisation?.bytesInt8 ?? 0
+    const res = await fetch(url('router.int8.onnx'))
+    if (!res.ok) throw new Error(`the graph did not arrive (${res.status})`)
+
+    let graph: Uint8Array
+    if (res.body && total > 0 && onProgress) {
+      const reader = res.body.getReader()
+      const chunks: Uint8Array[] = []
+      let received = 0
+      onProgress(0, total)
+      for (;;) {
+        const { done, value } = await reader.read()
+        if (done) break
+        chunks.push(value)
+        received += value.length
+        onProgress(received, total)
+      }
+      graph = new Uint8Array(received)
+      let at = 0
+      for (const c of chunks) {
+        graph.set(c, at)
+        at += c.length
+      }
+    } else {
+      // No reader, no recorded size, or nobody listening: one allocation and no
+      // progress, which is what this did before and is still correct.
+      graph = new Uint8Array(await res.arrayBuffer())
+    }
+
+    const session = await ort.InferenceSession.create(graph, {
       executionProviders: ['wasm'],
       graphOptimizationLevel: 'all',
     })
@@ -178,7 +249,20 @@ export class Router {
 
   async run(text: string): Promise<Prediction> {
     const { words, ids, cases, wordIndex } = this.tokenizer.encodeText(text, this.meta.maxLen)
-    if (ids.length === 0) {
+    /*
+     * Words, not ids, and the difference is a whole screen of confident output.
+     *
+     * An input that normalises away to nothing still produces one id, the `<cls>`
+     * token, so `ids.length === 0` never fired for it. The hostile stranger pass
+     * pasted a single U+0085, which Python calls whitespace and JavaScript does
+     * not, and got a verdict, a race of six intents with bars, an empty tag box,
+     * and twenty five flat squares captioned "strongest single link 100
+     * percent". The page was answering a sentence that did not exist.
+     *
+     * The page guards this too, with `hasWords`, and this is here as well
+     * because a caller that forgets should get an error rather than a picture.
+     */
+    if (words.length === 0) {
       throw new Error('nothing to run on')
     }
 

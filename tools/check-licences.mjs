@@ -45,15 +45,63 @@ if (!existsSync(resolve(root, 'LICENSE'))) {
   fail('there is no LICENSE file', "GitHub reads the file, not the prose, and shows nothing without it")
 } else {
   const text = readFileSync(resolve(root, 'LICENSE'), 'utf8')
-  if (!/MIT License/.test(text) || !/Nikos Broikos/.test(text)) {
-    fail('the LICENSE file does not name MIT and the copyright holder')
-  } else if (!/model weights are not distributed/i.test(text)) {
+
+  /*
+   * The file is the unmodified MIT text, and this gate used to require that it
+   * was not.
+   *
+   * It asserted a sentence saying the model weights are excluded, which was
+   * added in good faith and did two things nobody checked. GitHub's classifier
+   * reads the whole file and will not name a licence it does not recognise, so
+   * three appended lines turned the sidebar from MIT into "NOASSERTION" on the
+   * day this published, while `tokenlab`, with the same text unmodified, showed
+   * MIT. And the sentence said the weights "are not in this repository" while
+   * `public/model/router.int8.onnx` sat five megabytes away in the same tree.
+   *
+   * So the exclusion moves to the README, which already drew the distinction
+   * the LICENSE lost, and this compares against the canonical text. The
+   * previous gate is the reason this one exists: it checked that a sentence was
+   * present and never asked what the sentence did to the file it was in.
+   */
+  const MIT_OPENING = 'MIT License'
+  const MIT_BODY = [
+    'Permission is hereby granted, free of charge, to any person obtaining a copy',
+    'The above copyright notice and this permission notice shall be included in all',
+    'THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR',
+    'OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE',
+    'SOFTWARE.',
+  ]
+  const flat = text.replace(/\s+/g, ' ').trim()
+  const missing = MIT_BODY.filter((line) => !flat.includes(line.replace(/\s+/g, ' ')))
+  // Everything after the closing word is an addition, and an addition is what
+  // stops the classifier.
+  const trailing = text.slice(text.indexOf('SOFTWARE.') + 'SOFTWARE.'.length).trim()
+
+  if (!text.startsWith(MIT_OPENING) || missing.length > 0) {
+    fail(`the LICENSE is not the MIT text, ${missing.length} of its clauses are missing or altered`)
+  } else if (!/Nikos Broikos/.test(text)) {
+    fail('the LICENSE does not name the copyright holder')
+  } else if (trailing.length > 0) {
     fail(
-      'the LICENSE does not say the weights are excluded',
-      'the one thing in this project it does not cover is the thing people would assume it does',
+      `there are ${trailing.length} characters appended after the MIT text`,
+      'GitHub will not classify a licence file it does not recognise, so the sidebar shows ' +
+        'NOASSERTION and the repository reads as unlicensed: ' +
+        JSON.stringify(trailing.slice(0, 60)),
     )
   } else {
-    console.log('  ok      LICENSE is MIT, names the holder, and excludes the weights')
+    console.log('  ok      LICENSE is the unmodified MIT text and names the holder')
+  }
+
+  // The exclusion still has to be stated, in the place that can carry a nuance
+  // a licence file cannot: the int8 graph IS committed and the checkpoint and
+  // the test set are not.
+  if (!/not in this repository/i.test(readme) || !/int8 graph the page runs on \*is\* committed/i.test(readme)) {
+    fail(
+      'the README no longer says which model files are here and which are not',
+      'that distinction left the LICENSE because it was wrong there, so it has to be right here',
+    )
+  } else {
+    console.log('  ok      the README says what is committed and what is not')
   }
 }
 

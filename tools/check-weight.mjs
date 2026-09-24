@@ -78,6 +78,18 @@ try {
   await page.goto(BASE, { waitUntil: 'domcontentloaded' })
   await page.waitForFunction(() => !!document.querySelector('.word'), null, { timeout: 180_000 })
   await page.waitForTimeout(800)
+
+  // Read before the browser closes. The first version of this asked a closed
+  // page and died in the gate rather than in the thing the gate watches.
+  const pageSays = await page.evaluate(() => {
+    const text = document.querySelector('[data-footer]')?.textContent ?? ''
+    const m = text.match(/([\d.]+) MB over the wire/)
+    const received =
+      performance.getEntriesByType('resource').reduce((s, r) => s + (r.encodedBodySize || 0), 0) +
+      (performance.getEntriesByType('navigation')[0]?.encodedBodySize ?? 0)
+    return { printed: m ? Number(m[1]) : null, received: received / 1e6 }
+  })
+
   await browser.close()
 
   const rows = []
@@ -136,6 +148,35 @@ try {
     } else {
       console.log(`  ok      the README says ${claim} MB and the measurement is ${real.toFixed(2)} MB`)
     }
+  }
+
+  /*
+   * The page's own sentence, against what the page's own browser received.
+   *
+   * The footer says "N MB over the wire" and for twenty eight ticks N was
+   * meta.json's record of the int8 graph on disk. Nothing caught it, including
+   * this gate, which was busy holding the README to a measurement while the
+   * identical claim one file over went unchecked. The live host settled it:
+   * 4.33 MB for that file, 8.23 MB for the visit, and the page saying 5.28.
+   *
+   * The assertion is not against this gate's own total, which would be wrong
+   * twice over: under `vite preview` nothing is compressed, so the browser
+   * really does receive 19.8 MB and the page should say so. It is against what
+   * the browser recorded in the same load. "Print what you downloaded" is true
+   * on every host, needs no tolerance, and cannot drift.
+   */
+  if (pageSays.printed === null) {
+    failed++
+    console.error('FAIL  the page does not say what the visit cost over the wire')
+  } else if (Math.abs(pageSays.printed - pageSays.received) > 0.05) {
+    failed++
+    console.error(
+      `FAIL  the page says ${pageSays.printed} MB over the wire and its own browser received ` +
+        `${pageSays.received.toFixed(2)} MB`,
+    )
+    console.error('      a size on disk is not a size on the wire, and this host may compress')
+  } else {
+    console.log(`  ok      the page says ${pageSays.printed} MB over the wire and that is what it received`)
   }
 
   // The runtime is the whole download and it must be the compressible build.

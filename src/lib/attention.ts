@@ -57,6 +57,20 @@ export function peak(field: Field): number {
   return max
 }
 
+/**
+ * The largest value anywhere in the cube, so the small multiples share a scale.
+ *
+ * Computed once per cube and handed to all twenty four thumbnails. Without it
+ * each one divides by its own peak and a head whose strongest link is 0.267
+ * renders exactly as hot as one whose strongest link is 0.999, which erases the
+ * difference the grid exists to show.
+ */
+export function cubePeak(cube: AttentionCube): number {
+  let max = 0
+  for (const v of cube.raw) if (v > max) max = v
+  return max
+}
+
 export interface DrawOptions {
   /** Highlight one query row and one key column, or neither. */
   focus?: number | null
@@ -64,6 +78,22 @@ export interface DrawOptions {
   hue: number
   /** Leave a hairline between cells once they are big enough to see it. */
   grid?: boolean
+  /**
+   * What full chroma means. Defaults to this field's own peak.
+   *
+   * Pass the whole cube's peak for the small multiples and they become
+   * comparable; leave it out for the large canvas, where the caption prints the
+   * strongest link as a percentage and the field is not being compared to
+   * anything beside it.
+   *
+   * The measurement audit's line, and it is the right one: a grid of small
+   * multiples is a chart, and a chart whose panels have different y axes and no
+   * labels saying so is the standard example of an unfair comparison. Measured
+   * on the shipped graph for one sentence, the twenty four field peaks ran from
+   * 0.267 to 0.999, and every one of them rendered its hottest cell at full
+   * chroma.
+   */
+  max?: number
 }
 
 /**
@@ -118,6 +148,27 @@ export function oklchToRgb(L: number, C: number, hDeg: number): [number, number,
  * canvas can resolve. Two ramps per hue, because a focused row dims everything
  * off the cross to a quarter chroma.
  */
+/*
+ * The square root between the value and the ramp, and it is declared on the page.
+ *
+ * Both lightness and chroma are linear in the step, which was right while every
+ * panel was scaled to its own peak and reached the top of the ramp. With one
+ * scale across the cube it stopped being right: a head whose strongest link is 5
+ * percent against a peak of 94 draws at L 0.21 against a background of 0.18.
+ * Measured across the twenty four, peak luminance ran from 46 to 166, and the
+ * bottom six were near black squares whose structure could not be read. The
+ * shared scale made the grid honest and made a third of it unreadable in the
+ * same commit.
+ *
+ * On `check:draw`'s own sentence the dimmest panel went from **40 to 75** when
+ * the curve went in, which is the pair the gate's floor sits between.
+ *
+ * `sqrt` maps 0.053 to 0.23 and 0.94 to 0.97, so the order is preserved exactly
+ * and every panel stays comparable. The exact figure is printed on every label
+ * and in the caption, so nothing is lost to the curve, and the caption says the
+ * curve is there: an undeclared transform on a heat map is the other kind of
+ * dishonest.
+ */
 const RAMP_STEPS = 256
 const ramps = new Map<number, { normal: Uint8ClampedArray; dim: Uint8ClampedArray }>()
 
@@ -163,36 +214,89 @@ export function drawField(
 ): void {
   const { width, height } = ctx.canvas
   const cell = Math.min(width, height) / positions
-  const max = peak(field) || 1
   const { focus = null, hue, grid = false } = options
+  const max = options.max || peak(field) || 1
 
   ctx.clearRect(0, 0, width, height)
 
   const { normal, dim } = rampFor(hue)
-  const sctx = scratchCtx(positions)
-  const img = sctx.createImageData(positions, positions)
+
+  /*
+   * How many pixels the field is drawn into, which decides whether this is an
+   * upscale or a downscale, and they need different treatment.
+   *
+   * The large canvas is always an upscale: 520 pixels for at most 64 cells, so
+   * one source pixel per cell scaled with smoothing off is exact.
+   *
+   * The thumbnails are 128 wide at device scale for up to 64 cells, and the
+   * deep review found what happens past the point where they are not. Drawing
+   * one pixel per cell and letting `drawImage` scale it down with smoothing off
+   * is **point sampling**: at 61 cells into 44 pixels it reads 44 rows and 44
+   * columns and never touches the other 17 of each, so 48 percent of the field
+   * is not drawn. Measured on the real page at 61 tokens, 10 of the 24
+   * thumbnails had a lower maximum than the head they claim to show.
+   *
+   * The fix is to pool rather than to sample, and **max** rather than mean.
+   * Averaging would keep every cell but divide a lone strong link by the size
+   * of its block, so the honest picture of "somewhere in here is a strong link"
+   * becomes a faint one. These thumbnails exist to be scanned for exactly that.
+   * Max pooling keeps every peak at full strength, drops nothing, and makes the
+   * gate a real invariant rather than a tolerance: each thumbnail's maximum is
+   * its own field's maximum, at any number of tokens.
+   */
+  const drawn = Math.max(1, Math.round(positions * cell))
+  const pooled = drawn < positions
+  const size = pooled ? drawn : positions
+  const sctx = scratchCtx(size)
+  const img = sctx.createImageData(size, size)
   const px = img.data
 
-  for (let q = 0; q < positions; q++) {
-    const rowFocused = focus !== null && q === focus
-    for (let k = 0; k < positions; k++) {
-      const v = field.values[q * positions + k] / max
-      const o = (q * positions + k) * 4
-      if (v <= 0.002) continue
+  const paint = (o: number, v: number, ramp: Uint8ClampedArray) => {
+    if (v <= 0.002) return
+    const shown = v >= 1 ? 1 : Math.sqrt(v)
+    const step = (shown * (RAMP_STEPS - 1)) | 0
+    px[o] = ramp[step * 3]
+    px[o + 1] = ramp[step * 3 + 1]
+    px[o + 2] = ramp[step * 3 + 2]
+    px[o + 3] = 255
+  }
 
-      const step = v >= 1 ? RAMP_STEPS - 1 : (v * (RAMP_STEPS - 1)) | 0
-      const ramp = focus !== null && !rowFocused && k !== focus ? dim : normal
-      px[o] = ramp[step * 3]
-      px[o + 1] = ramp[step * 3 + 1]
-      px[o + 2] = ramp[step * 3 + 2]
-      px[o + 3] = 255
+  if (!pooled) {
+    for (let q = 0; q < positions; q++) {
+      const rowFocused = focus !== null && q === focus
+      for (let k = 0; k < positions; k++) {
+        const v = field.values[q * positions + k] / max
+        const ramp = focus !== null && !rowFocused && k !== focus ? dim : normal
+        paint((q * positions + k) * 4, v, ramp)
+      }
     }
+  } else {
+    // One pass over every cell, each one folded into the destination pixel it
+    // lands in. Every cell is read exactly once, which is the whole point, and
+    // it is cheaper than the per pixel gather it replaces.
+    const best = new Float32Array(size * size)
+    const bestDim = new Uint8Array(size * size)
+    for (let q = 0; q < positions; q++) {
+      const dq = ((q * size) / positions) | 0
+      const rowFocused = focus !== null && q === focus
+      for (let k = 0; k < positions; k++) {
+        const v = field.values[q * positions + k] / max
+        const d = dq * size + (((k * size) / positions) | 0)
+        if (v > best[d]) {
+          best[d] = v
+          // The dimming follows the cell that won, so a focused row still reads
+          // as the bright one at thumbnail size.
+          bestDim[d] = focus !== null && !rowFocused && k !== focus ? 1 : 0
+        }
+      }
+    }
+    for (let d = 0; d < best.length; d++) paint(d * 4, best[d], bestDim[d] ? dim : normal)
   }
 
   sctx.putImageData(img, 0, 0)
   const wasSmoothing = ctx.imageSmoothingEnabled
   ctx.imageSmoothingEnabled = false
-  ctx.drawImage(scratch!, 0, 0, positions, positions, 0, 0, positions * cell, positions * cell)
+  ctx.drawImage(scratch!, 0, 0, size, size, 0, 0, positions * cell, positions * cell)
   ctx.imageSmoothingEnabled = wasSmoothing
 
   if (grid && cell > 6) {

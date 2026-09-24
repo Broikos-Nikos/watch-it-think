@@ -1,0 +1,23 @@
+{
+  "what": "Numbers the README states that were measured against a file this repository does not distribute. Everything else in the README comes out of public/model/meta.json and is held to it by check:claims. These cannot be recomputed here, so they are pinned here instead: the file they came from, its hash, and the command that produced them. check:upstream asserts that every percentage in the README is either a meta.json claim or one of these, so a number cannot sit in prose unaccounted for again.",
+  "why": "Deleting a true and useful number to satisfy a rule about reproducibility is the wrong trade. A reader is better served by \"97.28 looks better than it is, the floor is 74.98\" than by 97.28 alone. What the rule is really for is that a number cannot drift silently, and pinning it here gets that without losing it.",
+  "recorded": "2026-09-23",
+  "numbers": [
+    {
+      "id": "tag-majority-baseline",
+      "value": "74.98%",
+      "says": "predicting O for every word scores this, because most words carry no slot",
+      "measuredAgainst": {
+        "path": "data/test.jsonl",
+        "repository": "https://github.com/Broikos-Nikos/bslm.git",
+        "commit": "50aafae",
+        "sha256": "e3828414e3dc3d4f94dd75dbdf45d2721c649bb84282fe0e51c77d98efc0f682",
+        "obtainable": false
+      },
+      "method": "Count the gold word tags in the evaluated rows and take the share that are O. 54,472 of 72,652, which is 74.98 percent. 39.64 percent of rows carry no non-O tag at all.",
+      "foundBy": "audits/watch-it-think-2026-09-21-measurement.md, finding F6",
+      "whyItIsHere": "meta.json records accuracy but not the tag distribution, so the baseline cannot be computed from anything this repository ships. Adding it to meta.json would mean re-running tools/quantize.py, which needs the checkpoint and the test set, and neither is obtainable.",
+      "closesIfEverObtainable": "tools/quantize.py evaluate() writes the tag distribution into meta.json, check:claims covers it, and this entry is deleted."
+    }
+  ]
+}
