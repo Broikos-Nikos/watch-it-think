@@ -96,11 +96,67 @@ try {
   const pageSays = await page.evaluate(() => {
     const text = document.querySelector('[data-footer]')?.textContent ?? ''
     const m = text.match(/([\d.]+) MB over the wire/)
+    // The same quantity the footer sums, recomputed here. This half only checks
+    // that the page's arithmetic is internally consistent; the half below checks
+    // it against the network stack, which is the independent one, and it exists
+    // because this one was the only check for a day and could not disagree.
     const received =
-      performance.getEntriesByType('resource').reduce((s, r) => s + (r.encodedBodySize || 0), 0) +
-      (performance.getEntriesByType('navigation')[0]?.encodedBodySize ?? 0)
+      performance.getEntriesByType('resource').reduce((s, r) => s + (r.transferSize || 0), 0) +
+      (performance.getEntriesByType('navigation')[0]?.transferSize ?? 0)
     return { printed: m ? Number(m[1]) : null, received: received / 1e6 }
   })
+
+  /*
+   * ---- and the second visit, against the network stack rather than the page --
+   *
+   * The assertion above compares the footer with `encodedBodySize` summed on the
+   * same page, which is the page's own formula recomputed. It cannot disagree
+   * with the footer, and it never meets a warm cache, so it was green while the
+   * page told every returning visitor that 8.24 MB had arrived when nothing had.
+   * The audit caught it by reloading, which this gate never did.
+   *
+   * So the second visit is measured from **outside the page**: CDP's
+   * `Network.loadingFinished` carries `encodedDataLength`, which is what the
+   * network stack actually received, and a cache hit contributes nothing to it.
+   * Two independent numbers rather than one number twice.
+   */
+  const warm = await (async () => {
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } })
+    const p1 = await ctx.newPage()
+    const cdp = await ctx.newCDPSession(p1)
+    await cdp.send('Network.enable')
+
+    let received = 0
+    cdp.on('Network.loadingFinished', (e) => { received += e.encodedDataLength ?? 0 })
+
+    const load = async (page) => {
+      await page.goto(BASE, { waitUntil: 'domcontentloaded' })
+      await page.waitForFunction(() => !!document.querySelector('.word'), null, { timeout: 180_000 })
+      await page.waitForTimeout(600)
+      return page.evaluate(() => (document.querySelector('[data-footer]')?.textContent ?? '').trim())
+    }
+
+    await load(p1)
+    received = 0
+    const second = await load(p1)
+    const measured = received
+    await ctx.close()
+    return { footer: second, received: measured }
+  })()
+
+  const printedWarm = Number(warm.footer.match(/([\d.]+) MB over the wire/)?.[1] ?? 0)
+  const receivedMb = warm.received / 1e6
+  if (Math.abs(printedWarm - receivedMb) > 0.35) {
+    failed++
+    console.error(
+      `FAIL  on a second visit the footer says ${printedWarm} MB over the wire and the network stack received ${receivedMb.toFixed(2)} MB`,
+    )
+    console.error('      encodedBodySize counts a cache hit; transferSize does not, and a visitor paid for neither')
+  } else {
+    console.log(
+      `  ok      a second visit: ${JSON.stringify(warm.footer.slice(0, 52))}, network stack received ${receivedMb.toFixed(2)} MB`,
+    )
+  }
 
   await browser.close()
 

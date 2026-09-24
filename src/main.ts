@@ -817,23 +817,40 @@ async function boot() {
    * gated. The measurement existed and the gate existed and neither was pointed
    * here.
    *
-   * `encodedBodySize` is what came down the wire after compression, per
-   * resource, and everything this page loads is same origin so none of them are
-   * zeroed. Adding it up makes the number true on every connection for the same
-   * reason `loadMs` beside it is true on every connection: nothing is stored,
-   * so nothing can go stale.
+   * `transferSize`, not `encodedBodySize`, and that was a correction.
+   *
+   * The first version of this summed `encodedBodySize`, which is a response's
+   * body size **wherever it came from**, cache included. The measurement audit
+   * reloaded the live page and found the footer still saying 8.24 MB when
+   * nothing had been fetched at all: "8.24 MB in 278 ms" is 237 Mbit/s, and the
+   * comment here used to claim that nothing is stored so nothing can go stale.
+   * The browser stores it. The host sends `Cache-Control: max-age=600`, so every
+   * return inside ten minutes printed a download that did not happen.
+   *
+   * `transferSize` is 0 for a cache hit and includes the response headers for
+   * everything else, which is what a visitor actually paid.
    */
   const wireBytes =
-    performance.getEntriesByType('resource').reduce((sum, r) => sum + ((r as PerformanceResourceTiming).encodedBodySize || 0), 0) +
-    ((performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)?.encodedBodySize ?? 0)
+    performance.getEntriesByType('resource').reduce((sum, r) => sum + ((r as PerformanceResourceTiming).transferSize || 0), 0) +
+    ((performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)?.transferSize ?? 0)
+
+  /*
+   * And when that is nothing, it says nothing rather than 0.00 MB, because a
+   * visit served entirely from cache is the interesting case: it is the whole
+   * argument for shipping a model to the browser rather than calling an API.
+   */
+  const cost =
+    wireBytes < 50_000
+      ? `nothing over the wire, served from your cache, ready in ${howLong(loadMs)}`
+      : `${(wireBytes / 1e6).toFixed(2)} MB over the wire, ${howLong(loadMs)} to load`
 
   el.footer.textContent = q
-    ? `${(wireBytes / 1e6).toFixed(2)} MB over the wire, ${howLong(loadMs)} to load. ` +
+    ? `${cost}. ` +
       `Intent accuracy ${q.int8.intentAccuracy}% on ${q.rowsEvaluated.toLocaleString('en-US')} ` +
       `held out sentences, against ${q.fp32.intentAccuracy}% before quantisation.` +
       both +
       floor
-    : `${howLong(loadMs)} to load.`
+    : `${cost}.`
 
   // The sample is an invitation, not an instruction. It is for the visitor who
   // waited out the download without touching anything; anyone who typed during

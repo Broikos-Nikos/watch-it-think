@@ -60,25 +60,77 @@ const FILES = ['.github/workflows/pages.yml', 'docs/PUBLISH.md', 'README.md']
 for (const file of FILES) {
   const text = readFileSync(resolve(root, file), 'utf8')
   const missing = []
-  // Near, in either order. The workflow says "`npm run build` runs ten of them"
-  // and the publish doc says "ten in `npm run build`". Both are correct English,
-  // and a gate that accepts only one word order is a gate about phrasing, which
-  // this repository has written three times and regretted three times.
+  /*
+   * Bound to its own phrase, not to anything within 120 characters of it.
+   *
+   * "Near, in either order" was written so the workflow could say "`npm run
+   * build` runs twelve of them" and the publish doc "twelve in `npm run
+   * build`". It bought that and gave the assertion away: with both counts at
+   * twelve, the verify number satisfied the build check and the build number
+   * satisfied the verify one. Measured in a scratch clone by the audit,
+   * `docs/PUBLISH.md` mutated to "eleven in `npm run build`" **passed**.
+   *
+   * Each number is read from the position it occupies now: directly before the
+   * phrase, or directly after it in "`npm run build` runs twelve of them".
+   */
   const flat = text.replace(/\s+/g, ' ')
-  const near = (n, phrase) => {
-    const w = word(n)
-    return (
-      new RegExp(`\\b${w}\\b[^.]{0,120}${phrase}`, 'i').test(flat) ||
-      new RegExp(`${phrase}[^.]{0,120}\\b${w}\\b`, 'i').test(flat)
-    )
+
+  /*
+   * Every number standing next to the phrase, not just one of them.
+   *
+   * Asking whether a correct sentence exists is not the same as asking whether
+   * an incorrect one does, and the difference is a file that says both. The
+   * README did: the opening paragraph said twelve and the command block below it
+   * said nine, and a gate looking for the right number found it and stopped.
+   * Restoring "nine file gates" passed.
+   *
+   * So this collects what the file claims and requires all of it to be right.
+   */
+  /*
+   * Within thirty characters either side, whatever the phrasing.
+   *
+   * The three real shapes in these files are "twelve in `npm run build`",
+   * "`npm run build` runs twelve of them" and "npm run build  # typecheck,
+   * twelve file gates". A pattern written for the first two missed the third,
+   * which is the one that was wrong, so the control restoring "nine file gates"
+   * passed twice before this line was widened. Shapes are not the thing; being
+   * next to the phrase is.
+   */
+  const NUMBER = '(' + WORDS.join('|') + ')'
+  const claims = (phrase) => {
+    const found = []
+    for (const re of [
+      // "twelve in `npm run build`"
+      new RegExp(`\\b${NUMBER}\\b[^.]{0,30}${phrase}`, 'gi'),
+      // "`npm run build` runs twelve of them"
+      new RegExp(`${phrase}[^.]{0,20}runs [^.]{0,12}\\b${NUMBER}\\b`, 'gi'),
+      // "npm run build  # typecheck, twelve file gates"
+      new RegExp(`${phrase}[^.]{0,30}\\b${NUMBER}\\b[^.]{0,12}gates?\\b`, 'gi'),
+    ]) {
+      for (const m of flat.matchAll(re)) found.push(m[1].toLowerCase())
+    }
+    return found
   }
 
-  // The README does not quote the total or the build count, only the browser
-  // one, so it is not held to numbers it never states.
-  const readmeOnly = file === 'README.md'
-  if (!readmeOnly && !new RegExp(`\\b${word(all)}\\b`, 'i').test(flat)) missing.push(`${word(all)}, the total`)
-  if (!readmeOnly && !near(buildGates, 'npm run build')) missing.push(`${word(buildGates)} near npm run build`)
-  if (!near(browserGates, 'npm run verify')) missing.push(`${word(browserGates)} near npm run verify`)
+  const states = (n, phrase) => {
+    const found = claims(phrase)
+    if (found.length === 0) return false
+    return found.every((f) => f === word(n))
+  }
+
+  /*
+   * Every file is held to every count, and the README was not.
+   *
+   * It was exempted on the premise that it "does not quote the total or the
+   * build count". It quoted the build count twice and both were wrong: "Eight
+   * gates run on every build" above a table of eight, three of which run only in
+   * verify, and "nine file gates" in the command block. The exemption then
+   * printed `ok README.md says twenty four, twelve in build and twelve in
+   * verify`, which was a sentence about the README that was not true of it.
+   */
+  if (!new RegExp(`\\b${word(all)}\\b`, 'i').test(flat)) missing.push(`${word(all)}, the total`)
+  if (!states(buildGates, 'npm run build')) missing.push(`${word(buildGates)} against npm run build`)
+  if (!states(browserGates, 'npm run verify')) missing.push(`${word(browserGates)} against npm run verify`)
 
   if (missing.length > 0) {
     failed++

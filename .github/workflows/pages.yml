@@ -8,9 +8,9 @@
 # asserted, every font's licence is read out of its own binary, and the input
 # bounds are proved in TypeScript.
 #
-# The other twelve need a served page and a real browser, so they run against
-# the built output in their own job, in `npm run verify`, all twelve against one
-# server rather than twelve.
+# The rest need a served page and a real browser, so they run in their own job
+# against the built output: twelve in `npm run verify`, sharing one server rather
+# than starting one each.
 # They exist because of specific regressions, each one recorded in the file that
 # gates it: a sentence typed during the download being overwritten by the sample,
 # a reduced motion check that sampled 900 ms after a 320 ms animation had
