@@ -39,11 +39,32 @@ const byLength = Object.fromEntries(int8.byLength.map((b) => [b.tokens, b.median
 /** A claim: what it is, the value the measurement gives, how the README spells it. */
 const claims = [
   ['parameter count', meta.parameters.toLocaleString('en-US')],
-  ['layers', String(meta.config.n_layers)],
-  ['heads', String(meta.config.n_heads)],
+  /*
+   * These four are held to the words the README puts around them, not to the
+   * digit, and the reason is worth the four lines.
+   *
+   * Measured on 2026-09-24: this file claimed `layers` as the bare string "6",
+   * checked with `includes`, and "6" occurs **19 times** in README.md. `heads`
+   * was "4", which occurs **23 times**. Rewrite the architecture paragraph to
+   * say 8 layers and 12 heads and both assertions would still have passed, in a
+   * gate whose whole purpose is that the README cannot describe a different
+   * model from the one in `meta.json`.
+   *
+   * Four of the twenty four claims here could not fail. A gate that cannot fail
+   * is not a weak gate, it is a comment that costs CI time.
+   *
+   * The decimals elsewhere in this list are safe by accident rather than by
+   * design: `chunkline` was swept at the same time and its four rates are four
+   * significant figures each, appearing exactly once. Accident is not a reason
+   * to leave this shape in place, since the next claim added might be an
+   * integer.
+   */
+  ['layers, as the architecture line says it', `${meta.config.n_layers} layers`],
+  ['heads, as the architecture line says it', `${meta.config.n_heads} attention heads`],
   ['vocabulary size', meta.config.vocab_size.toLocaleString('en-US')],
-  ['context length', String(meta.maxLen)],
-  ['intent count', String(meta.intents.length)],
+  ['context length, as the architecture line says it', `${meta.maxLen} token context`],
+  ['context length, where the limit is explained', `A ${meta.maxLen} token context`],
+  ['intent count, as the scope section says it', `${meta.intents.length} intents`],
   ['bytes over the wire', `${(q.bytesInt8 / 1e6).toFixed(2)} MB`],
   ['shrink factor', `${q.shrink} times smaller`],
   ['held out rows', q.rowsEvaluated.toLocaleString('en-US')],
