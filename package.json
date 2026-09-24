@@ -42,7 +42,8 @@
     "check:counts": "node tools/check-counts.mjs",
     "check:upstream": "node tools/check-upstream.mjs",
     "check:degraded": "node tools/check-degraded.mjs",
-    "check:source": "node tools/check-source.mjs"
+    "check:source": "node tools/check-source.mjs",
+    "check:licence": "node tools/check-licence.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.13.6",
