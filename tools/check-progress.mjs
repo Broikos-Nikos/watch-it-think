@@ -195,6 +195,38 @@ try {
     console.log('  ok      the line never moved, before, during or after')
   }
 
+  /*
+   * And the footer says how long it took in a unit a reader feels.
+   *
+   * It printed `loadMs.toFixed(0)` with "ms" after it, so the minute long
+   * download the hostile stranger pass measured was reported as "61452 ms to
+   * load". This is the only gate that makes the page take longer than a second
+   * to load, which is what makes the seconds branch reachable at all: driven at
+   * full speed the footer says "477 ms" and an assertion about seconds would
+   * pass without ever meeting the case it is about.
+   *
+   * The pluralisation half of the same finding, "1 positions", is not asserted
+   * anywhere and that is deliberate. One position means the model saw only
+   * `<cls>`, and an input that normalises to nothing is now refused before it
+   * reaches the model, so the page cannot produce that line any more. An
+   * assertion whose condition cannot occur is the defect this repository has
+   * written down five times.
+   */
+  const footer = ((await page.textContent('[data-footer]')) ?? '').trim()
+  if (/\b\d{4,} ms\b/.test(footer)) {
+    fail(
+      `the footer reports a slow load in raw milliseconds: ${JSON.stringify(footer.slice(0, 52))}`,
+      'milliseconds are the right unit for an inference and the wrong one for a download',
+    )
+  } else if (!/\d+(\.\d+)? seconds to load/.test(footer)) {
+    fail(
+      `this gate throttles to 8 Mbit and the footer still does not report seconds: ${JSON.stringify(footer.slice(0, 52))}`,
+      'if the load is under a second here then the throttle is not working and nothing else in this gate means anything',
+    )
+  } else {
+    console.log(`  ok      a slow load reads as ${JSON.stringify(footer.match(/[\d.]+ seconds to load/)?.[0] ?? '')}`)
+  }
+
   await context.close()
 
   /*

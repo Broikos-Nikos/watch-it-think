@@ -70,9 +70,21 @@ try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
 
   const asked = new Map()
+  const missing = []
   page.on('response', (r) => {
     const u = new URL(r.url())
     if (!asked.has(u.pathname)) asked.set(u.pathname, r.headers())
+    /*
+     * Nothing a visit asks for should be absent.
+     *
+     * Written for the favicon 404 that every load used to log, and it does not
+     * catch that one: measured, headless chromium never requests
+     * `/favicon.ico` at all, so no gate driving it can see that response. The
+     * audit saw it in a browser with a visible tab. The declaration is asserted
+     * in `check:first-screen` instead, which is the cause rather than the
+     * symptom, and this stays because it catches every other missing thing.
+     */
+    if (r.status() === 404) missing.push(u.pathname)
   })
 
   await page.goto(BASE, { waitUntil: 'domcontentloaded' })
@@ -177,6 +189,14 @@ try {
     console.error('      a size on disk is not a size on the wire, and this host may compress')
   } else {
     console.log(`  ok      the page says ${pageSays.printed} MB over the wire and that is what it received`)
+  }
+
+  if (missing.length > 0) {
+    failed++
+    console.error(`FAIL  a first visit asks for ${missing.length} thing${missing.length === 1 ? '' : 's'} that is not there: ${[...new Set(missing)].join(', ')}`)
+    console.error('      every one of those is a 404 in the console of a reader who came to check')
+  } else {
+    console.log(`  ok      nothing a first visit asks for is missing, across ${asked.size} requests`)
   }
 
   // The runtime is the whole download and it must be the compressible build.

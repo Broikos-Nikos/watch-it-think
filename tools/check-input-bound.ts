@@ -74,7 +74,7 @@ const cases: { name: string; text: string }[] = [
   { name: 'random latin, 32k', text: Array.from({ length: 32_000 }, () => String.fromCharCode(97 + ((Math.random() * 26) | 0))).join('') },
   { name: 'ordinary spaced text, 1 MB', text: ENGLISH.repeat(Math.ceil(1_000_000 / ENGLISH.length)) },
   { name: 'combining marks, 32k', text: 'a' + '́'.repeat(32_000) },
-  { name: 'no separators at all, 32k', text: '​'.repeat(32_000) },
+  { name: 'no separators at all, 32k', text: '\u200B'.repeat(32_000) },
   { name: 'punctuation only, 32k', text: '!'.repeat(32_000) },
 ]
 
@@ -283,7 +283,7 @@ if (cases.length < 8) {
 // mark all along. The page was stripping it before the tokenizer saw it, and
 // that is asserted in check:degraded where it can be driven through the box.
 // Both are here because the contract has two ends.
-const BOM = '﻿'
+const BOM = '\uFEFF'
 const withMark = tokenizer.encodeText(`${BOM}hello`, maxLen)
 const without = tokenizer.encodeText('hello', maxLen)
 if (withMark.ids.length === without.ids.length) {

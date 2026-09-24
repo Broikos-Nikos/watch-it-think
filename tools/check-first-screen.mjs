@@ -177,6 +177,31 @@ try {
     console.log(`  ok      the page headline says it too: ${JSON.stringify(h1)}`)
   }
 
+  /*
+   * The tab has an icon, so no browser asks for one that is not there.
+   *
+   * Every visit logged "Failed to load resource: 404 (favicon.ico)" before the
+   * visitor had done anything, and the first thing a suspicious reader does is
+   * open the console. This asserts the declaration rather than the 404, because
+   * headless chromium does not request `/favicon.ico` at all: measured, and the
+   * note is in `check:weight` where the obvious assertion would have gone and
+   * would have passed against the broken page.
+   */
+  const icon = await page.evaluate(() => {
+    const l = document.querySelector('link[rel~="icon"]')
+    return l ? { href: l.getAttribute('href').slice(0, 24), inline: l.getAttribute('href').startsWith('data:') } : null
+  })
+  if (!icon) {
+    fail(
+      'the document declares no icon, so every visit asks for /favicon.ico and gets a 404',
+      'the first thing a suspicious reader does is open the console',
+    )
+  } else if (!icon.inline) {
+    fail('the icon is a second request', 'an inline data URI costs nothing and cannot 404')
+  } else {
+    console.log(`  ok      the tab has an inline icon, ${JSON.stringify(icon.href)}...`)
+  }
+
   // On the device most people will open it on, the claim has to be visible
   // without scrolling.
   const visible = await page.evaluate(() => {

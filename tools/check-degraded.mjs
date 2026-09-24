@@ -161,7 +161,7 @@ try {
   // tokenizer.ts spends twenty lines on the byte order mark: Python's
   // str.strip() keeps it, so a sentence pasted out of a file carries one into
   // the model as a token, and PY_SPACE was built to match. The page then called
-  // String.prototype.trim, which does strip U+FEFF, so "﻿hello" reached the
+  // String.prototype.trim, which does strip U+FEFF, so "U+FEFF then hello" reached the
   // model byte for byte identical to "hello" where Python would have given one
   // position more. The tokenizer half of this is in check:input and it always
   // passed, because the tokenizer was never the broken end.
@@ -177,7 +177,7 @@ try {
       return (await page.evaluate(() => document.querySelectorAll('.axis-token').length))
     }
     const plain = await positionsFor('hello')
-    const marked = await positionsFor('﻿hello')
+    const marked = await positionsFor('\uFEFFhello')
 
     if (marked === plain) {
       fail(
@@ -221,7 +221,7 @@ try {
 
     // A zero width space between two letters: its own token, and it used to draw
     // an empty chip.
-    await page.fill('textarea', 'hel​lo there')
+    await page.fill('textarea', 'hel\u200Blo there')
     await page.waitForTimeout(1200)
     /*
      * Measured as rendered width, not as string length, and the first version of

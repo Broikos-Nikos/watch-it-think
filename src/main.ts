@@ -166,9 +166,15 @@ function render(p: Prediction) {
     }),
   )
 
+  /*
+   * Plural where it is plural. The page printed "1 positions" during the hostile
+   * stranger pass, on the line where it asks to be taken seriously about
+   * measurement.
+   */
+  const plural = (n: number, one: string, many = one + 's') => `${n} ${n === 1 ? one : many}`
   el.status.textContent =
-    `${p.dims.positions} positions, ${p.dims.layers} layers, ${p.dims.heads} heads, ` +
-    `${latency.report(p.ms)}`
+    `${plural(p.dims.positions, 'position')}, ${plural(p.dims.layers, 'layer')}, ` +
+    `${plural(p.dims.heads, 'head')}, ${latency.report(p.ms)}`
   el.result.hidden = false
 
   // The answer, the confidence, and the arguments, in a sentence rather than as
@@ -652,6 +658,21 @@ function wire() {
  * a page that describes itself, which is the finding the hostile stranger pass
  * made twice, two days apart.
  */
+/**
+ * A duration a reader can feel, rather than a number.
+ *
+ * The footer printed `loadMs.toFixed(0)` with "ms" after it, so the minute long
+ * download the hostile stranger pass measured was reported as **"61452 ms to
+ * load"**. On the connection the performance pass measured against the live
+ * host it would say "41203 ms". Milliseconds are the right unit for an
+ * inference and the wrong one for a download.
+ */
+function howLong(ms: number): string {
+  if (ms < 1000) return `${ms.toFixed(0)} ms`
+  const s = ms / 1000
+  return s < 10 ? `${s.toFixed(1)} seconds` : `${s.toFixed(0)} seconds`
+}
+
 function describe(m: Meta) {
   el.standfirst.textContent =
     `${m.parameters.toLocaleString('en-US')} parameters, trained from nothing, ` +
@@ -807,12 +828,12 @@ async function boot() {
     ((performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)?.encodedBodySize ?? 0)
 
   el.footer.textContent = q
-    ? `${(wireBytes / 1e6).toFixed(2)} MB over the wire, ${loadMs.toFixed(0)} ms to load. ` +
+    ? `${(wireBytes / 1e6).toFixed(2)} MB over the wire, ${howLong(loadMs)} to load. ` +
       `Intent accuracy ${q.int8.intentAccuracy}% on ${q.rowsEvaluated.toLocaleString('en-US')} ` +
       `held out sentences, against ${q.fp32.intentAccuracy}% before quantisation.` +
       both +
       floor
-    : `${loadMs.toFixed(0)} ms to load.`
+    : `${howLong(loadMs)} to load.`
 
   // The sample is an invitation, not an instruction. It is for the visitor who
   // waited out the download without touching anything; anyone who typed during

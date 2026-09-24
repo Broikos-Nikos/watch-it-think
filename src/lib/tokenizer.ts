@@ -108,7 +108,7 @@ export function wordTokenize(text: string): string[] {
  * It strips **U+FEFF**, and the twenty lines above about the byte order mark
  * exist because Python's `str.strip()` does not: a pasted sentence that has been
  * through a file carries one, Python keeps it and turns it into a token, and
- * `PY_SPACE` was built to match. Measured before this was fixed: "﻿hello"
+ * `PY_SPACE` was built to match. Measured before this was fixed: "U+FEFF then hello"
  * gave 2 positions, byte for byte identical to "hello", where Python gives 3. So
  * the page was quietly correcting an input that the model was trained to see.
  *

@@ -13,7 +13,7 @@
   "scripts": {
     "build": "tsc --noEmit && npm run check && vite build",
     "capture": "node tools/capture.mjs",
-    "check": "npm run check:authorship && npm run check:install && npm run check:palette && npm run check:licences && npm run check:claims && npm run check:tools && npm run check:tokenizer && npm run check:meta && npm run check:input && npm run check:upstream && npm run check:counts",
+    "check": "npm run check:authorship && npm run check:install && npm run check:palette && npm run check:licences && npm run check:claims && npm run check:tools && npm run check:tokenizer && npm run check:meta && npm run check:input && npm run check:upstream && npm run check:source && npm run check:counts",
     "check:announce": "node tools/check-announce.mjs",
     "check:attention": "node tools/check-attention.mjs",
     "check:authorship": "node tools/check-authorship.mjs",
@@ -41,7 +41,8 @@
     "verify": "node tools/verify.mjs",
     "check:counts": "node tools/check-counts.mjs",
     "check:upstream": "node tools/check-upstream.mjs",
-    "check:degraded": "node tools/check-degraded.mjs"
+    "check:degraded": "node tools/check-degraded.mjs",
+    "check:source": "node tools/check-source.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.13.6",
