@@ -120,6 +120,15 @@
           though that were the whole thing.
         -->
         <p class="cap-note" data-cap-note hidden></p>
+        <!--
+          WH-F10. Every emoji is outside a 4,000 token vocabulary built from
+          Greek and English assistant requests, so the model sees each one as
+          unknown, and some of them as two unknowns: the Greek flag is two
+          regional indicators, U+1F1EC and U+1F1F7, which draw as G and R when
+          they are apart. That is what the model is really given, and the page
+          drew it without a word of explanation until tick 168.
+        -->
+        <p class="cap-note" data-unknown-note hidden></p>
 
         <section class="attention" aria-label="Attention">
           <div class="attention-head">

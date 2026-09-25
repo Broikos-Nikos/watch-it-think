@@ -1,6 +1,6 @@
 import './style.css'
 import { Router, topIntents, wordTags, type Meta, type Prediction } from './lib/router'
-import { hasWords, visibleLabel } from './lib/tokenizer'
+import { hasWords, normalize, visibleLabel, wordTokenize } from './lib/tokenizer'
 import { concentration, cubePeak, drawField, fieldAt, peak, type AttentionCube } from './lib/attention'
 
 /**
@@ -34,6 +34,7 @@ const el = {
   samples: document.querySelector<HTMLElement>('[data-samples]')!,
   status: document.querySelector<HTMLElement>('[data-status]')!,
   capNote: document.querySelector<HTMLElement>('[data-cap-note]')!,
+  unknownNote: document.querySelector<HTMLElement>('[data-unknown-note]')!,
   result: document.querySelector<HTMLElement>('[data-result]')!,
   intent: document.querySelector<HTMLElement>('[data-intent]')!,
   confidence: document.querySelector<HTMLElement>('[data-confidence]')!,
@@ -114,6 +115,14 @@ let downloadAt: { received: number; total: number } | null = null
  * is CSS and the other is canvas, and check:palette holds them together.
  */
 const HEAT_HUE = 235
+
+/*
+ * Plural where it is plural. The page printed "1 positions" during the hostile
+ * stranger pass, on the line where it asks to be taken seriously about
+ * measurement. At module scope since tick 168, because the note about unknown
+ * tokens needs the same rule and two copies of a rule is how the two drift.
+ */
+const plural = (n: number, one: string, many = one + 's') => `${n} ${n === 1 ? one : many}`
 
 /**
  * Which of the twenty four fields is large, and which token is highlighted.
@@ -205,12 +214,6 @@ function render(p: Prediction) {
       `in the row above and the model never saw ${dropped === 1 ? 'it' : 'them'}.`
   }
 
-  /*
-   * Plural where it is plural. The page printed "1 positions" during the hostile
-   * stranger pass, on the line where it asks to be taken seriously about
-   * measurement.
-   */
-  const plural = (n: number, one: string, many = one + 's') => `${n} ${n === 1 ? one : many}`
   el.status.textContent =
     `${plural(p.dims.positions, 'position')}, ${plural(p.dims.layers, 'layer')}, ` +
     `${plural(p.dims.heads, 'head')}, ${latency.report(p.ms)}`
@@ -643,6 +646,62 @@ function markAxis() {
   })
 }
 
+/**
+ * How many characters the tokenizer cuts into more than one word.
+ *
+ * Asked of the rule itself rather than of a list of ranges: a grapheme cluster
+ * is run through `wordTokenize`, and if it comes back as more than one word the
+ * page says so. The Greek flag is two regional indicators, a skin toned thumb is
+ * a thumb and a swatch, and a family is several people joined by zero width
+ * joiners, and every one of those is several tokens to the model whatever the
+ * reader sees. `[^\w\s]` matches one code point at a time in Python too, so this
+ * is not the port drifting: it is what the model was given.
+ */
+function splitCharacters(text: string): number {
+  if (typeof Intl?.Segmenter !== 'function') return 0
+  let n = 0
+  for (const { segment } of new Intl.Segmenter('en', { granularity: 'grapheme' }).segment(text)) {
+    if (wordTokenize(segment).length > 1) n++
+  }
+  return n
+}
+
+/**
+ * The tokens the model has never seen, counted and said.
+ *
+ * WH-F10. This vocabulary is 4,000 tokens built from Greek and English
+ * assistant requests, so every emoji in it is `<unk>`: measured at tick 168, the
+ * fixture sentence with one smiling face in it is 1 unknown of 11 positions, the
+ * Greek flag alone is 2 of 3, and a skin toned thumb is 2 of 3, which is
+ * U+1F44D followed by U+1F3FD. The page drew those chips with no
+ * mark on them, so a visitor watched the model confidently resolve a sentence
+ * containing symbols it cannot read, and the two halves of the flag drew as G
+ * and R, which is a lie about their own text.
+ *
+ * Said rather than hidden or prettified: grouping the halves back together would
+ * make the page disagree with the token count beside it, and this page exists to
+ * show what the model is given.
+ */
+function sayUnknown(text: string, p: Prediction) {
+  const unknown = p.tokens.filter((t) => t.id === router!.tokenizer.unk).length
+  el.unknownNote.hidden = unknown === 0
+  if (unknown === 0) {
+    el.unknownNote.textContent = ''
+    return
+  }
+
+  const split = splitCharacters(normalize(text))
+  const vocab = router!.tokenizer.size.toLocaleString('en-US')
+  const halves =
+    split > 0
+      ? ` ${plural(split, 'character')} of yours ${split === 1 ? 'reaches' : 'reach'} it as more than one token, which is why ${split === 1 ? 'it is' : 'they are'} drawn in pieces.`
+      : ''
+
+  el.unknownNote.textContent =
+    `${plural(unknown, 'token')} here ${unknown === 1 ? 'is' : 'are'} outside the model's ` +
+    `${vocab} token vocabulary, so it sees ${unknown === 1 ? 'it' : 'them'} as unknown.${halves}`
+}
+
 async function think() {
   if (!router) {
     /*
@@ -679,7 +738,11 @@ async function think() {
     return
   }
   try {
-    render(await router.run(text))
+    const p = await router.run(text)
+    render(p)
+    /* With the text, not with `el.input.value`: the note is about the sentence
+       that was answered, and by the time this runs the box may hold another. */
+    sayUnknown(text, p)
   } catch (err) {
     el.status.textContent = `that did not run: ${(err as Error).message}`
   }

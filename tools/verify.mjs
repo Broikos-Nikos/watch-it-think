@@ -39,6 +39,7 @@ const GATES = [
   'check:cap',
   'check:queued',
   'check:raw',
+  'check:unknown',
 ]
 
 /*

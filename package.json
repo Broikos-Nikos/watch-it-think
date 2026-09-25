@@ -42,6 +42,7 @@
     "check:queued": "node tools/check-queued.mjs",
     "check:raw": "node tools/check-raw.mjs",
     "check:tokenizer": "tsx tools/check-tokenizer.ts",
+    "check:unknown": "tsx tools/check-unknown.ts",
     "check:tools": "node tools/check-tools.mjs",
     "check:weight": "node tools/check-weight.mjs",
     "dev": "vite",
