@@ -323,11 +323,35 @@ export function drawField(
 /**
  * How concentrated a field is, as a number between 0 and 1.
  *
- * One minus the normalised entropy of the average row. A head that sends every
- * token to the same place scores near 1; a head that spreads attention evenly
- * scores near 0. It is what the thumbnails are sorted and labelled by, so the
- * visitor can find the sharp heads without hunting through twenty four
+ * One minus the average of the per row normalised entropies. A head that sends
+ * every token to the same place scores near 1; a head that spreads attention
+ * evenly scores near 0. It is what the thumbnails are sorted and labelled by, so
+ * the visitor can find the sharp heads without hunting through twenty four
  * pictures.
+ *
+ * WDR-F4. This said "the normalised entropy of the average row" until tick 157,
+ * which is a different number and not a close one: entropy is concave, so
+ * averaging the rows first can only raise it, and the difference is the whole
+ * measurement. On "turn off the kitchen lights", against the shipped int8 graph:
+ *
+ *   L1H1   this      0.4330     the old sentence   0.0475
+ *   L1H4   this      0.5664     the old sentence   0.0831
+ *   L6H2   this      0.6897     the old sentence   0.4412
+ *   and the old sentence's number is lower in all 24 fields
+ *
+ * The arithmetic here is the one that shipped and the one that was published:
+ * the commit that introduced this field quotes "concentration 43 percent" for
+ * layer 1 head 1 and "69 percent" for layer 6 head 2, which are these numbers.
+ * So the sentence was the wrong half, and anyone reimplementing from it got a
+ * field an order of magnitude flatter: at layer 1 head 1 the code's number is
+ * nine times the sentence's.
+ *
+ * Averaging the rows first is also the wrong quantity for the question the page
+ * asks. A head where every token attends to a different single position is
+ * perfectly sharp, and its average row is flat: the old sentence scores that
+ * head near zero, and the picture on screen is a clean diagonal.
+ *
+ * `check:concentration` computes both and holds this function to this sentence.
  */
 export function concentration(field: Field, positions: number): number {
   if (positions < 2) return 1
