@@ -13,7 +13,7 @@
   "scripts": {
     "build": "tsc --noEmit && npm run check && vite build",
     "capture": "node tools/capture.mjs",
-    "check": "npm run check:authorship && npm run check:install && npm run check:palette && npm run check:licences && npm run check:claims && npm run check:tools && npm run check:tokenizer && npm run check:meta && npm run check:input && npm run check:upstream && npm run check:source && npm run check:counts && npm run check:deps && npm run check:concentration && npm run check:intent && npm run check:cost",
+    "check": "npm run check:authorship && npm run check:install && npm run check:palette && npm run check:licences && npm run check:claims && npm run check:tools && npm run check:tokenizer && npm run check:meta && npm run check:input && npm run check:upstream && npm run check:source && npm run check:counts && npm run check:deps && npm run check:concentration && npm run check:intent && npm run check:cost && npm run check:sigma",
     "check:announce": "node tools/check-announce.mjs",
     "check:attention": "node tools/check-attention.mjs",
     "check:authorship": "node tools/check-authorship.mjs",
@@ -28,6 +28,7 @@
     "check:intent": "node tools/check-intent.mjs",
     "check:cap": "node tools/check-cap.mjs",
     "check:cost": "tsx tools/check-tokenizer-cost.ts",
+    "check:sigma": "tsx tools/check-sigma.ts",
     "check:install": "node tools/check-install-scripts.mjs",
     "check:keyboard": "node tools/check-keyboard.mjs",
     "check:layout": "node tools/check-layout.mjs",

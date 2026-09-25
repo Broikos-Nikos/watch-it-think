@@ -7,11 +7,29 @@ words, the token ids, the case ids and the word index, exactly as
 `bslm/tokenizer.py` produces them.
 
 The sentences are the ones a port gets wrong. Real rows from the held out set
-for coverage, and then the cases where Python and JavaScript quietly disagree:
-upper case Greek, where JavaScript lower cases a final sigma and Python does
-not; words joined by the three apostrophes the pre-tokenizer accepts; digits and
-underscores, which Python's \\w includes and JavaScript's does not; and single
-characters, where the case rules have no second character to look at.
+for coverage, and then the cases where a port goes wrong: upper case Greek,
+where lowercasing the whole word gives a final sigma and lowercasing each code
+point separately does not; words joined by the three apostrophes the
+pre-tokenizer accepts; digits and underscores, which Python's \\w includes and
+JavaScript's does not; and single characters, where the case rules have no
+second character to look at.
+
+WDR-F9. Until tick 162 the first of those read "upper case Greek, where
+JavaScript lower cases a final sigma and Python does not". That is false in both
+directions, and it is the exact theory that broke the port. Measured, in both
+languages, on this machine:
+
+    'ΟΔΟΣ'.lower()        U+03BF U+03B4 U+03BF U+03C2    Python
+    'ΟΔΟΣ'.toLowerCase()  U+03BF U+03B4 U+03BF U+03C2    JavaScript
+    per code point, both  U+03BF U+03B4 U+03BF U+03C3
+    'Σ' alone, both       U+03C3
+
+Both languages apply the rule. What differs is the whole word against the code
+point, in either of them: the per character version produced ##σ where the model
+expects ##ς, which on this vocabulary are the adjacent ids 64 and 63. The
+comment asserting a difference between the languages had been written before
+anything was measured, and it survived the fix by living in this file, which is
+the one that generates the gate's expectations.
 """
 from __future__ import annotations
 
