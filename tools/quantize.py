@@ -38,6 +38,18 @@ PROJECT = HERE.parent
 
 ACCURACY_BUDGET = 1.0  # percentage points of intent accuracy
 
+# WDR-F10. The budget above is spent entirely on the intent, and the headline of
+# the page is the attention field, which nothing measured at all: the comment in
+# the quantising call argued the point away in words instead. This is the fourth
+# number, and it is about the picture rather than about the answer.
+#
+# The share of query rows whose strongest key moves between the two graphs, over
+# the same held out sentences. The deep reviewer measured roughly one row in
+# sixty on four sentences by hand, between 1.0 and 2.1 percent, with the largest
+# single cell moving 0.0184. Three percent is a ceiling well above that and well
+# under the point where a reader would see a different picture.
+ATTENTION_BUDGET = 3.0  # percent of query rows whose argmax may move
+
 # Every latency number here is taken at this thread count, and it is recorded
 # next to them. A timing without a thread count cannot be compared to anything.
 THREADS = 1
@@ -60,6 +72,58 @@ def load_rows(path: Path, limit: int | None):
             if limit and len(rows) >= limit:
                 break
     return rows
+
+
+def attention_drift(fp32_session, int8_session, tok, meta, rows, limit=200):
+    """What quantisation did to the field the page draws.
+
+    WDR-F10. The accuracy budget is spent on the intent, and the picture at the
+    top of the page had no number at all: the quantising call argued instead
+    that the field is untouched, which the shipped graph contradicts. Six
+    Softmax nodes stay in float arithmetic, and the qkv projection that produces
+    their scores is int8 with dynamically quantised inputs, so the field moves.
+
+    Two numbers, over the same held out sentences both graphs were scored on:
+    the largest single cell that moves, and the share of query rows whose
+    strongest key is a different token. The second is the one that matters,
+    because it is the row a reader follows across the picture.
+
+    Padding is excluded: the rows and keys past the sentence are not attention,
+    they are the mask, and including them would average the answer towards zero.
+    """
+    max_len = meta["maxLen"]
+    cells_max = 0.0
+    rows_changed = 0
+    rows_total = 0
+
+    for row in rows[:limit]:
+        words = row["words"]
+        if not words:
+            continue
+        ids, cases, _ = tok.encode(words, max_len)
+        feeds = {
+            "ids": np.array([ids], dtype=np.int64),
+            "cases": np.array([cases], dtype=np.int64),
+        }
+        a = fp32_session.run(None, feeds)[2]
+        b = int8_session.run(None, feeds)[2]
+        n = len(ids)
+        # [layer][batch][head][query][key], and only the real positions.
+        a = np.asarray(a)[:, :, :, :n, :n]
+        b = np.asarray(b)[:, :, :, :n, :n]
+        cells_max = max(cells_max, float(np.abs(a - b).max()))
+        moved = a.argmax(axis=-1) != b.argmax(axis=-1)
+        rows_changed += int(moved.sum())
+        rows_total += int(moved.size)
+
+    return {
+        "sentences": min(limit, len([r for r in rows if r["words"]])),
+        "queryRows": rows_total,
+        "argmaxMovedPercent": round(100 * rows_changed / rows_total, 2) if rows_total else 0.0,
+        "largestCellChange": round(cells_max, 4),
+        "note": "fp32 against int8 on the same held out sentences, padding excluded. "
+                "The share is of query rows whose strongest key is a different token.",
+    }
 
 
 def evaluate(session, tok, meta, rows):
@@ -320,9 +384,22 @@ def main() -> int:
         model_input=str(fp32),
         model_output=str(int8),
         weight_type=QuantType.QInt8,
-        # The attention output is a probability field the page draws. Quantising
-        # the activations around it would show up as banding in something a
-        # visitor is looking at directly, so only the weights are quantised.
+        # WDR-F10. This said "only the weights are quantised", which is not what
+        # this option does and not what the shipped graph contains. Measured on
+        # router.int8.onnx at tick 163, by counting distinct nodes:
+        #
+        #   27 DynamicQuantizeLinear and 27 MatMulInteger in the whole graph
+        #   27 activation tensors quantised at runtime, 6 of them inside attention
+        #   12 MatMuls inside attention stay float, two per block: the scores
+        #      Q.K and the values A.V, both of which have two dynamic inputs
+        #   12 are quantised, two per block: qkv and proj, the ones with weights
+        #   6 Softmax nodes, one per block, computed in float
+        #
+        # So MatMulConstBOnly keeps the field itself in float arithmetic, which
+        # was the intent, and the activations feeding the projections around it
+        # are quantised per tensor at runtime, which the old sentence denied.
+        # The field still moves, because the weights that produce the scores are
+        # int8: how much it moves is measured below rather than argued here.
         extra_options={"MatMulConstBOnly": True},
     )
     print(f"wrote {int8.name} ({int8.stat().st_size / 1e6:.1f} MB)")
@@ -341,6 +418,7 @@ def main() -> int:
           f"split {test_set['split']}, sha256 {test_set['sha256'][:12]}\n")
 
     results = {}
+    sessions = {}
     for name, path in (("fp32", fp32), ("int8", int8)):
         # Pinned to one thread. Not because it is faster, it is not, but
         # because a number produced by however many cores were idle at the time
@@ -350,6 +428,7 @@ def main() -> int:
         opts.intra_op_num_threads = THREADS
         opts.inter_op_num_threads = THREADS
         sess = ort.InferenceSession(str(path), opts, providers=["CPUExecutionProvider"])
+        sessions[name] = sess
         r = evaluate(sess, tok, meta, rows)
         r["byLength"] = by_length(sess, meta["maxLen"])
         results[name] = r
@@ -374,7 +453,20 @@ def main() -> int:
     shrink = round(fp32.stat().st_size / int8.stat().st_size, 2)
     print(f"\nint8 costs {-delta:+.2f} points of intent accuracy and is {shrink}x smaller")
 
-    ship_int8 = -delta_exact <= ACCURACY_BUDGET
+    # WDR-F10. The picture, measured rather than argued.
+    drift = attention_drift(sessions["fp32"], sessions["int8"], tok, meta, rows)
+    print(
+        f"attention: {drift['argmaxMovedPercent']:.2f}% of {drift['queryRows']:,} query rows "
+        f"point somewhere else, largest cell moves {drift['largestCellChange']}"
+    )
+    attention_ok = drift["argmaxMovedPercent"] <= ATTENTION_BUDGET
+    if not attention_ok:
+        print(
+            f"  over the {ATTENTION_BUDGET}% budget. The page draws this field and says it is the "
+            "model thinking, so either the budget moves in DECISIONS.md or the fp32 graph ships"
+        )
+
+    ship_int8 = -delta_exact <= ACCURACY_BUDGET and attention_ok
     print(
         f"budget is {ACCURACY_BUDGET} point, so shipping "
         + (
@@ -407,6 +499,10 @@ def main() -> int:
         "bytesFp32": fp32.stat().st_size,
         "bytesInt8": int8.stat().st_size,
         "shrink": shrink,
+        # What quantisation did to the field the page draws, which had no number
+        # at all until tick 163.
+        "attentionDrift": drift,
+        "attentionBudgetPercent": ATTENTION_BUDGET,
         "ships": "int8" if ship_int8 else "fp32",
     }
     meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
