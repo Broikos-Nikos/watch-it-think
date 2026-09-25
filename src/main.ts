@@ -586,8 +586,9 @@ function drawAttention(p: Prediction) {
   el.attentionNote.textContent =
     `${cube.layers * cube.heads} fields for this sentence, one per layer and head. ` +
     `Every row sums to one, so a bright row is a token that made up its mind and a ` +
-    `flat row is one that did not. The first position is the sentence vector, which ` +
-    `is what the intent is read from. All twenty four share one scale, so a faint ` +
+    `flat row is one that did not. The first position is the cls token, and the ` +
+    `intent is read from it and from the average of every position together, so ` +
+    `every row here is part of the answer. All twenty four share one scale, so a faint ` +
     `field really is a faint one, and the colour is the square root of the value ` +
     `so the weak ones stay readable. The exact figure is on every label.`
 
