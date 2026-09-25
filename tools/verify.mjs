@@ -38,6 +38,7 @@ const GATES = [
   'check:first-screen',
   'check:cap',
   'check:queued',
+  'check:raw',
 ]
 
 /*

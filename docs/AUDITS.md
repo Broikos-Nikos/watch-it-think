@@ -8,7 +8,7 @@ no write access to the project: it produced a findings file and a list, and the
 fixes were separate work afterwards. Nobody audited their own code twenty
 minutes after writing it, which is the only reason any of this was found.
 
-**190 findings, 91 closed, 99 open**, across the 17 perspectives that produced them.
+**190 findings, 93 closed, 97 open**, across the 17 perspectives that produced them.
 
 That line and the count under every table below are checked against the tables
 themselves on every build, by `npm run check:audits`, and against the queue this
@@ -25,7 +25,7 @@ a commit message needs to resolve.
 
 The hostile stranger: an empty box, a paste the size of a book, emoji, a phone, no mouse, and the network pulled out mid download.
 
-16 findings, 9 closed.
+16 findings, 11 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
@@ -35,8 +35,8 @@ The hostile stranger: an empty box, a paste the size of a book, emoji, a phone, 
 | `WH-F4` | medium | fixed, tick 166 | 19.8 MB arrives before anything works and the page shows no progress, no byte count, no aria-busy, and chips that look live and do nothing |
 | `WH-F5` | medium | fixed, tick 103 | On a load failure the standfirst and footer stay empty and the box and chips stay interactive and inert, so the failure state is the one state that never says what the page is |
 | `WH-F6` | medium | fixed, tick 111 | No noscript block anywhere: with scripts off the page says loading the model for ever, and on the dev server it is unstyled because the CSS is imported from main.ts |
-| `WH-F7` | medium | open | main.ts calls String.prototype.trim, which strips U+FEFF, so the leading byte order mark that tokenizer.ts spends twenty lines saying it handles never reaches the tokenizer. Measured 2 positions where Python gives 3 |
-| `WH-F8` | medium | open | Input of only U+0085 or U+001C to U+001F survives the empty check, normalises to nothing, and produces a full confident answer: smalltalk.greet 36.4 percent over a wall of uniform green |
+| `WH-F7` | medium | fixed, tick 103 | main.ts calls String.prototype.trim, which strips U+FEFF, so the leading byte order mark that tokenizer.ts spends twenty lines saying it handles never reaches the tokenizer. Measured 2 positions where Python gives 3 |
+| `WH-F8` | medium | fixed, tick 103 | Input of only U+0085 or U+001C to U+001F survives the empty check, normalises to nothing, and produces a full confident answer: smalltalk.greet 36.4 percent over a wall of uniform green |
 | `WH-F9` | medium | fixed, tick 103 | Every invisible code point gets its own visible chip, and a zero width space can be handed a slot tag, so the tag row shows the model assigning B-TOPIC to nothing |
 | `WH-F10` | medium | open | Emoji are pulled apart into code points: the Greek flag draws as G and R, a skin toned thumb as a thumb plus a colour swatch, and all of them are unk |
 | `WH-F11` | medium | open | The axis stops labelling anything when a word is long: 59 of 64 chips read '..' on a pasted hash, and the axis is the only label the large field has |
