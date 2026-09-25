@@ -40,6 +40,7 @@ const GATES = [
   'check:queued',
   'check:raw',
   'check:unknown',
+  'check:axis',
 ]
 
 /*

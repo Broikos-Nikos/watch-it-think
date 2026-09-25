@@ -392,11 +392,43 @@ function cubeOf(p: Prediction): AttentionCube {
  * to nothing visible is worse than no chip at all.
  */
 function labelAt(p: Prediction, pos: number): string {
+  const full = fullLabelAt(p, pos)
+  /* Only a word is cut. A continuation piece is one token by construction, so
+     its own text is never longer than the vocabulary allows, and cutting it
+     would take the tail off `##απενεργοποίησε`. */
+  const isWord = pos !== 0 && (p.tokens[pos]?.word ?? -1) >= 0
+  return isWord ? cut(full) : full
+}
+
+/**
+ * A label no longer than the longest token this vocabulary holds.
+ *
+ * WH-F11 named the axis going quiet on a long word, and tick 103 fixed that half:
+ * every continuation piece shows itself, so nothing reads `..` any more. Measured
+ * at tick 169 on `the hash is 9f86…a08 ok`, 64 chips, none of them `..` and none
+ * empty, and the axis was still unreadable for the opposite reason: the first
+ * piece of a word is labelled with the whole word, so one chip was **454 pixels
+ * wide against a median of 32** on a desktop, and **358 of the 358 available** on
+ * a phone, wrapping to two lines inside itself.
+ *
+ * The cut is the vocabulary's own longest token, 14 characters here, because a
+ * label longer than that is necessarily showing more than the token underneath
+ * it. Nothing is lost: `aria-label` and `title` carry the whole word and its
+ * length, which is where a screen reader and a pointer both look.
+ */
+/** The same label, uncut, for the places that have room for it. */
+function fullLabelAt(p: Prediction, pos: number): string {
   if (pos === 0) return 'cls'
   const w = p.tokens[pos]?.word ?? -1
   if (w >= 0) return visibleLabel(p.words[w])
   const id = p.tokens[pos]?.id
   return id === undefined ? '..' : visibleLabel(router?.tokenizer.tokenText(id) ?? '..')
+}
+
+function cut(label: string): string {
+  const longest = router?.tokenizer.longest ?? 0
+  if (longest === 0 || label.length <= longest) return label
+  return label.slice(0, longest) + '…'
 }
 
 function drawSelected(p: Prediction) {
@@ -580,11 +612,19 @@ function drawAttention(p: Prediction) {
       b.textContent = labelAt(p, pos)
       b.className = pos === 0 ? 'axis-token axis-token--cls' : 'axis-token'
       b.setAttribute('aria-pressed', String(focusToken === pos))
+      /*
+       * The whole word here, never the cut one. `cut` exists so that one chip
+       * cannot take the row, and a screen reader has no row to take: it would
+       * only hear a hash truncated at fourteen characters with no way to ask for
+       * the rest. The title does the same job for a pointer.
+       */
+      const full = fullLabelAt(p, pos)
+      if (full !== labelAt(p, pos)) b.title = `${full}, ${plural(full.length, 'character')}`
       b.setAttribute(
         'aria-label',
         pos === 0
           ? 'The sentence vector, position 1'
-          : `${labelAt(p, pos)}, position ${pos + 1} of ${cube.positions}`,
+          : `${full}, position ${pos + 1} of ${cube.positions}`,
       )
 
       const preview = (on: boolean) => {

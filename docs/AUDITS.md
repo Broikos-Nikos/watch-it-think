@@ -8,7 +8,7 @@ no write access to the project: it produced a findings file and a list, and the
 fixes were separate work afterwards. Nobody audited their own code twenty
 minutes after writing it, which is the only reason any of this was found.
 
-**190 findings, 94 closed, 96 open**, across the 17 perspectives that produced them.
+**190 findings, 95 closed, 95 open**, across the 17 perspectives that produced them.
 
 That line and the count under every table below are checked against the tables
 themselves on every build, by `npm run check:audits`, and against the queue this
@@ -25,7 +25,7 @@ a commit message needs to resolve.
 
 The hostile stranger: an empty box, a paste the size of a book, emoji, a phone, no mouse, and the network pulled out mid download.
 
-16 findings, 12 closed.
+16 findings, 13 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
@@ -39,7 +39,7 @@ The hostile stranger: an empty box, a paste the size of a book, emoji, a phone, 
 | `WH-F8` | medium | fixed, tick 103 | Input of only U+0085 or U+001C to U+001F survives the empty check, normalises to nothing, and produces a full confident answer: smalltalk.greet 36.4 percent over a wall of uniform green |
 | `WH-F9` | medium | fixed, tick 103 | Every invisible code point gets its own visible chip, and a zero width space can be handed a slot tag, so the tag row shows the model assigning B-TOPIC to nothing |
 | `WH-F10` | medium | fixed, tick 168 | Emoji are pulled apart into code points: the Greek flag draws as G and R, a skin toned thumb as a thumb plus a colour swatch, and all of them are unk |
-| `WH-F11` | medium | open | The axis stops labelling anything when a word is long: 59 of 64 chips read '..' on a pasted hash, and the axis is the only label the large field has |
+| `WH-F11` | medium | fixed, tick 169 | The axis stops labelling anything when a word is long: 59 of 64 chips read '..' on a pasted hash, and the axis is the only label the large field has |
 | `WH-F12` | medium | fixed, tick 50 | On a phone the token highlight cannot be used at all: pointerenter only, no click, no tabindex, no hover:none media query |
 | `WH-F13` | low | open | The thumbnail canvas is fixed at 44x44 for a field that can be 64x64, so past about forty tokens roughly twenty rows and columns are never drawn |
 | `WH-F14` | low | open | '1 positions' and '61452 ms to load': no pluralisation, and the load time printed as raw milliseconds |

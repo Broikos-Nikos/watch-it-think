@@ -1,6 +1,6 @@
 # Build, gate, and publish the page.
 #
-# 35 gates, and all of them run here.
+# 36 gates, and all of them run here.
 #
 # `npm run build` runs nineteen of them before vite writes anything: every number in
 # the README is checked against `meta.json`, the tokenizer is round tripped
@@ -9,7 +9,7 @@
 # bounds are proved in TypeScript.
 #
 # The rest need a served page and a real browser, so they run in their own job
-# against the built output: sixteen in `npm run verify`, sharing one server rather
+# against the built output: seventeen in `npm run verify`, sharing one server rather
 # than starting one each.
 # They exist because of specific regressions, each one recorded in the file that
 # gates it: a sentence typed during the download being overwritten by the sample,

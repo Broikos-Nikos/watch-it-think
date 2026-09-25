@@ -193,6 +193,8 @@ export class Tokenizer {
   readonly cls: number
   readonly pad: number
   readonly size: number
+  /** The longest text any one token in this vocabulary stands for. See the constructor. */
+  readonly longest: number
 
   constructor(data: TokenizerData) {
     this.vocab = new Map(Object.entries(data.vocab))
@@ -201,6 +203,24 @@ export class Tokenizer {
     this.cls = this.vocab.get(CLS)!
     this.pad = this.vocab.get(PAD)!
     this.size = this.vocab.size
+
+    /*
+     * The longest piece of text any single token in this vocabulary stands for,
+     * read from the vocabulary rather than written down.
+     *
+     * WH-F11. It is 14 here, `απενεργοποίησε` and `σαββατοκύριακο`, and it is the
+     * only non arbitrary length the page can cut a label to: a label longer than
+     * this is necessarily showing more than the token it sits under. The page
+     * needs it because the first piece of a word is labelled with the whole word,
+     * so a pasted 64 character hash drew one chip 454 pixels wide against a
+     * median of 32, and 358 of the 358 available on a phone.
+     */
+    let longest = 0
+    for (const token of this.vocab.keys()) {
+      const text = token.startsWith('##') ? token.slice(2) : token
+      if (text.length > longest) longest = text.length
+    }
+    this.longest = longest
   }
 
   /**
