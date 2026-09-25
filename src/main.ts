@@ -29,6 +29,7 @@ const latency = {
 }
 
 const el = {
+  main: document.querySelector<HTMLElement>('main')!,
   input: document.querySelector<HTMLTextAreaElement>('#input')!,
   samples: document.querySelector<HTMLElement>('[data-samples]')!,
   status: document.querySelector<HTMLElement>('[data-status]')!,
@@ -85,6 +86,20 @@ const SAMPLES = [
 
 let router: Router | null = null
 let queued = 0
+
+/**
+ * A sentence typed or clicked before the model arrived, and where the download
+ * had got to when that happened.
+ *
+ * WH-F4. `think()` began `if (!router) return`, and every control on this page
+ * routes through it: six sample chips and the box. Measured at tick 166 at
+ * 8 Mbit, clicking a chip during the download put its sentence in the box and
+ * answered nothing, and the page said the same three words it had been saying
+ * since first paint. The sentence was not lost, `boot()` ends by answering
+ * whatever is in the box, so the only thing missing was the page admitting it.
+ */
+let waitingFor: string | null = null
+let downloadAt: { received: number; total: number } | null = null
 
 /**
  * The hue the attention field is drawn in, and deliberately not the page accent.
@@ -629,7 +644,26 @@ function markAxis() {
 }
 
 async function think() {
-  if (!router) return
+  if (!router) {
+    /*
+     * The model is still arriving, and this is the only place that knows a
+     * visitor has asked for something. Saying so is the whole of WH-F4: the
+     * sentence is kept, `boot()` answers whatever is in the box the moment the
+     * graph is here, and until tick 166 the page let a visitor watch a chip do
+     * nothing and draw the obvious conclusion.
+     *
+     * The announcement goes to the live region rather than the status line
+     * because the status line is a progress bar with a byte count in it, and
+     * `sayProgress` owns that text.
+     */
+    const asked = el.input.value
+    if (hasWords(asked)) {
+      waitingFor = asked
+      el.announce.textContent = `The model is still downloading. It will answer this when it arrives: ${asked}`
+      if (downloadAt) sayProgress(downloadAt.received, downloadAt.total)
+    }
+    return
+  }
   /*
    * Untrimmed, deliberately. `String.prototype.trim` strips the byte order mark
    * that this tokenizer was written to preserve, so the page was correcting an
@@ -727,7 +761,39 @@ function describe(m: Meta) {
  * chip still looked like a button and answered nothing. Saying so is better
  * than leaving a visitor to discover it by clicking.
  */
+/**
+ * The download, in one line, plus what is waiting for it.
+ *
+ * A function rather than four statements inside the progress callback, because
+ * a chip clicked mid download has to change this line straight away and the
+ * callback fires at most four times a second. It reads `waitingFor`, so the
+ * clause appears on the next paint either way.
+ */
+function sayProgress(received: number, total: number) {
+  downloadAt = { received, total }
+  const mb = (n: number) => (n / 1e6).toFixed(1)
+  const done = received >= total
+  el.status.textContent =
+    (done ? `${mb(total)} MB of model downloaded, starting it` : `downloading the model, ${mb(received)} of ${mb(total)} MB`) +
+    (waitingFor ? ', then it answers what is in the box' : '')
+  el.status.setAttribute('role', 'progressbar')
+  el.status.setAttribute('aria-valuemin', '0')
+  el.status.setAttribute('aria-valuemax', String(total))
+  el.status.setAttribute('aria-valuenow', String(received))
+  // The bar is the background of the line rather than a second element, so
+  // nothing moves when it appears and nothing is left behind when it goes.
+  el.status.style.setProperty('--progress', `${((received / total) * 100).toFixed(1)}%`)
+}
+
 function inert(why: string) {
+  /*
+   * The promise goes with the page's ability to keep it. A visitor who clicked
+   * a chip during a download that then failed was told the model would answer
+   * what is in the box, and `inert` is the one place that knows it will not.
+   */
+  waitingFor = null
+  el.main.removeAttribute('aria-busy')
+  el.announce.textContent = why
   el.status.textContent = why
   el.input.disabled = true
   el.input.placeholder = 'the model did not load'
@@ -772,17 +838,7 @@ async function boot() {
       const done = received >= total
       if (!done && now - painted < 250) return
       painted = now
-      const mb = (n: number) => (n / 1e6).toFixed(1)
-      el.status.textContent = done
-        ? `${mb(total)} MB of model downloaded, starting it`
-        : `downloading the model, ${mb(received)} of ${mb(total)} MB`
-      el.status.setAttribute('role', 'progressbar')
-      el.status.setAttribute('aria-valuemin', '0')
-      el.status.setAttribute('aria-valuemax', String(total))
-      el.status.setAttribute('aria-valuenow', String(received))
-      // The bar is the background of the line rather than a second element, so
-      // nothing moves when it appears and nothing is left behind when it goes.
-      el.status.style.setProperty('--progress', `${((received / total) * 100).toFixed(1)}%`)
+      sayProgress(received, total)
     })
   } catch (err) {
     inert(`The model did not load: ${(err as Error).message}. Reloading is worth a try.`)
@@ -809,6 +865,14 @@ async function boot() {
     }
     el.status.style.removeProperty('--progress')
   }
+  /*
+   * The model is here, so the page is no longer busy and nothing is waiting.
+   * Both of these are true from this line and not from the last one in `boot`:
+   * the footer and the standfirst below are writing, not loading.
+   */
+  el.main.removeAttribute('aria-busy')
+  waitingFor = null
+
   const loadMs = performance.now() - started
   const m = router.meta
   const q = m.quantisation

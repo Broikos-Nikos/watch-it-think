@@ -37,6 +37,7 @@ const GATES = [
   'check:capture',
   'check:first-screen',
   'check:cap',
+  'check:queued',
 ]
 
 /*

@@ -33,7 +33,18 @@
       <p class="standfirst" data-standfirst></p>
     </header>
 
-    <main>
+    <!--
+      Busy from first paint, because it is: the box and the chips below are
+      usable before the model that answers them exists, and until tick 166
+      nothing on this page said so to anybody who cannot see the line at the
+      bottom of it. Removed when the graph is here, and removed rather than
+      left standing when it fails: a page that could not load is not busy.
+
+      WH-F4. The hostile stranger pass asked for aria-busy by name, and the
+      three other things it asked for in the same finding, a progress line, a
+      byte count and a bar, arrived at tick 111 without it.
+    -->
+    <main aria-busy="true">
       <label class="sr-only" for="input">A sentence for the model</label>
       <!--
         dir="auto" here and on the token axis below, for the same reason

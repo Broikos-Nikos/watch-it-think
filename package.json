@@ -39,6 +39,7 @@
     "check:motion": "node tools/check-motion.mjs",
     "check:palette": "node tools/check-palette.mjs",
     "check:progress": "node tools/check-progress.mjs",
+    "check:queued": "node tools/check-queued.mjs",
     "check:tokenizer": "tsx tools/check-tokenizer.ts",
     "check:tools": "node tools/check-tools.mjs",
     "check:weight": "node tools/check-weight.mjs",
