@@ -66,7 +66,7 @@ const claims = [
   ['context length, where the limit is explained', `A ${meta.maxLen} token context`],
   ['intent count, as the scope section says it', `${meta.intents.length} intents`],
   ['bytes over the wire', `${(q.bytesInt8 / 1e6).toFixed(2)} MB`],
-  ['shrink factor', `${q.shrink} times smaller`],
+  ['shrink factor, as the sentence now states it', `${q.shrink} times that size`],
   ['held out rows', q.rowsEvaluated.toLocaleString('en-US')],
   ['int8 intent accuracy', `${int8.intentAccuracy}%`],
   ['fp32 intent accuracy', `${q.fp32.intentAccuracy}%`],

@@ -39,8 +39,7 @@ nothing to download, no key to get and no service to sign up for.
 
 A router: the part of an assistant that reads what you said and decides what you
 wanted. 6 layers, 4 attention heads, a 4,000 token vocabulary, 64 token context.
-It ships as 5.28 MB of int8, which is 3.86 times smaller than the float model it
-was quantised from.
+It ships as 5.28 MB of int8, against a float model 3.86 times that size.
 
 The three things the page draws:
 
