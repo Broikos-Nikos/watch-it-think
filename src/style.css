@@ -387,6 +387,19 @@ footer {
   letter-spacing: -0.01em;
 }
 
+/*
+ * The line that appears when a sentence is longer than the context. It is
+ * deliberately not an error: nothing went wrong, the model has a 64 token
+ * window and the sentence was longer than it.
+ */
+.cap-note {
+  margin: 0.5rem 0 0;
+  max-width: 62ch;
+  color: var(--faint);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
 .attention-note {
   margin: 0.35rem 0 0;
   max-width: 62ch;

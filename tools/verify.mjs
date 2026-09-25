@@ -35,7 +35,7 @@ const GATES = [
   'check:weight',
   'check:capture',
   'check:first-screen',
-]
+, 'check:cap']
 
 const started = Date.now()
 const server = await serve()

@@ -101,6 +101,14 @@
 
         <h3 class="sr-only">The words, and the arguments it pulled out of them</h3>
         <div class="tags" data-tags></div>
+        <!--
+          WDR-F7. A sentence longer than the 64 token context has its tail
+          dropped from the row above, and until tick 160 nothing said so: 67
+          words typed, 58 tagged, the row ending at "alarm" while the sentence
+          ended at "morning", and the status line reporting "64 positions" as
+          though that were the whole thing.
+        -->
+        <p class="cap-note" data-cap-note hidden></p>
 
         <section class="attention" aria-label="Attention">
           <div class="attention-head">

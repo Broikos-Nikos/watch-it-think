@@ -32,6 +32,7 @@ const el = {
   input: document.querySelector<HTMLTextAreaElement>('#input')!,
   samples: document.querySelector<HTMLElement>('[data-samples]')!,
   status: document.querySelector<HTMLElement>('[data-status]')!,
+  capNote: document.querySelector<HTMLElement>('[data-cap-note]')!,
   result: document.querySelector<HTMLElement>('[data-result]')!,
   intent: document.querySelector<HTMLElement>('[data-intent]')!,
   confidence: document.querySelector<HTMLElement>('[data-confidence]')!,
@@ -152,8 +153,9 @@ function render(p: Prediction) {
    * and rendered as an empty chip, and an empty chip can still be handed a slot
    * tag. A tag attached to nothing visible is worse than no chip at all.
    */
+  const tagged = wordTags(p, meta)
   el.tags.replaceChildren(
-    ...wordTags(p, meta).map(({ word, tag }) => {
+    ...tagged.map(({ word, tag }) => {
       const span = document.createElement('span')
       span.className = tag === 'O' ? 'word' : 'word word--slot'
       span.textContent = visibleLabel(word)
@@ -165,6 +167,28 @@ function render(p: Prediction) {
       return span
     }),
   )
+
+  /*
+   * WDR-F7. `wordTags` builds its array by word index and then filters out the
+   * holes, so a word past the 64 token context leaves no gap: the row just ends
+   * early. Measured on the live page at tick 160 with a 67 word sentence: 58
+   * tagged words, the row ending at "alarm" while the sentence ended at
+   * "morning", and the status line saying "64 positions" as though that were the
+   * whole thing.
+   *
+   * On a page whose argument is showing the working, a row that quietly stops is
+   * the one kind of omission it cannot afford. `p.words` is every word the
+   * tokenizer was given, so the difference is the count, and the sentence names
+   * the words rather than the tokens because the reader typed words.
+   */
+  const dropped = p.words.length - tagged.length
+  el.capNote.hidden = dropped <= 0
+  if (dropped > 0) {
+    el.capNote.textContent =
+      `The last ${dropped} ${dropped === 1 ? 'word' : 'words'} did not fit the ` +
+      `${meta.maxLen} token context, so ${dropped === 1 ? 'it is' : 'they are'} not ` +
+      `in the row above and the model never saw ${dropped === 1 ? 'it' : 'them'}.`
+  }
 
   /*
    * Plural where it is plural. The page printed "1 positions" during the hostile

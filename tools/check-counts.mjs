@@ -36,7 +36,16 @@ const pkg = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'))
 const verify = readFileSync(resolve(root, 'tools/verify.mjs'), 'utf8')
 
 const buildGates = (pkg.scripts.check.match(/check:[a-z-]+/g) ?? []).length
-const browserGates = (verify.match(/'check:[a-z-]+',/g) ?? []).length
+/*
+ * Without the trailing comma, and that is the second defect this file has had
+ * of the same kind. The pattern required one, so the last entry in the GATES
+ * array was never counted: tick 160 added check:cap at the end of the list, the
+ * suite went to 28 gates, and this file went on reporting 27 and passing. The
+ * one before it was "near, in either order", which let the verify count stand in
+ * for the build count. A gate about counting that cannot count is worse than no
+ * gate, because the number it blesses is the one everybody then quotes.
+ */
+const browserGates = (verify.match(/'check:[a-z-]+'/g) ?? []).length
 const all = buildGates + browserGates
 
 let failed = 0

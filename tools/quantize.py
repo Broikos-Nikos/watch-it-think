@@ -89,6 +89,8 @@ def evaluate(session, tok, meta, rows):
     run_ms: list[float] = []
     abstain_hits = 0
     abstained = 0
+    dropped_words = 0
+    truncated_rows: set[int] = set()
 
     for row in rows:
         words = row["words"]
@@ -143,7 +145,21 @@ def evaluate(session, tok, meta, rows):
         for w, gold_tag in enumerate(row["tags"]):
             pos = first_pos.get(w)
             if pos is None:
-                continue  # the word fell outside max_len
+                # WDR-F7. The word fell outside max_len, so the model never saw
+                # it. This used to `continue` alone, which removed the word from
+                # tag_total and left ok_tags True: a sentence whose tail was cut
+                # could still count towards exactMatch, and the metric got
+                # easier exactly as the input got harder.
+                #
+                # Counting it as a miss is the direction that cannot flatter the
+                # model. The counters go into the quantisation block so the next
+                # run says how often it happened rather than leaving it to be
+                # rediscovered: over the 10,578 rows behind the published
+                # numbers it never did, the longest row being 20 words.
+                dropped_words += 1
+                truncated_rows.add(len(run_ms))
+                ok_tags = False
+                continue
             tag_total += 1
             pred_tag = int(slot_logits[pos].argmax())
             if gold_tag in tag_index and pred_tag == tag_index[gold_tag]:
@@ -196,6 +212,11 @@ def evaluate(session, tok, meta, rows):
         },
         "rowsRead": len(rows),
         "rowsEvaluated": n,
+        # WDR-F7. How often a sentence was longer than the context, which is the
+        # one condition under which the tag metrics stop being about the whole
+        # sentence. Recorded rather than inferred, so the next run says it.
+        "droppedWords": dropped_words,
+        "truncatedRows": len(truncated_rows),
         "skippedEmptyWords": skipped_empty,
         "skippedUnseenIntent": skipped_unseen,
         "unseenIntents": sorted(unseen_intents),

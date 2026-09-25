@@ -26,6 +26,7 @@
     "check:deps": "node tools/check-deps.mjs",
     "check:concentration": "tsx tools/check-concentration.ts",
     "check:intent": "node tools/check-intent.mjs",
+    "check:cap": "node tools/check-cap.mjs",
     "check:install": "node tools/check-install-scripts.mjs",
     "check:keyboard": "node tools/check-keyboard.mjs",
     "check:layout": "node tools/check-layout.mjs",
