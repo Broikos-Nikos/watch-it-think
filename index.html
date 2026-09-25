@@ -35,7 +35,15 @@
 
     <main>
       <label class="sr-only" for="input">A sentence for the model</label>
-      <textarea id="input" rows="2" spellcheck="false" autocomplete="off"></textarea>
+      <!--
+        dir="auto" here and on the token axis below, for the same reason
+        tokenlab carries it: this box takes whatever a visitor types and the
+        page declared no direction anywhere, so Arabic and Hebrew were laid out
+        left to right. Measured before this: the box computed ltr for
+        "اضبط مؤقتا لعشر دقائق." and the 20 token chips drew the first one
+        leftmost, which is the wrong end of the row for a reader of either.
+      -->
+      <textarea id="input" dir="auto" rows="2" spellcheck="false" autocomplete="off"></textarea>
 
       <div class="samples" data-samples></div>
 
@@ -114,7 +122,7 @@
             </figure>
           </div>
 
-          <ol class="axis" data-axis aria-label="Tokens, in order"></ol>
+          <ol class="axis" data-axis dir="auto" aria-label="Tokens, in order"></ol>
         </section>
       </section>
     </main>

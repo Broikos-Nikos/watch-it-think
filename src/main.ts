@@ -516,6 +516,20 @@ function drawAttention(p: Prediction) {
   // Each is a real button now. Hover still previews, because that is the nicest
   // way to use it with a mouse, but a click pins and a second click unpins, and
   // the arrow keys walk the sentence.
+  /*
+   * The axis reads in the direction of the sentence, taken from the box rather
+   * than from the axis's own contents.
+   *
+   * `dir="auto"` on the axis was the obvious fix and it does not work here: the
+   * first token drawn is the model's `cls` marker, so the first strong
+   * character is Latin and the whole row resolved to ltr for
+   * "اضبط مؤقتا لعشر دقائق." while the box beside it resolved to rtl. Asking
+   * the box for what the browser already decided about the visitor's text uses
+   * the same bidi rules without reimplementing them, and without the marker
+   * getting a vote.
+   */
+  el.axis.dir = getComputedStyle(el.input).direction
+
   el.axis.replaceChildren(
     ...Array.from({ length: cube.positions }, (_, pos) => {
       const li = document.createElement('li')
