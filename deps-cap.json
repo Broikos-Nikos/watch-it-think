@@ -1,0 +1,5 @@
+{
+  "cap": 38,
+  "set": "2026-09-25",
+  "why": "The packages npm actually installs on one machine, platform optional entries excluded. It may only fall. WDEP-F1 is why it exists: wait-on was one await in tools/capture.mjs and dragged in 40 of the 78 that were installed before tick 155, none of it shared with onnxruntime-web, vite or playwright, to poll a URL until it answered. A tree grows one convenience at a time and nothing ever says so, which is what a ratchet is for."
+}

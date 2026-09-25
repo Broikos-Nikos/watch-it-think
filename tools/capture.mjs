@@ -28,6 +28,7 @@ import { execFileSync, spawn, spawnSync } from 'node:child_process'
 import { mkdirSync, renameSync, rmSync, readdirSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { reachable } from './wait-for.mjs'
 import { chromium } from 'playwright'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -83,11 +84,20 @@ for (const sig of ['SIGINT', 'SIGTERM']) {
   })
 }
 
+
 rmSync(WORK, { recursive: true, force: true })
 mkdirSync(WORK, { recursive: true })
 
-const { default: waitOn } = await import('wait-on')
-await waitOn({ resources: [`http-get://localhost:${PORT}/`], timeout: 60_000 })
+/*
+ * WDEP-F1. This was `wait-on`, forty installed packages for one await. The
+ * thirteen lines it is now is the same poll: fetch until it answers, with a
+ * timeout per attempt so a server that accepts and then hangs cannot eat the
+ * whole budget.
+ */
+if (!(await reachable(`http://localhost:${PORT}/`, 60_000))) {
+  console.error(`FAIL  nothing answered on http://localhost:${PORT}/ within 60 seconds`)
+  process.exit(1)
+}
 
 const browser = await chromium.launch()
 const context = await browser.newContext({
