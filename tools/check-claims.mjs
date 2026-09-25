@@ -65,7 +65,15 @@ const claims = [
   ['context length, as the architecture line says it', `${meta.maxLen} token context`],
   ['context length, where the limit is explained', `A ${meta.maxLen} token context`],
   ['intent count, as the scope section says it', `${meta.intents.length} intents`],
-  ['bytes over the wire', `${(q.bytesInt8 / 1e6).toFixed(2)} MB`],
+  /*
+   * WDR-F6 named the page's version of this: "5.28 MB over the wire" described
+   * one file of the seven a visit fetches. The page's sentence was fixed at tick
+   * 150 and this label was not, so the gate holding the claims went on calling
+   * the graph on disk the thing that goes over the wire. It is 5.28 MB of int8
+   * weights; gzipped it is 4.32, and a first visit is 8.19 across ten files.
+   * check:weight holds all of those to dist. This holds this one to meta.json.
+   */
+  ['the int8 graph on disk, as the download section states it', `${(q.bytesInt8 / 1e6).toFixed(2)} MB int8 graph`],
   ['shrink factor, as the sentence now states it', `${q.shrink} times that size`],
   ['held out rows', q.rowsEvaluated.toLocaleString('en-US')],
   ['int8 intent accuracy', `${int8.intentAccuracy}%`],

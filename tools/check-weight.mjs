@@ -219,6 +219,54 @@ try {
   }
 
   /*
+   * WDR-F6. The rest of that paragraph, which until tick 159 was the only part
+   * of it nobody held.
+   *
+   * The finding was that "5.28 MB over the wire" described one of the seven
+   * files the page downloads. The sentence was fixed long ago and the paragraph
+   * that replaced it is the honest one: 19.8 MB of files, most of it the
+   * runtime, 14.24 MB of onnxruntime down to 3.7, the 5.28 MB graph only
+   * reaching 4.3. Four numbers, and only the wire total above was asserted.
+   *
+   * Measured at tick 159: the files had grown to 19.92 MB and the paragraph
+   * still said 19.8, which is the same defect one sentence along, arriving by
+   * drift rather than by conflation.
+   *
+   * The tolerances are the width of the rounding each number is written at,
+   * plus a little: these are "about" figures in prose, and a gate that fails on
+   * the last decimal of a number written to two significant figures is a gate
+   * that gets switched off.
+   */
+  const rawTotal = rows.reduce((a, r) => a + (r.raw ?? 0), 0)
+  const biggest = (match) => rows.find((r) => match.test(r.name))
+  const runtime = biggest(/\.wasm$/)
+  const graph = biggest(/router\.int8\.onnx$/)
+
+  const paragraph = [
+    ['the files a first visit fetches', /That is ([\d.]+) MB of files/, rawTotal / 1e6, 0.25],
+    ['the runtime, uncompressed', /([\d.]+) MB of onnxruntime becomes/, (runtime?.raw ?? 0) / 1e6, 0.1],
+    ['the runtime, over the wire', /MB of onnxruntime becomes ([\d.]+) MB/, (runtime?.wire ?? 0) / 1e6, 0.15],
+    ['the graph, uncompressed', /the ([\d.]+) MB int8 graph only reaches/, (graph?.raw ?? 0) / 1e6, 0.1],
+    ['the graph, over the wire', /int8 graph only reaches ([\d.]+) MB/, (graph?.wire ?? 0) / 1e6, 0.15],
+  ]
+
+  for (const [what, pattern, measured, tolerance] of paragraph) {
+    const m = readme.match(pattern)
+    if (!m) {
+      failed++
+      console.error(`FAIL  the README no longer states ${what} in the form this gate reads`, )
+      continue
+    }
+    const said = Number(m[1])
+    if (Math.abs(said - measured) > tolerance) {
+      failed++
+      console.error(`FAIL  the README says ${said} MB for ${what} and this measures ${measured.toFixed(2)} MB`)
+    } else {
+      console.log(`  ok      ${what}: the README says ${said} and it is ${measured.toFixed(2)}`)
+    }
+  }
+
+  /*
    * The page's own sentence, against what the page's own browser received.
    *
    * The footer says "N MB over the wire" and for twenty eight ticks N was

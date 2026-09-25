@@ -145,7 +145,7 @@ Not one of them was written before the defect it exists for.
   accuracy numbers can be reproduced from this clone alone. The MIT licence
   covers everything that is in this repository, that graph included. The
   training checkpoint and the held out set are simply not distributed.
-- **A first visit is about 8.1 MB over the wire.** That is 19.8 MB of files,
+- **A first visit is about 8.1 MB over the wire.** That is 19.9 MB of files,
   gzipped by the host: GitHub Pages compresses `application/wasm`, which was
   checked against a real response rather than assumed. Most of it is the
   runtime, not the model. 14.24 MB of onnxruntime becomes 3.7 MB, while the
