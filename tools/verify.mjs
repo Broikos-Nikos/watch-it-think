@@ -20,6 +20,7 @@
  */
 
 import { spawn } from 'node:child_process'
+import { browserReady } from './preflight.mjs'
 import { serve } from './serve.mjs'
 
 const GATES = [
@@ -56,6 +57,9 @@ for (const [i, gate] of GATES.entries()) {
     process.exit(1)
   }
 }
+
+/* Before the server, because a server nobody can drive is not worth starting. */
+await browserReady()
 
 const started = Date.now()
 const server = await serve()

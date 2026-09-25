@@ -8,7 +8,7 @@ no write access to the project: it produced a findings file and a list, and the
 fixes were separate work afterwards. Nobody audited their own code twenty
 minutes after writing it, which is the only reason any of this was found.
 
-**190 findings, 88 closed, 102 open**, across the 17 perspectives that produced them.
+**190 findings, 89 closed, 101 open**, across the 17 perspectives that produced them.
 
 That line and the count under every table below are checked against the tables
 themselves on every build, by `npm run check:audits`, and against the queue this
@@ -122,7 +122,7 @@ The deep reviewer: correctness, read as code rather than as comments.
 
 The hiring engineer, three minutes: does this person ship and measure, and would you open a second repository.
 
-13 findings, 11 closed.
+13 findings, 12 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
@@ -135,7 +135,7 @@ The hiring engineer, three minutes: does this person ship and measure, and would
 | `WE-F7` | medium | fixed, tick 46 | The honest limits are real, unusually good, and every one of them is somewhere a three minute reader will never go |
 | `WE-F8` | medium | fixed, tick 164 | Four audits and thirty open findings exist, commit messages cite their identifiers, and none of it is in the repository |
 | `WE-F9` | medium | fixed, tick 59 | No licence, on a repository whose two most borrowable pieces are a tokenizer port and an attention witness |
-| `WE-F10` | medium | open | npm run build on a machine that has never run Playwright dies in an uncaught stack trace with no warning |
+| `WE-F10` | medium | fixed, tick 165 | npm run build on a machine that has never run Playwright dies in an uncaught stack trace with no warning |
 | `WE-F11` | medium | fixed, tick 45 | Fifteen commits, three different author names |
 | `WE-F12` | low | open | No publish document, so the About box, the topics and the homepage field are unwritten three days out |
 | `WE-F13` | low | fixed, tick 46 | The numbers on the page are not hand typed, the one thing a reader could verify in three minutes, and nothing tells them to try |
