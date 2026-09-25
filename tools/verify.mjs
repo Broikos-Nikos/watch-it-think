@@ -35,7 +35,27 @@ const GATES = [
   'check:weight',
   'check:capture',
   'check:first-screen',
-, 'check:cap']
+  'check:cap',
+]
+
+/*
+ * A hole is not an empty slot, it is a gate that always passes.
+ *
+ * `['a', , 'b']` has length 3 and a hole in the middle, and this runner spawns
+ * `npm run undefined` for it, which npm answers by listing the scripts and
+ * exiting 0. Tick 160 added `check:cap` after a line that already ended in a
+ * comma and left one behind: from then until tick 164 this file ran fourteen
+ * gates, printed "14 browser gates", and one of the fourteen was a no-op that
+ * could never fail. `check:counts` was right the whole time, because it counts
+ * the quoted names rather than the array, which is how the two numbers came
+ * apart without either being obviously wrong.
+ */
+for (const [i, gate] of GATES.entries()) {
+  if (typeof gate !== 'string') {
+    console.error(`FAIL  GATES[${i}] is ${gate}, so this suite would spawn \`npm run undefined\` and count it as a pass`)
+    process.exit(1)
+  }
+}
 
 const started = Date.now()
 const server = await serve()

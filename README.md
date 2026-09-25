@@ -116,7 +116,7 @@ a Python tokenizer; a JavaScript one that is merely close feeds it text it has
 never seen. 242 sentences, identical ids, including the whitespace code points
 where Python and JavaScript quietly disagree.
 
-31 gates run before anything reaches the page: eighteen in
+32 gates run before anything reaches the page: nineteen in
 `npm run build` before the bundle is written, and thirteen more in
 `npm run verify` against a real browser. Eight of them, and what each one
 stops:
@@ -133,6 +133,23 @@ stops:
 | `check:draw` | the attention colours drifting from the browser's own, or a field painting over budget |
 
 Not one of them was written before the defect it exists for.
+
+**Seventeen independent agents have audited this project**, one assigned
+perspective each, none of them allowed to edit it: a recruiter with ten seconds,
+a hiring engineer with three minutes, a deep reviewer, a hostile stranger, a
+measurement auditor, a design eye, a performance and access pass, a supply chain
+pass, and a maintainer six months from now, most of those perspectives run again
+later against the code the earlier pass had produced.
+
+Between them they found a paste with no spaces in it freezing the tab for 21.6
+seconds while the page went on showing a confident answer to the previous
+sentence, a boot sequence that overwrote whatever was typed during the 61 second
+download and answered a different sentence instead, five published latency
+figures of which not one could be reproduced from a clone, and thirteen of
+fifteen commits crediting a language model as co-author.
+
+[`docs/AUDITS.md`](docs/AUDITS.md) is the full list, including what is still
+open. Commit messages cite the identifiers in it.
 
 ---
 
@@ -183,7 +200,7 @@ do not need any of it to run the page.
 Before committing:
 
 ```bash
-npm run build     # typecheck, eighteen file gates, then the bundle. About 13 seconds.
+npm run build     # typecheck, nineteen file gates, then the bundle. About 13 seconds.
 ```
 
 Before pushing:
