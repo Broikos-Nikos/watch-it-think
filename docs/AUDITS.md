@@ -8,7 +8,7 @@ no write access to the project: it produced a findings file and a list, and the
 fixes were separate work afterwards. Nobody audited their own code twenty
 minutes after writing it, which is the only reason any of this was found.
 
-**190 findings, 96 closed, 94 open**, across the 17 perspectives that produced them.
+**190 findings, 97 closed, 93 open**, across the 17 perspectives that produced them.
 
 That line and the count under every table below are checked against the tables
 themselves on every build, by `npm run check:audits`, and against the queue this
@@ -50,7 +50,7 @@ The hostile stranger: an empty box, a paste the size of a book, emoji, a phone, 
 
 The measurement auditor: is every number reproducible, is the sample size stated, is any comparison unfair.
 
-15 findings, 11 closed.
+15 findings, 12 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
@@ -61,7 +61,7 @@ The measurement auditor: is every number reproducible, is the sample size stated
 | `WM-F5` | medium | fixed, tick 33 | meta.json ships one tolerance over four parity numbers; three were applied, and attentionRowSumDeviation cannot fail because it measures a softmax summing to 1 |
 | `WM-F6` | medium | fixed, tick 170 | 97.28 percent tag accuracy is reported with no baseline, and always predicting O scores 74.98 percent on the same tags |
 | `WM-F7` | medium | fixed, tick 34 | The page tells the visitor the held out set is the adversarial one, and the pipeline records nothing about which file was evaluated |
-| `WM-F8` | medium | open | meta.json's source string is a hardcoded literal repeated in four places, and its config reports dropout 0.1 for a graph exported with dropout zero |
+| `WM-F8` | medium | fixed, tick 171 | meta.json's source string is a hardcoded literal repeated in four places, and its config reports dropout 0.1 for a graph exported with dropout zero |
 | `WM-F9` | medium | open | Each of the 24 thumbnails is normalised to its own peak, so the small multiples the page exists for are not comparable. Measured spread 0.267 to 0.999 |
 | `WM-F10` | medium | fixed, tick 34 | quantize.py's docstring states 10,578 as a property of the tool, and rowsRead and rowsEvaluated are both called the held out set |
 | `WM-F11` | medium | fixed, tick 34 | tokenizer.ts names check-tokenizer.py, which does not exist, and the gate compares against an unversioned fixture rather than running both |

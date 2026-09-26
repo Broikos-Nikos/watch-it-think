@@ -163,13 +163,41 @@ for (const k of TRAINING_ONLY) {
  * claim the whole repository rests on.
  */
 const CLAIM = 'trained from random init'
-const carriers = ['index.html', 'package.json', 'src/lib/router.ts']
+
+/*
+ * Each carrier in its own words, and the README was not a carrier at all.
+ *
+ * The list was three files that repeat the literal, which left out the one
+ * document a reader meets first, because the README says the same thing in
+ * English rather than in the exporter's phrasing. Measured at tick 171 by
+ * rewriting its opening to "fine tuned from a public base model" and
+ * "Pretrained weights, distilled from a bigger model": `npm run build` passed,
+ * nineteen gates, zero failures. The claim the whole repository rests on was
+ * reversed in the file that states it to the reader and nothing noticed.
+ *
+ * So the phrases are listed per file instead of assuming one spelling. A
+ * paraphrase is still a copy, and a copy that no gate names is the one that
+ * drifts.
+ */
+const CARRIERS = {
+  'index.html': [CLAIM],
+  'package.json': [CLAIM],
+  'src/lib/router.ts': [CLAIM],
+  'README.md': ['trained from nothing', 'No pretrained weights', 'nothing distilled from a bigger model'],
+}
+
 if (!meta.source?.includes(CLAIM)) {
   fail('source', `does not say "${CLAIM}", which is the claim this project rests on`)
 } else {
-  const silent = carriers.filter((f) => !readFileSync(resolve(root, f), 'utf8').includes(CLAIM))
-  if (silent.length > 0) {
-    fail('source', `meta.json says "${CLAIM}" and ${silent.join(', ')} ${silent.length === 1 ? 'does' : 'do'} not`)
+  for (const [file, phrases] of Object.entries(CARRIERS)) {
+    const text = readFileSync(resolve(root, file), 'utf8').replace(/\s+/g, ' ')
+    const missing = phrases.filter((phrase) => !text.includes(phrase))
+    if (missing.length > 0) {
+      fail(
+        'source',
+        `${file} no longer says ${missing.map((m) => JSON.stringify(m)).join(' or ')}, and meta.json still claims "${CLAIM}"`,
+      )
+    }
   }
 }
 
