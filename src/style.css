@@ -28,6 +28,14 @@
   --ink-deep: #000000;
   --lift: #141010;
   --edge: #2e2621;
+  /*
+   * The line around anything you can use, as against the lines that separate
+   * prose. WP-F10: every interactive boundary measured 1.48:1 and WCAG 1.4.11
+   * asks 3:1, so --edge cannot be both. Measured on the built page at tick 176,
+   * this reads 3.4:1 against the page and 3.1:1 against a lifted surface, and
+   * the decorative rules stay where they were.
+   */
+  --control-edge: #6d645b;
   --text: #ffffff;
   --dim: #9a8f88;
   --faint: #8a7f76;
@@ -143,7 +151,7 @@ textarea {
   resize: vertical;
   min-height: 4.5rem;
   padding: 0.95rem 1.1rem;
-  border: 1px solid var(--edge);
+  border: 1px solid var(--control-edge);
   border-radius: 12px;
   background: var(--lift);
   color: var(--text);
@@ -163,7 +171,7 @@ textarea:focus-visible {
 }
 
 .samples button {
-  border: 1px solid var(--edge);
+  border: 1px solid var(--control-edge);
   border-radius: 999px;
   padding: 0.35rem 0.85rem;
   background: transparent;
@@ -433,7 +441,7 @@ footer {
   display: grid;
   gap: 2px;
   padding: 3px;
-  border: 1px solid var(--edge);
+  border: 1px solid var(--control-edge);
   border-radius: 4px;
   background: var(--ink-deep);
   line-height: 1;
@@ -555,7 +563,7 @@ footer {
  */
 .axis-token {
   appearance: none;
-  border: 1px solid transparent;
+  border: 1px solid var(--control-edge);
   font: inherit;
   overflow-wrap: anywhere;
   padding: 0.15em 0.4em;

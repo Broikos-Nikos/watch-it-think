@@ -8,7 +8,7 @@ no write access to the project: it produced a findings file and a list, and the
 fixes were separate work afterwards. Nobody audited their own code twenty
 minutes after writing it, which is the only reason any of this was found.
 
-**190 findings, 102 closed, 88 open**, across the 17 perspectives that produced them.
+**191 findings, 105 closed, 86 open**, across the 17 perspectives that produced them.
 
 That line and the count under every table below are checked against the tables
 themselves on every build, by `npm run check:audits`, and against the queue this
@@ -74,7 +74,7 @@ The measurement auditor: is every number reproducible, is the sample size stated
 
 Performance and access: bytes on first paint, main thread cost, contrast, focus, screen readers.
 
-15 findings, 11 closed.
+15 findings, 12 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
@@ -87,7 +87,7 @@ Performance and access: bytes on first paint, main thread cost, contrast, focus,
 | `WP-F7` | medium | fixed, tick 50 | A tablist that controls nothing, 24 tab stops, dead arrow keys, and a focus ring identical to the selection |
 | `WP-F8` | medium | fixed, tick 47 | 25 canvases are the entire point of the page and carry no key, no values and no text alternative |
 | `WP-F9` | medium | fixed, tick 175 | Under forced colours the heat map inverts: the weakest cells become the brightest thing on screen |
-| `WP-F10` | medium | open | Every interactive boundary on the page is at 1.48:1, where the rule is 3:1 |
+| `WP-F10` | medium | fixed, tick 176 | Every interactive boundary on the page is at 1.48:1, where the rule is 3:1 |
 | `WP-F11` | medium | open | Three of the six sample buttons are Greek inside lang=en |
 | `WP-F12` | low | fixed, tick 47 | The answer has no heading, no label, and its tag codes are unexplained jargon |
 | `WP-F13` | low | fixed, tick 173 | peak runs three times and concentration once over a field that has not changed, on every hover |
@@ -356,14 +356,15 @@ Not a perspective and not an agent. Findings this project raised against its
 own code while sweeping a class found somewhere else in the workspace, kept
 here because commit messages cite them like any other.
 
-14 findings, 5 closed.
+15 findings, 7 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
 | `WSELF-F1` | high | fixed, tick 104 | Four of the twenty four claims in check:claims were bare digits and could not fail: layers "6" occurs 19 times in the README, heads "4" occurs 23 times |
 | `WAUD-F1` | medium | fixed, tick 164 | The commit log cites 41 finding ids and the repository publishes no list to resolve them |
+| `WBUD-F1` | medium | fixed, tick 176 | The throttled sweep budget was two absolute numbers and failed the morning after it was written |
 | `WCNT-F1` | medium | fixed, tick 160 | check-counts matched browser gates with a trailing comma, so it never counted the last one |
-| `WCON-F1` | medium | open | Thirty six controls are bounded by a line nobody can see: the text box at 1.36:1, six buttons at 1.36, 23 table head buttons at 1.36 and six axis tokens at 1.07 |
+| `WCON-F1` | medium | fixed, tick 176 | Thirty six controls are bounded by a line nobody can see: the text box at 1.36:1, six buttons at 1.36, 23 table head buttons at 1.36 and six axis tokens at 1.07 |
 | `WDEP-F1` | medium | fixed, tick 155 | wait-on was 40 of the 78 packages this project installed, for one await in the capture tool |
 | `WEVAL-F1` | medium | open | The quantisation table compares fp32 and int8 on differences of 0 to 16 rows out of 10,578, with no paired test, no discordant counts, and one of the four metrics pointing the other way |
 | `WGIF-F1` | medium | open | The picture at the top runs eight seconds, so a reader sees it once |

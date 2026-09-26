@@ -551,13 +551,24 @@ try {
     /*
      * One frame at 60 Hz is 16.7 ms, so a p95 inside a frame is a sweep that
      * keeps up with the display on a processor a sixth as fast as this one,
-     * and the median at half a frame. Against readings of 1.3 and 3.0 that is
-     * five and six times of room, which is the point: a budget set just above
-     * the current number fails on a slow morning and teaches everyone to
-     * ignore it.
+     * and the median at half a frame.
+     *
+     * Scaled by how fast this machine actually is at this moment, which the
+     * busy loop above has just measured, and that is not a softening: written
+     * as two absolute numbers at tick 174 it failed the very next morning at
+     * 10.7 ms median, inside a suite run, while the same gate alone on the same
+     * build read 2.4. The readings ranged 1.3, 2.4, 2.7, 3.8, 10.7 depending
+     * only on what else the machine was doing, so an absolute millisecond
+     * budget was measuring the load on the build agent and calling it the page.
+     *
+     * The reference is 16,000 throttled iterations in 20 ms, which is what an
+     * idle run of this machine gives, and the scale is capped at six so a
+     * machine on its knees cannot buy an unlimited budget.
      */
-    const MEDIAN_MS = 8
-    const P95_MS = 16
+    const REFERENCE_ITERATIONS = 16_000
+    const scale = Math.min(6, Math.max(1, REFERENCE_ITERATIONS / Math.max(slow, 1)))
+    const MEDIAN_MS = +(8 * scale).toFixed(1)
+    const P95_MS = +(16 * scale).toFixed(1)
     if (sweep.median > MEDIAN_MS || sweep.p95 > P95_MS) {
       failed++
       console.error(
@@ -569,7 +580,8 @@ try {
     } else {
       console.log(
         `  ok      at cpu x6 a hover costs ${sweep.median} ms median, ${sweep.p95} at p95, ` +
-          `${sweep.total} ms for all ${sweep.n} tokens`,
+          `${sweep.total} ms for all ${sweep.n} tokens, against a budget of ${MEDIAN_MS} and ${P95_MS} ` +
+          `at this machine's measured speed`,
       )
     }
   }
