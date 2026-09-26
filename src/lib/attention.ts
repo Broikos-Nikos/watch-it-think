@@ -211,8 +211,10 @@ export function oklchToRgb(L: number, C: number, hDeg: number): [number, number,
  * shared scale made the grid honest and made a third of it unreadable in the
  * same commit.
  *
- * On `check:draw`'s own sentence the dimmest panel went from **40 to 75** when
- * the curve went in, which is the pair the gate's floor sits between.
+ * On `check:draw`'s own sentence the dimmest panel went from **40 to 76** when
+ * the curve went in, which is the pair the gate's floor sits between. It read
+ * 75 until tick 184, when `rampStep` stopped truncating: half a step of bias,
+ * one unit of brightness, and the gate's floor of 58 never came near either.
  *
  * `sqrt` maps 0.053 to 0.23 and 0.94 to 0.97, so the order is preserved exactly
  * and every panel stays comparable. The exact figure is printed on every label
@@ -221,9 +223,38 @@ export function oklchToRgb(L: number, C: number, hDeg: number): [number, number,
  * dishonest.
  */
 const RAMP_STEPS = 256
+
+/**
+ * Which of the 256 rows of the ramp a value is drawn with.
+ *
+ * WD2-F10. This was `(shown * (RAMP_STEPS - 1)) | 0`, which truncates, so every
+ * cell sat half a step below the colour the curve asks for and the bias only
+ * ever went one way. Measured at tick 184 over 200,001 values against the
+ * continuous `oklch(0.18 + v*0.62, 0.03 + v*0.17, 235)` the old per cell
+ * `fillStyle` produced:
+ *
+ *     truncating  worst channel error 2, mean 0.5763, at v=0.13301,
+ *                 rgb(0,79,114) against rgb(0,80,116)
+ *     rounding    worst channel error 1, mean 0.3473
+ *
+ * `check:draw` says "one unit per channel is the resolution of the format.
+ * Anything larger is a different colour, not a rounding difference", and the
+ * one place this project exceeded its own bar was the one place nothing looked:
+ * that gate tests `oklchToRgb` against the browser and never the table lookup.
+ * `check:ramp` does, which is why this is a named export rather than a line
+ * inside `paint`.
+ *
+ * The `v >= 1` guard stays. It is redundant, because `max` is the field's own
+ * peak so `v` cannot exceed 1, and it costs one comparison to be certain the
+ * index can never run off the end of the table.
+ */
+export function rampStep(v: number): number {
+  const shown = v >= 1 ? 1 : Math.sqrt(v)
+  return Math.round(shown * (RAMP_STEPS - 1))
+}
 const ramps = new Map<number, { normal: Uint8ClampedArray; dim: Uint8ClampedArray }>()
 
-function rampFor(hue: number) {
+export function rampFor(hue: number) {
   let r = ramps.get(hue)
   if (r) return r
   const normal = new Uint8ClampedArray(RAMP_STEPS * 3)
@@ -336,8 +367,7 @@ export function drawField(
 
   const paint = (o: number, v: number, ramp: Uint8ClampedArray) => {
     if (v <= 0.002) return
-    const shown = v >= 1 ? 1 : Math.sqrt(v)
-    const step = (shown * (RAMP_STEPS - 1)) | 0
+    const step = rampStep(v)
     px[o] = ramp[step * 3]
     px[o + 1] = ramp[step * 3 + 1]
     px[o + 2] = ramp[step * 3 + 2]

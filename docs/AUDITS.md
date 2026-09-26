@@ -8,7 +8,7 @@ no write access to the project: it produced a findings file and a list, and the
 fixes were separate work afterwards. Nobody audited their own code twenty
 minutes after writing it, which is the only reason any of this was found.
 
-**193 findings, 113 closed, 80 open**, across the 17 perspectives that produced them.
+**194 findings, 115 closed, 79 open**, across the 17 perspectives that produced them.
 
 That line and the count under every table below are checked against the tables
 themselves on every build, by `npm run check:audits`, and against the queue this
@@ -238,7 +238,7 @@ The maintainer six months from now: what rots first, and what the repository say
 
 The deep reviewer again, against the code the first pass produced.
 
-13 findings, 11 closed.
+13 findings, 12 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
@@ -251,7 +251,7 @@ The deep reviewer again, against the code the first pass produced.
 | `WD2-F7` | medium | fixed, tick 66 | Reduced motion stops the CSS transition and nothing else, and the gate that says it all stops when asked only reads the transition |
 | `WD2-F8` | medium | fixed, tick 181 | Three gate headers describe a check the gate does not make |
 | `WD2-F9` | medium | fixed, tick 182 | The non-Windows half of the server cleanup cannot work, because the child is never detached |
-| `WD2-F10` | low | open | The ramp is read with a truncation, so a shipped cell is up to two units per channel from the colour the old code asked for, against the gate's own one unit bar |
+| `WD2-F10` | low | fixed, tick 184 | The ramp is read with a truncation, so a shipped cell is up to two units per channel from the colour the old code asked for, against the gate's own one unit bar |
 | `WD2-F11` | low | fixed, tick 65 | 'each cell gets whole pixels' holds for 21 of the 64 possible token counts |
 | `WD2-F12` | low | fixed, tick 66 | A row's travel is never cancelled, so up to four transform animations run on one row and the newest replaces the others mid flight |
 | `WD2-F13` | low | open | The free port is proved free on 127.0.0.1 and then let go, and what actually makes the gate safe is the index.html comparison |
@@ -356,7 +356,7 @@ Not a perspective and not an agent. Findings this project raised against its
 own code while sweeping a class found somewhere else in the workspace, kept
 here because commit messages cite them like any other.
 
-17 findings, 9 closed.
+18 findings, 10 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
@@ -377,3 +377,4 @@ here because commit messages cite them like any other.
 | `WCAP-F1` | low | open | check:capture caps the gif at 4 MB and the gif is 3.00 MB, so the ceiling permits silent growth |
 | `WGRP-F1` | low | fixed, tick 182 | check-groups read a call inside a comment as a call |
 | `WNET-F1` | low | open | The README promises the model runs in your browser and nothing holds it: no gate watches the wire |
+| `WRAMP-F1` | low | fixed, tick 184 | Nothing held the 256 step ramp table against the curve it was built from |

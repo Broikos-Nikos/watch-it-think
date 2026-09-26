@@ -435,7 +435,9 @@ try {
    *
    * Both readings were taken on this gate's own sentence rather than on the
    * audit's, so the floor sits between comparable numbers: **40 with the linear
-   * ramp, 75 with the square root**. 58 is roughly halfway, which gives the
+   * ramp, 76 with the square root**. That second figure was 75 until tick 184,
+   * when `rampStep` stopped truncating the table index and every cell moved up
+   * by the half step it had been losing. 58 is roughly halfway, which gives the
    * failing case eighteen points of margin and the passing case seventeen. A
    * floor set at 70 would have had five points of room above the real reading,
    * which is the "one millisecond above the current number" mistake this
