@@ -115,6 +115,11 @@ try {
   // ---- half two: geometry, and the budget ---------------------------------
   await page.waitForFunction(() => !!document.querySelector('.word'), null, { timeout: 120_000 })
 
+  /* What the page opened with, read before any half of this gate types over
+     it, so the short case in half three is the state a visitor meets rather
+     than a sentence this file chose. */
+  const OPENING = await page.inputValue('textarea')
+
   // Measured at a full context, not at the six token sample the page opens on.
   // The audit's 144 ms was a 64 position field, which is 4,096 cells; six
   // positions is 36, and a budget met at 36 cells says nothing about 4,096.
@@ -269,51 +274,29 @@ try {
    *   the brightest thumbnail is the head with the strongest link
    *   the dimmest is measurably dimmer, which per field scaling made impossible
    *
-   * The field peaks come off the page rather than out of the gate: the caption
-   * under the large canvas prints "strongest single link N percent" for whatever
-   * head is selected, so selecting each head in turn reads them all.
+   * Both of those are in `judge` below, which runs twice: on this half's long
+   * sentence and on the sample the page opens with.
    */
-  const heads = []
-  for (let i = 0; i < cells; i++) {
-    await page.locator('.headcell').nth(i).click()
-    await page.waitForTimeout(90)
-    const caption = (await page.textContent('[data-field-caption]')) ?? ''
-    const strongest = Number(caption.match(/strongest single link (\d+) percent/)?.[1] ?? NaN)
-    heads.push({ i, strongest, thumb: await brightest('.headcell canvas', i) })
-  }
-
-  const byPeak = [...heads].sort((a, b) => b.strongest - a.strongest)
-  const byLight = [...heads].sort((a, b) => b.thumb - a.thumb)
-  const spread = byLight[0].thumb - byLight[byLight.length - 1].thumb
-
-  if (positions < 60) {
-    failed++
-    console.error(`FAIL  the test sentence made only ${positions} positions, too short to reach the downscale`)
-  } else if (heads.some((h) => Number.isNaN(h.strongest))) {
-    failed++
-    console.error('FAIL  the caption did not report the strongest link for every head, so this cannot be checked')
-  } else if (byLight[0].i !== byPeak[0].i) {
-    failed++
-    console.error(
-      `FAIL  the brightest thumbnail is head ${byLight[0].i} and the strongest link is in head ${byPeak[0].i}`,
-    )
-    console.error('      the grid is not on one scale, so the panels cannot be compared with each other')
-  } else if (spread < 20) {
-    failed++
-    console.error(`FAIL  all ${cells} thumbnails are within ${spread.toFixed(0)} of each other in brightness`)
-    console.error(
-      `      the field peaks run from ${byPeak[byPeak.length - 1].strongest} to ${byPeak[0].strongest} percent, ` +
-        'so a grid where they all look alike is scaling each panel to itself',
-    )
-  } else {
-    console.log(
-      `  ok      the grid shares one scale: peaks ${byPeak[byPeak.length - 1].strongest} to ${byPeak[0].strongest} percent, ` +
-        `brightness spread ${spread.toFixed(0)}, brightest is the strongest head`,
-    )
+  /*
+   * One reading of the grid: a click per head for its caption, and the pixels
+   * of its thumbnail for its brightness.
+   */
+  const readGrid = async () => {
+    const heads = []
+    for (let i = 0; i < cells; i++) {
+      await page.locator('.headcell').nth(i).click()
+      await page.waitForTimeout(90)
+      const caption = (await page.textContent('[data-field-caption]')) ?? ''
+      const strongest = Number(caption.match(/strongest single link (\d+) percent/)?.[1] ?? NaN)
+      heads.push({ i, strongest, thumb: await brightest('.headcell canvas', i) })
+    }
+    const byPeak = [...heads].sort((a, b) => b.strongest - a.strongest)
+    const byLight = [...heads].sort((a, b) => b.thumb - a.thumb)
+    return { heads, byPeak, byLight, spread: byLight[0].thumb - byLight[byLight.length - 1].thumb }
   }
 
   /*
-   * And the dimmest panel is still readable.
+   * And the floor under the dimmest panel.
    *
    * The shared scale is what makes the grid honest and it is also what can make
    * it unreadable: with a linear ramp the weakest heads drew at 46 against a
@@ -332,18 +315,83 @@ try {
    * character budget.
    */
   const FLOOR = 58
-  const dimmest = byLight[byLight.length - 1]
-  if (dimmest.thumb < FLOOR) {
-    failed++
-    console.error(
-      `FAIL  the dimmest thumbnail peaks at ${dimmest.thumb.toFixed(0)}, under the ${FLOOR} floor`,
-    )
-    console.error(
-      `      head ${dimmest.i} has a strongest link of ${dimmest.strongest} percent and cannot be read on the grid you pick from`,
-    )
-  } else {
-    console.log(`  ok      the dimmest panel peaks at ${dimmest.thumb.toFixed(0)}, over the ${FLOOR} floor`)
+
+  /**
+   * The three things the measurement audit asked for, on one sentence:
+   *
+   *   the brightest thumbnail is the head with the strongest link
+   *   the dimmest is measurably dimmer, which per field scaling made impossible
+   *   and it is still readable
+   *
+   * The field peaks come off the page rather than out of the gate: the caption
+   * under the large canvas prints "strongest single link N percent" for
+   * whatever head is selected, so selecting each head in turn reads them all.
+   */
+  const judge = (label, g) => {
+    if (g.heads.some((h) => Number.isNaN(h.strongest))) {
+      failed++
+      console.error(`FAIL  ${label}: the caption did not report the strongest link for every head, so this cannot be checked`)
+    } else if (g.spread < 20) {
+      /* Asked before the ranking, because per field scaling puts every panel at
+         the same maximum and the ranking then fails on whichever index the sort
+         happened to leave first, which is a true failure with a misleading
+         sentence attached. Measured with the scale removed: all twenty four
+         peak at 166 and the spread is 0. */
+      failed++
+      console.error(`FAIL  ${label}: all ${cells} thumbnails are within ${g.spread.toFixed(0)} of each other in brightness`)
+      console.error(
+        `      the field peaks run from ${g.byPeak[g.byPeak.length - 1].strongest} to ${g.byPeak[0].strongest} percent, ` +
+          'so a grid where they all look alike is scaling each panel to itself',
+      )
+    } else if (g.byLight[0].i !== g.byPeak[0].i) {
+      failed++
+      console.error(`FAIL  ${label}: the brightest thumbnail is head ${g.byLight[0].i} and the strongest link is in head ${g.byPeak[0].i}`)
+      console.error('      the grid is not on one scale, so the panels cannot be compared with each other')
+    } else {
+      console.log(
+        `  ok      ${label}: peaks ${g.byPeak[g.byPeak.length - 1].strongest} to ${g.byPeak[0].strongest} percent, ` +
+          `brightness spread ${g.spread.toFixed(0)}, brightest is the strongest head`,
+      )
+    }
+
+    const dimmest = g.byLight[g.byLight.length - 1]
+    if (dimmest.thumb < FLOOR) {
+      failed++
+      console.error(`FAIL  ${label}: the dimmest thumbnail peaks at ${dimmest.thumb.toFixed(0)}, under the ${FLOOR} floor`)
+      console.error(
+        `      head ${dimmest.i} has a strongest link of ${dimmest.strongest} percent and cannot be read on the grid you pick from`,
+      )
+    } else {
+      console.log(`  ok      ${label}: the dimmest panel peaks at ${dimmest.thumb.toFixed(0)}, over the ${FLOOR} floor`)
+    }
   }
+
+  if (positions < 60) {
+    failed++
+    console.error(`FAIL  the test sentence made only ${positions} positions, too short to reach the downscale`)
+  }
+  judge('at 64 positions', await readGrid())
+
+  /*
+   * And again on the sentence a visitor actually meets.
+   *
+   * WM-F9 measured the spread on one long sentence and so did this gate, which
+   * left the opening state untested: six positions, a 6 by 6 field where every
+   * row sums to one over six cells rather than sixty four, so the peaks are
+   * high everywhere and a grid scaled per panel would look most alike exactly
+   * where every visitor sees it first. Measured at tick 172 on the default
+   * sample: peaks 24 to 96 percent, brightness 85 to 166, spread 81, and the
+   * brightest panel is the strongest head. It holds, and now it is held.
+   */
+  await page.fill('textarea', '')
+  await page.fill('textarea', OPENING)
+  await page.waitForTimeout(700)
+  const short = await page.evaluate(() => document.querySelectorAll('.axis-token').length)
+  if (short > 12) {
+    failed++
+    console.error(`FAIL  the opening sample made ${short} positions, so this is not the short case it exists for`)
+  }
+  judge(`at ${short} positions, the opening sample`, await readGrid())
 
   // The curve is on the page, not only in the code. An undeclared transform on a
   // heat map is the other kind of dishonest.
