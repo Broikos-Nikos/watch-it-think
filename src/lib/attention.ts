@@ -71,11 +71,36 @@ export function cubePeak(cube: AttentionCube): number {
   return max
 }
 
+/**
+ * The two ramps and two line colours a field is drawn with.
+ *
+ * Built from the page's own palette normally, and from the system's under
+ * forced colours, where the page has no say in what anything looks like.
+ */
+export interface Palette {
+  normal: Uint8ClampedArray
+  dim: Uint8ClampedArray
+  grid: string
+  focus: string
+}
+
 export interface DrawOptions {
   /** Highlight one query row and one key column, or neither. */
   focus?: number | null
   /** oklch hue for the heat. */
   hue: number
+  /**
+   * Draw with these colours instead of the hue's own ramp.
+   *
+   * WP-F9. A canvas is pixels, so forced colours leaves it exactly as it was
+   * drawn while inverting everything around it. Measured at tick 175 with
+   * forced colours active: the page background went from rgb(8, 6, 4) to white
+   * and the field did not move, so the weakest cells, which are black, became
+   * the highest contrast thing on the screen at 21:1 while the strongest cell
+   * dropped to 1.9:1 against the new background. The picture's meaning
+   * inverted: faint reads as loud.
+   */
+  palette?: Palette
   /** Leave a hairline between cells once they are big enough to see it. */
   grid?: boolean
   /**
@@ -192,6 +217,38 @@ function rampFor(hue: number) {
 }
 
 /**
+ * A ramp between two colours, in the same shape `rampFor` produces.
+ *
+ * Linear in sRGB rather than in oklch, deliberately: under forced colours the
+ * two ends are whatever the system chose, often pure black and pure white, and
+ * interpolating those through a perceptual space buys nothing and can leave the
+ * middle off gamut. The dim ramp stops at a third of the way, which keeps a
+ * focused row visibly ahead of its neighbours in a palette with no hue to
+ * spend.
+ */
+export function paletteFrom(
+  bg: [number, number, number],
+  fg: [number, number, number],
+  highlight: string,
+): Palette {
+  const normal = new Uint8ClampedArray(RAMP_STEPS * 3)
+  const dim = new Uint8ClampedArray(RAMP_STEPS * 3)
+  for (let i = 0; i < RAMP_STEPS; i++) {
+    const v = i / (RAMP_STEPS - 1)
+    for (let c = 0; c < 3; c++) {
+      normal[i * 3 + c] = bg[c] + (fg[c] - bg[c]) * v
+      dim[i * 3 + c] = bg[c] + (fg[c] - bg[c]) * v * 0.34
+    }
+  }
+  return {
+    normal,
+    dim,
+    grid: `rgb(${fg[0]} ${fg[1]} ${fg[2]} / 0.35)`,
+    focus: highlight,
+  }
+}
+
+/**
  * One offscreen canvas, reused. The field is written at one pixel per cell and
  * then scaled up with smoothing off, which is what the per cell `fillRect` was
  * doing by hand and is what the compositor is for.
@@ -214,12 +271,12 @@ export function drawField(
 ): void {
   const { width, height } = ctx.canvas
   const cell = Math.min(width, height) / positions
-  const { focus = null, hue, grid = false } = options
+  const { focus = null, hue, grid = false, palette } = options
   const max = options.max || peak(field) || 1
 
   ctx.clearRect(0, 0, width, height)
 
-  const { normal, dim } = rampFor(hue)
+  const { normal, dim } = palette ?? rampFor(hue)
 
   /*
    * How many pixels the field is drawn into, which decides whether this is an
@@ -300,7 +357,7 @@ export function drawField(
   ctx.imageSmoothingEnabled = wasSmoothing
 
   if (grid && cell > 6) {
-    ctx.strokeStyle = 'oklch(0.3 0.02 285 / 0.5)'
+    ctx.strokeStyle = palette ? palette.grid : 'oklch(0.3 0.02 285 / 0.5)'
     ctx.lineWidth = 1
     for (let i = 1; i < positions; i++) {
       ctx.beginPath()
@@ -313,7 +370,7 @@ export function drawField(
   }
 
   if (focus !== null) {
-    ctx.strokeStyle = `oklch(0.85 0.16 ${hue})`
+    ctx.strokeStyle = palette ? palette.focus : `oklch(0.85 0.16 ${hue})`
     ctx.lineWidth = 1.5
     ctx.strokeRect(0, focus * cell, positions * cell, cell)
     ctx.strokeRect(focus * cell, 0, cell, positions * cell)

@@ -1,7 +1,16 @@
 import './style.css'
 import { Router, topIntents, wordTags, type Meta, type Prediction } from './lib/router'
 import { hasWords, normalize, visibleLabel, wordTokenize } from './lib/tokenizer'
-import { concentration, cubePeak, drawField, fieldAt, peak, type AttentionCube } from './lib/attention'
+import {
+  concentration,
+  cubePeak,
+  drawField,
+  fieldAt,
+  paletteFrom,
+  peak,
+  type AttentionCube,
+  type Palette,
+} from './lib/attention'
 
 /**
  * The number under the box, which used to be one unwarmed sample to a tenth of
@@ -115,6 +124,58 @@ let downloadAt: { received: number; total: number } | null = null
  * is CSS and the other is canvas, and check:palette holds them together.
  */
 const HEAT_HUE = 235
+
+/**
+ * The colours to draw the fields in when the page is not choosing them.
+ *
+ * WP-F9. Forced colours repaints the page and leaves the canvas alone, because
+ * a canvas is pixels. Measured at tick 175 with forced colours active: the
+ * background went from rgb(8, 6, 4) to white while the field stayed exactly as
+ * drawn, so the weakest cells, which are black, became the highest contrast
+ * thing on the screen at 21:1, and the strongest cell fell to 1.9:1 against the
+ * new background. Every reading of the picture inverts: faint is loud.
+ *
+ * So when the system takes the palette over, the ramp is built from the two
+ * colours it gives us, `Canvas` and `CanvasText`, read from the page rather
+ * than guessed, with `Highlight` for the focused row. A weak cell is then the
+ * background it sits on and a strong one is the text colour, which is the
+ * ordering the picture means, in whatever two colours the reader chose.
+ */
+const forced = window.matchMedia('(forced-colors: active)')
+let forcedPalette: Palette | null = null
+
+function systemPalette(): Palette | undefined {
+  if (!forced.matches) return undefined
+  if (forcedPalette) return forcedPalette
+
+  const probe = document.createElement('span')
+  probe.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden;background:Canvas;color:CanvasText'
+  document.body.append(probe)
+  const seen = getComputedStyle(probe)
+  const rgb = (value: string): [number, number, number] => {
+    const n = value.match(/\d+(\.\d+)?/g)?.map(Number) ?? []
+    return [n[0] ?? 0, n[1] ?? 0, n[2] ?? 0]
+  }
+  const bg = rgb(seen.backgroundColor)
+  const fg = rgb(seen.color)
+  probe.remove()
+
+  forcedPalette = paletteFrom(bg, fg, 'Highlight')
+  return forcedPalette
+}
+
+/**
+ * The last answer, kept so the picture can be redrawn when nothing about the
+ * sentence changed and everything about the colours did.
+ */
+let lastPrediction: Prediction | null = null
+
+/* Turning high contrast on is not a reload, so the fields have to be told. The
+   cached palette goes with it: the system's two colours are what changed. */
+forced.addEventListener('change', () => {
+  forcedPalette = null
+  if (lastPrediction) drawAttention(lastPrediction)
+})
 
 /*
  * Plural where it is plural. The page printed "1 positions" during the hostile
@@ -462,6 +523,7 @@ function drawSelected(p: Prediction) {
     hue: HEAT_HUE,
     grid: true,
     max: strongest,
+    palette: systemPalette(),
   })
 
   const conc = concentration(field, cube.positions)
@@ -537,7 +599,11 @@ function drawAttention(p: Prediction) {
         // One scale across all twenty four, so a dim head looks dim. The large
         // canvas above keeps its own, because it is not being compared to
         // anything beside it and its caption prints the strongest link outright.
-        drawField(cx, fieldAt(cube, layer, head), cube.positions, { hue: HEAT_HUE, max: gridMax })
+        drawField(cx, fieldAt(cube, layer, head), cube.positions, {
+          hue: HEAT_HUE,
+          max: gridMax,
+          palette: systemPalette(),
+        })
       }
       // What this head is and how sharp it is, on the face of it.
       //
@@ -824,6 +890,7 @@ async function think() {
   }
   try {
     const p = await router.run(text)
+    lastPrediction = p
     render(p)
     /* With the text, not with `el.input.value`: the note is about the sentence
        that was answered, and by the time this runs the box may hold another. */
