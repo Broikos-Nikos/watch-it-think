@@ -447,10 +447,21 @@ function drawSelected(p: Prediction) {
     el.field.height = size
   }
 
+  /*
+   * WP-F13. `peak` ran three times over a field that had not changed, on every
+   * hover: once inside `drawField`, which falls back to it when no max is
+   * given, once for the aria-label and once for the caption. It is the same
+   * number each time and the field is 4,096 cells at a full sentence. Passing
+   * it in is also what keeps the large canvas on its own scale explicitly
+   * rather than by omission.
+   */
+  const strongest = peak(field)
+
   drawField(ctx, field, cube.positions, {
     focus: focusToken,
     hue: HEAT_HUE,
     grid: true,
+    max: strongest,
   })
 
   const conc = concentration(field, cube.positions)
@@ -459,7 +470,6 @@ function drawSelected(p: Prediction) {
   // This is the large one described in words: which field, how concentrated,
   // and where its strongest link goes, which is the thing a sighted reader
   // gets from looking at it.
-  const strongest = peak(field)
   el.field.setAttribute(
     'aria-label',
     `Attention field, layer ${selected.layer + 1} of ${cube.layers}, head ` +
@@ -472,7 +482,7 @@ function drawSelected(p: Prediction) {
     `layer ${selected.layer + 1} of ${cube.layers}, head ${selected.head + 1} of ` +
     `${cube.heads}. Rows are the token doing the looking, columns are what it looked at. ` +
     `Concentration ${(conc * 100).toFixed(0)} percent, strongest single link ` +
-    `${(peak(field) * 100).toFixed(0)} percent.`
+    `${(strongest * 100).toFixed(0)} percent.`
 }
 
 function drawAttention(p: Prediction) {
@@ -498,9 +508,11 @@ function drawAttention(p: Prediction) {
       b.type = 'button'
       b.className = 'headcell'
       b.role = 'tab'
-      const on = layer === selected.layer && head === selected.head
-      b.setAttribute('aria-selected', String(on))
-      b.classList.toggle('is-on', on)
+      // Which head this is, on the element, so `markGrid` can set the selected
+      // state without rebuilding anything and without index arithmetic that
+      // would have to agree with this loop.
+      b.dataset.layer = String(layer)
+      b.dataset.head = String(head)
       // No title attribute: it was the only place these coordinates lived, and
       // a tooltip is not a label. They are on the face of the cell now.
 
@@ -552,8 +564,7 @@ function drawAttention(p: Prediction) {
       // it. Twenty four separate tab stops for one control is what the access
       // audit called a tablist that controls nothing, and tabbing through two
       // dozen unlabelled thumbnails to reach the footer is nobody's idea of
-      // keyboard support.
-      b.tabIndex = on ? 0 : -1
+      // keyboard support. `markGrid` sets it, here and on every change.
       b.setAttribute(
         'aria-label',
         `Layer ${layer + 1}, head ${head + 1}, concentration ${(conc * 100).toFixed(0)} percent`,
@@ -561,26 +572,28 @@ function drawAttention(p: Prediction) {
 
       b.addEventListener('click', () => {
         selected = { layer, head }
-        drawAttention(p)
+        choose(p)
       })
       b.addEventListener('keydown', (e) => {
         const step = ARROWS[e.key]
         if (!step) return
         e.preventDefault()
         const [dl, dh] = step
-        const next = {
+        selected = {
           layer: (layer + dl + cube.layers) % cube.layers,
           head: (head + dh + cube.heads) % cube.heads,
         }
-        selected = next
-        drawAttention(p)
-        // The grid was just rebuilt, so the element to focus is the new one.
+        choose(p)
+        // The cells are the same elements as before, and the one carrying the
+        // tab stop has moved.
         el.heads.querySelector<HTMLElement>('.headcell[tabindex="0"]')?.focus()
       })
       frag.append(b)
     }
   }
   el.heads.replaceChildren(frag)
+  // The selected state, from the one place that knows what it is.
+  markGrid()
 
   // The tokens along the axis. Hover was the only way to use these, which meant
   // they did nothing at all on a phone and nothing at all from a keyboard: two
@@ -676,6 +689,38 @@ function drawAttention(p: Prediction) {
 
   drawSelected(p)
   markAxis()
+}
+
+/**
+ * Which thumbnail is the chosen one, written onto the cells that already exist.
+ *
+ * WP-F3. Choosing a head used to call `drawAttention`, which rebuilds
+ * everything: measured at tick 173 on a 64 position sentence, one click
+ * replaced **all 24 thumbnails, all 24 canvases and all 64 axis buttons**, zero
+ * of the 112 nodes surviving, for a change that altered no data. The cost is
+ * small now that the drawing is fast, 7 ms, so this is waste rather than a
+ * delay, and waste is what makes a page feel like it is thinking when it is
+ * not: the axis a reader is pointing at is replaced under the pointer, and
+ * every canvas repaints to show what it already showed.
+ *
+ * Three attributes on twenty four buttons is the whole of what a head change
+ * is, and this is the only place they are set, including when the grid is
+ * first built, so the rule cannot drift between the two paths.
+ */
+/** A head was chosen: the picture, its caption, and which cell is lit. */
+function choose(p: Prediction) {
+  markGrid()
+  drawSelected(p)
+}
+
+function markGrid() {
+  for (const cell of el.heads.querySelectorAll<HTMLElement>('.headcell')) {
+    const on = Number(cell.dataset.layer) === selected.layer && Number(cell.dataset.head) === selected.head
+    cell.classList.toggle('is-on', on)
+    cell.setAttribute('aria-selected', String(on))
+    // One tab stop for the whole grid: see the note where the cells are built.
+    cell.tabIndex = on ? 0 : -1
+  }
 }
 
 function markAxis() {

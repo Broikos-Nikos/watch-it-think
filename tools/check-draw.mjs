@@ -168,6 +168,67 @@ try {
     )
   }
 
+  /*
+   * ---- and a head change touches nothing it did not have to ---------------
+   *
+   * WP-F3. Choosing a head called `drawAttention`, which rebuilds the grid and
+   * the axis from scratch. Measured at tick 173 on this sentence, before the
+   * fix: one click replaced **all 24 thumbnails, all 24 canvases and all 64
+   * axis buttons**, zero of the 112 nodes surviving, for a change that altered
+   * no data. 7 ms, so it was never a delay; it was the axis being replaced
+   * under a pointer that was resting on it and every canvas repainting to draw
+   * what it already showed.
+   *
+   * Node identity is the assertion rather than a timing, because a faster
+   * rebuild is still a rebuild and a budget would pass one. The three
+   * attributes that are allowed to change are checked on the other side: one
+   * cell selected, and it is the one that was clicked.
+   */
+  const reuse = await page.evaluate(async () => {
+    for (const sel of ['.headcell', '.headcell canvas', '.axis-token']) {
+      document.querySelectorAll(sel).forEach((n, i) => {
+        n.__mark = i
+      })
+    }
+    const cells = [...document.querySelectorAll('.headcell')]
+    const target = cells.findIndex((c) => c.getAttribute('aria-selected') !== 'true')
+    cells[target].click()
+    await new Promise((r) => requestAnimationFrame(r))
+    const kept = (sel) => [...document.querySelectorAll(sel)].filter((n) => n.__mark !== undefined).length
+    const now = [...document.querySelectorAll('.headcell')]
+    return {
+      target,
+      heads: { kept: kept('.headcell'), of: now.length },
+      canvases: { kept: kept('.headcell canvas'), of: document.querySelectorAll('.headcell canvas').length },
+      axis: { kept: kept('.axis-token'), of: document.querySelectorAll('.axis-token').length },
+      selected: now.map((c, i) => [i, c.getAttribute('aria-selected') === 'true', c.classList.contains('is-on'), c.tabIndex === 0]),
+      caption: document.querySelector('[data-field-caption]')?.textContent ?? '',
+    }
+  })
+
+  const replaced = ['heads', 'canvases', 'axis'].filter((k) => reuse[k].kept < reuse[k].of)
+  if (replaced.length > 0) {
+    failed++
+    console.error(
+      `FAIL  choosing a head replaced ${replaced.map((k) => `${reuse[k].of - reuse[k].kept} of ${reuse[k].of} ${k}`).join(', ')}`,
+    )
+    console.error('      nothing about the data changed, so nothing about those elements had to')
+  } else {
+    console.log(
+      `  ok      choosing a head keeps all ${reuse.heads.of} thumbnails, ${reuse.canvases.of} canvases and ${reuse.axis.of} axis chips`,
+    )
+  }
+
+  const lit = reuse.selected.filter(([, sel, on, tab]) => sel || on || tab)
+  if (lit.length !== 1 || lit[0][0] !== reuse.target || !lit[0].slice(1).every(Boolean)) {
+    failed++
+    console.error(
+      `FAIL  head ${reuse.target} was chosen and the grid marks ${JSON.stringify(lit)} as selected, on, or holding the tab stop`,
+    )
+  } else {
+    console.log(`  ok      exactly one cell is selected afterwards, and it is the one that was clicked`)
+  }
+
   // Geometry: a field drawn from an identity matrix must be bright on the
   // diagonal and dark off it, which catches a transposed or offset write into
   // the pixel buffer that a colour test cannot see.

@@ -8,7 +8,7 @@ no write access to the project: it produced a findings file and a list, and the
 fixes were separate work afterwards. Nobody audited their own code twenty
 minutes after writing it, which is the only reason any of this was found.
 
-**190 findings, 98 closed, 92 open**, across the 17 perspectives that produced them.
+**190 findings, 100 closed, 90 open**, across the 17 perspectives that produced them.
 
 That line and the count under every table below are checked against the tables
 themselves on every build, by `npm run check:audits`, and against the queue this
@@ -74,7 +74,7 @@ The measurement auditor: is every number reproducible, is the sample size stated
 
 Performance and access: bytes on first paint, main thread cost, contrast, focus, screen readers.
 
-15 findings, 7 closed.
+15 findings, 9 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
@@ -82,7 +82,7 @@ Performance and access: bytes on first paint, main thread cost, contrast, focus,
 | `WP-F2` | high | fixed, tick 43 | Every attention field is painted one fillRect per cell with a freshly built oklch() string: 144 ms where 1.1 ms draws the same picture |
 | `WP-F4` | high | fixed, tick 47 | The live region announces the telemetry on every keystroke and never announces the answer |
 | `WP-F5` | high | fixed, tick 50 | The token highlight has no keyboard path at all |
-| `WP-F3` | medium | open | Choosing a head still rebuilds every button and the whole axis for a change that altered no data. The 350 ms it cost is gone with WP-F2, measured at 2.3 ms median, so this is waste rather than a delay |
+| `WP-F3` | medium | fixed, tick 173 | Choosing a head still rebuilds every button and the whole axis for a change that altered no data. The 350 ms it cost is gone with WP-F2, measured at 2.3 ms median, so this is waste rather than a delay |
 | `WP-F6` | medium | open | Sweeping the pointer across the axis redraws the 520 pixel field synchronously per token: 47 fps desktop, 11 fps mid range |
 | `WP-F7` | medium | fixed, tick 50 | A tablist that controls nothing, 24 tab stops, dead arrow keys, and a focus ring identical to the selection |
 | `WP-F8` | medium | fixed, tick 47 | 25 canvases are the entire point of the page and carry no key, no values and no text alternative |
@@ -90,7 +90,7 @@ Performance and access: bytes on first paint, main thread cost, contrast, focus,
 | `WP-F10` | medium | open | Every interactive boundary on the page is at 1.48:1, where the rule is 3:1 |
 | `WP-F11` | medium | open | Three of the six sample buttons are Greek inside lang=en |
 | `WP-F12` | low | fixed, tick 47 | The answer has no heading, no label, and its tag codes are unexplained jargon |
-| `WP-F13` | low | open | peak runs three times and concentration once over a field that has not changed, on every hover |
+| `WP-F13` | low | fixed, tick 173 | peak runs three times and concentration once over a field that has not changed, on every hover |
 | `WP-F14` | low | open | list-style: none strips the list semantics of the race and the axis in Safari |
 | `WP-F15` | low | open | Nothing says how long any of the 19.8 MB may be cached, and the model files are not content hashed |
 
