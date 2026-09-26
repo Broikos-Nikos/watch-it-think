@@ -8,7 +8,7 @@ no write access to the project: it produced a findings file and a list, and the
 fixes were separate work afterwards. Nobody audited their own code twenty
 minutes after writing it, which is the only reason any of this was found.
 
-**190 findings, 95 closed, 95 open**, across the 17 perspectives that produced them.
+**190 findings, 96 closed, 94 open**, across the 17 perspectives that produced them.
 
 That line and the count under every table below are checked against the tables
 themselves on every build, by `npm run check:audits`, and against the queue this
@@ -50,7 +50,7 @@ The hostile stranger: an empty box, a paste the size of a book, emoji, a phone, 
 
 The measurement auditor: is every number reproducible, is the sample size stated, is any comparison unfair.
 
-15 findings, 10 closed.
+15 findings, 11 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
@@ -59,7 +59,7 @@ The measurement auditor: is every number reproducible, is the sample size stated
 | `WM-F3` | high | fixed, tick 35 | Five latency numbers, none reproduces, and meta.json's was measured on native onnxruntime while the page runs wasm at a few times that |
 | `WM-F4` | high | fixed, tick 37 | The devlog says both accuracy figures are in meta.json so neither can be quoted alone. meta.json contains neither the 72.00 abstain figure nor the threshold |
 | `WM-F5` | medium | fixed, tick 33 | meta.json ships one tolerance over four parity numbers; three were applied, and attentionRowSumDeviation cannot fail because it measures a softmax summing to 1 |
-| `WM-F6` | medium | open | 97.28 percent tag accuracy is reported with no baseline, and always predicting O scores 74.98 percent on the same tags |
+| `WM-F6` | medium | fixed, tick 170 | 97.28 percent tag accuracy is reported with no baseline, and always predicting O scores 74.98 percent on the same tags |
 | `WM-F7` | medium | fixed, tick 34 | The page tells the visitor the held out set is the adversarial one, and the pipeline records nothing about which file was evaluated |
 | `WM-F8` | medium | open | meta.json's source string is a hardcoded literal repeated in four places, and its config reports dropout 0.1 for a graph exported with dropout zero |
 | `WM-F9` | medium | open | Each of the 24 thumbnails is normalised to its own peak, so the small multiples the page exists for are not comparable. Measured spread 0.267 to 0.999 |

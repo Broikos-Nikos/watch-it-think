@@ -111,11 +111,51 @@ if (q.testSet?.split === 'adversarial' && !/adversarial/i.test(readme)) {
   console.error('FAIL  the numbers come from the adversarial split and the README does not say so')
 }
 
-// The tag accuracy is meaningless without its baseline, which is high: most
-// words carry no slot. Shipping 97.28% alone is the finding WP-F6 raised.
-if (readme.includes(`${int8.tagAccuracy}%`) && !/baseline/i.test(readme)) {
+/*
+ * The tag accuracy is meaningless without its baseline, which is high: most
+ * words carry no slot. Shipping 97.28% alone is the finding WP-F6 raised and
+ * WM-F6 raised again from the measurement side.
+ *
+ * Beside it, and not merely somewhere in the file. Until tick 170 this asked
+ * whether the word "baseline" occurred anywhere in the README, which is a
+ * question a careless edit answers by accident: measured then, replacing 74.98
+ * with 12.34 left this gate green, and deleting the whole paragraph while
+ * leaving the word in the next sentence left it green too. Both were caught, by
+ * `check:upstream`, which holds the pinned number in both directions. So the
+ * number was safe and this assertion was not the reason.
+ *
+ * What it asks now: the baseline value comes from `docs/upstream.json` rather
+ * than from a literal here, and the value itself, not the word, has to appear
+ * in every block that quotes the accuracy. A reader who meets the table does not
+ * read the rest of the file first, so the floor moved into the row label: "slot
+ * tag accuracy, against a 74.98% floor".
+ */
+const pinned = JSON.parse(readFileSync(resolve(root, 'docs/upstream.json'), 'utf8'))
+const baseline = pinned.numbers?.find((n) => n.id === 'tag-majority-baseline')?.value
+/* From the raw text, not from `readme`: that one has had its newlines flattened
+   twenty lines above, so splitting it on a blank line gives a single paragraph
+   holding the whole file and this assertion passes on any README at all. It was
+   written that way first, and the only reason it is not still written that way
+   is that the control was run. */
+const paragraphs = readmeRaw.split(/\n\s*\n/).map((p) => p.replace(/\s+/g, ' '))
+const quoting = paragraphs.filter((p) => p.includes(`${int8.tagAccuracy}%`))
+
+if (!baseline) {
   failed++
-  console.error('FAIL  the tag accuracy is quoted with no baseline beside it')
+  console.error('FAIL  docs/upstream.json no longer pins tag-majority-baseline, so this gate has nothing to hold the tag accuracy to')
+} else if (quoting.length > 0) {
+  const withIt = quoting.filter((p) => p.includes(baseline))
+  if (withIt.length < quoting.length) {
+    failed++
+    console.error(
+      `FAIL  the tag accuracy ${int8.tagAccuracy}% is quoted in ${quoting.length} place${quoting.length === 1 ? '' : 's'} and ${quoting.length - withIt.length} of them ${quoting.length - withIt.length === 1 ? 'does' : 'do'} not name the ${baseline} baseline`,
+    )
+    console.error('      Most words carry no slot, so the floor is high and the number reads better than it is.')
+  }
+  if (!readme.includes(baseline)) {
+    failed++
+    console.error(`FAIL  the README never says the ${baseline} baseline that docs/upstream.json pins`)
+  }
 }
 
 if (failed > 0) {

@@ -61,7 +61,7 @@ from templates and synonyms held out of training:
 |---|---|---|
 | intent accuracy | **74.53%** | 74.58% |
 | intent accuracy, allowed to decline | **72.63%**, declining 834 | |
-| slot tag accuracy | 97.28% | 97.28% |
+| slot tag accuracy, against a 74.98% floor | 97.28% | 97.28% |
 | intent and every tag correct | 69.86% | 69.97% |
 
 Both accuracy figures or neither. 74.53% is what it scores when it must answer.
