@@ -16,9 +16,25 @@
  * element rather than that it exists somewhere.
  *
  * The score is concentration, the same number the caption under the large field
- * quotes. It is checked against the library rather than against itself, because
- * a label that is computed twice is a label that can disagree with the picture
- * it sits on.
+ * quotes.
+ *
+ * ## What the score is checked against, and what it is not
+ *
+ * WD2-F8. Until tick 181 this said the score was "checked against the library
+ * rather than against itself". It was not: this gate imports nothing from
+ * `src/`, and the two values it compared, a thumbnail's `aria-label` and the
+ * same thumbnail's printed text, come out of one `concentration()` call. That
+ * is checking it against itself, and the sentence claiming otherwise is the
+ * reason nobody noticed.
+ *
+ * The arithmetic inside `concentration()` is held by `check:concentration`,
+ * which reimplements both candidate formulas in node against fields whose
+ * answers are known by hand. There is nothing left for this gate to add there.
+ * What that gate cannot see is whether the two places the page renders the
+ * number agree, so that is what this one holds: the selected thumbnail's score
+ * and the caption under the large field are separate render paths over
+ * separate `Field` objects, and a change to one that misses the other shows up
+ * here as a disagreement.
  */
 
 import { chromium } from 'playwright'
@@ -96,6 +112,47 @@ try {
         `  ok      concentration runs ${Math.min(...scores)} to ${Math.max(...scores)}, so the sharp heads stand out`,
       )
     }
+  }
+
+  /*
+   * ---- the grid and the large field quote the same number -----------------
+   *
+   * The two render paths: `drawHeads` builds a thumbnail per head and prints
+   * `concentration(fieldAt(cube, l, h))` beside it, `drawSelected` computes it
+   * again for the one that is selected and writes it into the caption. Same
+   * function, different call, different `Field`, and until this was added
+   * nothing required the answers to meet. A selection that drew the wrong
+   * head, a caption left behind by a redraw, or a grid sorted after its scores
+   * were printed all land here as two numbers that differ.
+   */
+  const pair = await page.evaluate(() => {
+    const on = [...document.querySelectorAll('.headcell')].findIndex(
+      (c) => c.getAttribute('aria-selected') === 'true',
+    )
+    const cap = document.querySelector('[data-field-caption]')?.textContent ?? ''
+    return {
+      on,
+      tag: document.querySelectorAll('.headcell')[on]?.querySelector('.headcell-tag')?.textContent?.trim() ?? '',
+      grid: Number(document.querySelectorAll('.headcell')[on]?.querySelector('.headcell-score')?.textContent ?? NaN),
+      caption: Number(cap.match(/Concentration (\d+) percent/)?.[1] ?? NaN),
+      says: cap.match(/layer (\d+) of \d+, head (\d+) of/)?.slice(1, 3).map(Number) ?? [],
+    }
+  })
+
+  if (pair.on < 0) {
+    fail('no thumbnail is marked selected, so the caption belongs to nothing')
+  } else if (!Number.isFinite(pair.grid) || !Number.isFinite(pair.caption)) {
+    fail(`the selected thumbnail scores ${pair.grid} and the caption says ${pair.caption}`)
+  } else if (pair.grid !== pair.caption) {
+    fail(
+      `thumbnail ${pair.tag} prints concentration ${pair.grid} and the caption under the large field says ${pair.caption}`,
+      'the same quantity computed twice in two render paths, and the page shows both at once',
+    )
+  } else {
+    console.log(
+      `  ok      the selected thumbnail ${pair.tag} and the caption both say concentration ${pair.grid}, ` +
+        `layer ${pair.says[0]} head ${pair.says[1]}`,
+    )
   }
 
   // ---- nothing important lives only in a tooltip ---------------------------

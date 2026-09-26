@@ -58,6 +58,32 @@ export function peak(field: Field): number {
 }
 
 /**
+ * The same largest value, and where in the field it is.
+ *
+ * The caption quoted "strongest single link 43 percent" and left the reader to
+ * hunt a 6x6 or 47x47 grid for the cell it meant. Saying which token looked at
+ * which is the sentence the picture was always making, and it is the only
+ * coordinate the page publishes, which is what lets `check:draw` assert that
+ * the field is drawn the way the caption says it is read: rows are the token
+ * doing the looking. A transposed write into the pixel buffer puts the bright
+ * cell at (k, q), and nothing else on this page could tell.
+ *
+ * Ties go to the first in row major order, which is the reading order of the
+ * picture, so the coordinate is stable across redraws of the same field.
+ */
+export function peakAt(field: Field, positions: number): { value: number; q: number; k: number } {
+  let value = -1
+  let at = 0
+  for (let i = 0; i < field.values.length; i++) {
+    if (field.values[i]! > value) {
+      value = field.values[i]!
+      at = i
+    }
+  }
+  return { value: Math.max(value, 0), q: Math.floor(at / positions), k: at % positions }
+}
+
+/**
  * The largest value anywhere in the cube, so the small multiples share a scale.
  *
  * Computed once per cube and handed to all twenty four thumbnails. Without it

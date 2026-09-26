@@ -8,7 +8,7 @@ import {
   drawField,
   fieldAt,
   paletteFrom,
-  peak,
+  peakAt,
   type AttentionCube,
   type Palette,
 } from './lib/attention'
@@ -510,7 +510,8 @@ function drawSelected(p: Prediction) {
    * it in is also what keeps the large canvas on its own scale explicitly
    * rather than by omission.
    */
-  const strongest = peak(field)
+  const top = peakAt(field, cube.positions)
+  const strongest = top.value
 
   drawField(ctx, field, cube.positions, {
     focus: focusToken,
@@ -522,6 +523,26 @@ function drawSelected(p: Prediction) {
 
   const conc = concentration(field, cube.positions)
 
+  /*
+   * Where the strongest link is, and not only how strong it is.
+   *
+   * WD2-F8. Both descriptions below said "where its strongest link goes" and
+   * neither said where: a reader got a percentage and a grid to hunt through,
+   * 36 cells on the opening sentence and 2,209 on a long one. Naming the pair
+   * is the sentence the picture was already making, and it is also the only
+   * coordinate this page publishes, so it is the one thing a gate can hold the
+   * drawing to. `check:draw` reads it and requires the brightest drawn cell to
+   * be at that row and that column, which is the caption's "rows are the token
+   * doing the looking" stated as an assertion rather than as a promise.
+   */
+  el.field.dataset.strongest = `${top.q},${top.k}`
+  const fromTok = fullLabelAt(p, top.q)
+  const toTok = fullLabelAt(p, top.k)
+  const link =
+    top.q === top.k
+      ? `strongest single link ${(strongest * 100).toFixed(0)} percent, "${fromTok}" looking at itself`
+      : `strongest single link ${(strongest * 100).toFixed(0)} percent, from "${fromTok}" to "${toTok}"`
+
   // Twenty five canvases carry the entire argument of this page and no text.
   // This is the large one described in words: which field, how concentrated,
   // and where its strongest link goes, which is the thing a sighted reader
@@ -530,15 +551,13 @@ function drawSelected(p: Prediction) {
     'aria-label',
     `Attention field, layer ${selected.layer + 1} of ${cube.layers}, head ` +
       `${selected.head + 1} of ${cube.heads}. Concentration ${(conc * 100).toFixed(0)} percent, ` +
-      `strongest single link ${(strongest * 100).toFixed(0)} percent. ` +
-      `A concentrated field means most tokens looked at the same few places.`,
+      `${link}. A concentrated field means most tokens looked at the same few places.`,
   )
 
   el.fieldCaption.textContent =
     `layer ${selected.layer + 1} of ${cube.layers}, head ${selected.head + 1} of ` +
     `${cube.heads}. Rows are the token doing the looking, columns are what it looked at. ` +
-    `Concentration ${(conc * 100).toFixed(0)} percent, strongest single link ` +
-    `${(strongest * 100).toFixed(0)} percent.`
+    `Concentration ${(conc * 100).toFixed(0)} percent, ${link}.`
 }
 
 function drawAttention(p: Prediction) {

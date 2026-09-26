@@ -16,6 +16,13 @@
  *
  * `tokenlab` has the same gate and it earned its place on its first run, by
  * catching a hand typed 1.63 against a measured 1.61.
+ *
+ * There are two halves, and the second is where a figure is **counted rather
+ * than merely found**: every millisecond in the README has to be a latency
+ * `meta.json` produces, so a figure corrected in one place and left stale in
+ * another is caught by being unaccounted for rather than by being wrong. The
+ * percentages are swept the same way by `check:upstream` and the sizes over
+ * the wire by `check:weight`.
  */
 
 import { readFileSync } from 'node:fs'
@@ -95,13 +102,57 @@ const claims = [
 
 let failed = 0
 for (const [what, value] of claims) {
-  // Counted, not merely found: a figure that appears twice and is corrected in
-  // only one place is the defect this is for.
   const hits = readme.split(value).length - 1
   if (hits === 0) {
     failed++
     console.error(`FAIL  ${what}: the measurement says ${JSON.stringify(value)} and the README does not say it`)
   }
+}
+
+/*
+ * ---- and the other direction, which is the half that counts ---------------
+ *
+ * WD2-F8. The loop above used to carry the comment "Counted, not merely found:
+ * a figure that appears twice and is corrected in only one place is the defect
+ * this is for". It counted nothing: `hits` was computed and then only compared
+ * to zero, so a stale duplicate passed. The obvious repair, failing on
+ * `hits > 1`, is worse than the defect: measured at tick 181, eight of the
+ * twenty five claims above legitimately appear more than once, "0" twenty one
+ * times, "97.28%" three, and the gate would fail on a correct README.
+ *
+ * A figure corrected in one place and not the other leaves behind a figure of
+ * the right shape that the measurement does not produce, so that is the thing
+ * to look for, and it is what `promptcost` and `retrievalbench` already do.
+ * The percentages on this page are swept by `check:upstream`, which resolves
+ * every one to `meta.json` or to a pinned entry in `docs/upstream.json`, and
+ * the sizes over the wire are held to `dist` by `check:weight`. The
+ * milliseconds were swept by nothing, which is where the stale number in this
+ * project actually appeared: WM2-F8 is a latency comment left quoting 0.98 ms
+ * against 0.72 ms after the numbers moved.
+ */
+const produced = new Set()
+for (const b of int8.byLength) {
+  produced.add(b.medianMs.toFixed(2))
+  produced.add(String(b.medianMs))
+}
+for (const v of [int8.latency?.medianMs, int8.latency?.p95Ms, q.fp32?.latency?.medianMs]) {
+  if (typeof v === 'number') {
+    produced.add(v.toFixed(2))
+    produced.add(String(v))
+  }
+}
+const inProse = [...new Set(readme.match(/\b\d{1,4}\.\d{1,2}(?= ms\b)/g) ?? [])]
+const orphans = inProse.filter((f) => !produced.has(f))
+if (orphans.length > 0) {
+  failed++
+  console.error(
+    `FAIL  the README states ${orphans.join(', ')} ms and meta.json produces no such latency`,
+  )
+  console.error(`      it produces ${[...produced].filter((p) => p.includes('.')).sort().join(', ')}`)
+} else {
+  console.log(
+    `  ok      all ${inProse.length} millisecond figures in the README are latencies meta.json produces`,
+  )
 }
 
 // The split the accuracy was measured on has to be named, because the same

@@ -229,27 +229,94 @@ try {
     console.log(`  ok      exactly one cell is selected afterwards, and it is the one that was clicked`)
   }
 
-  // Geometry: a field drawn from an identity matrix must be bright on the
-  // diagonal and dark off it, which catches a transposed or offset write into
-  // the pixel buffer that a colour test cannot see.
+  /*
+   * ---- the picture is drawn the way the caption says it is read -----------
+   *
+   * WD2-F8. Until tick 181 this comment said "a field drawn from an identity
+   * matrix must be bright on the diagonal and dark off it, which catches a
+   * transposed or offset write into the pixel buffer". No identity matrix was
+   * ever drawn, and the assertion underneath was `max - min >= 60` over every
+   * cell, which is a function of the multiset of cell values. Measured on the
+   * opening sentence at tick 181:
+   *
+   *   drawn field          spread 461
+   *   its transpose        spread 461
+   *   shifted one column   spread 461
+   *
+   * A permutation of the cells cannot change it, so the assertion was
+   * bit for bit blind to both defects its comment named, on the only page in
+   * this project where the orientation of the field is claimed to be checked.
+   *
+   * Statistics on the pixels will not do it either, and that was measured
+   * before this was written: the field is row stochastic, so every row has a
+   * bright cell and some columns have none, but the ramp is nonlinear and the
+   * signature does not survive it. Over 24 head-and-length combinations the
+   * row form of `concentration()` recomputed from brightness beat the column
+   * form every time and by as little as 0.001, which is a coin toss, not a
+   * gate.
+   *
+   * So the page publishes the coordinate instead. `drawSelected` writes the
+   * argmax of the field to `data-strongest` and names the two tokens in the
+   * caption, and this requires the brightest drawn cell to sit at that row and
+   * that column. A transposed write puts it at (k, q) and fails here whenever
+   * the strongest link is not on the diagonal; an offset write moves it by a
+   * cell and fails always. The gate refuses a field whose strongest link is on
+   * the diagonal rather than passing it, because on such a field the
+   * assertion cannot tell the two orientations apart and a green tick would be
+   * a lie about what was checked.
+   */
   const geom = await page.evaluate(() => {
     const c = document.querySelector('[data-field]')
     const ctx = c.getContext('2d', { willReadFrequently: true })
     const n = document.querySelectorAll('.axis-token').length
     const cell = Math.min(c.width, c.height) / n
+    const img = ctx.getImageData(0, 0, c.width, c.height).data
     const at = (q, k) => {
-      const d = ctx.getImageData(Math.floor((k + 0.5) * cell), Math.floor((q + 0.5) * cell), 1, 1).data
-      return d[0] + d[1] + d[2]
+      const i = (Math.floor((q + 0.5) * cell) * c.width + Math.floor((k + 0.5) * cell)) * 4
+      return img[i] + img[i + 1] + img[i + 2]
     }
-    // Row 0 of a real field is the sentence vector and is never empty, so the
-    // check is that the drawn image is not uniform: a buffer written wrong is
-    // almost always flat.
+    let best = -1
+    let bq = -1
+    let bk = -1
     const vals = []
-    for (let q = 0; q < n; q++) for (let k = 0; k < n; k++) vals.push(at(q, k))
-    const min = Math.min(...vals)
-    const max = Math.max(...vals)
-    return { n, min, max, spread: max - min }
+    for (let q = 0; q < n; q++) {
+      for (let k = 0; k < n; k++) {
+        const v = at(q, k)
+        vals.push(v)
+        if (v > best) {
+          best = v
+          bq = q
+          bk = k
+        }
+      }
+    }
+    const said = (c.dataset.strongest ?? '').split(',').map(Number)
+    return { n, bq, bk, said, best, spread: Math.max(...vals) - Math.min(...vals) }
   })
+
+  const [sq, sk] = geom.said
+  if (!Number.isInteger(sq) || !Number.isInteger(sk)) {
+    failed++
+    console.error(`FAIL  the canvas publishes no data-strongest, so nothing states where the field's strongest link is`)
+  } else if (sq === sk) {
+    failed++
+    console.error(
+      `FAIL  the strongest link is on the diagonal, at (${sq}, ${sk}), so this assertion cannot tell a row major field from a transposed one`,
+    )
+    console.error('      pick a sentence whose strongest link is off the diagonal rather than letting the check pass vacuously')
+  } else if (geom.bq !== sq || geom.bk !== sk) {
+    failed++
+    console.error(
+      `FAIL  the caption says the strongest link is row ${sq} column ${sk} and the brightest drawn cell is row ${geom.bq} column ${geom.bk}`,
+    )
+    console.error(
+      `      ${geom.bq === sk && geom.bk === sq ? 'that is the transpose of it: rows are being drawn as columns' : 'the buffer and the coordinate disagree, so one of them is written wrong'}`,
+    )
+  } else {
+    console.log(
+      `  ok      the brightest drawn cell is at row ${sq} column ${sk}, off the diagonal, where the caption says the strongest link is`,
+    )
+  }
 
   if (geom.spread < 60) {
     failed++

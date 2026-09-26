@@ -8,7 +8,7 @@ no write access to the project: it produced a findings file and a list, and the
 fixes were separate work afterwards. Nobody audited their own code twenty
 minutes after writing it, which is the only reason any of this was found.
 
-**192 findings, 110 closed, 82 open**, across the 17 perspectives that produced them.
+**192 findings, 111 closed, 81 open**, across the 17 perspectives that produced them.
 
 That line and the count under every table below are checked against the tables
 themselves on every build, by `npm run check:audits`, and against the queue this
@@ -238,7 +238,7 @@ The maintainer six months from now: what rots first, and what the repository say
 
 The deep reviewer again, against the code the first pass produced.
 
-13 findings, 9 closed.
+13 findings, 10 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
@@ -249,7 +249,7 @@ The deep reviewer again, against the code the first pass produced.
 | `WD2-F5` | medium | fixed, tick 179 | 'median of 2' prints the first run's number, which is the one figure the rewrite exists to stop showing |
 | `WD2-F6` | medium | fixed, tick 180 | A pinned token that outlives its sentence dims the entire field, hides itself, and switches hover off, with nothing on screen to undo it |
 | `WD2-F7` | medium | fixed, tick 66 | Reduced motion stops the CSS transition and nothing else, and the gate that says it all stops when asked only reads the transition |
-| `WD2-F8` | medium | open | Three gate headers describe a check the gate does not make |
+| `WD2-F8` | medium | fixed, tick 181 | Three gate headers describe a check the gate does not make |
 | `WD2-F9` | medium | open | The non-Windows half of the server cleanup cannot work, because the child is never detached |
 | `WD2-F10` | low | open | The ramp is read with a truncation, so a shipped cell is up to two units per channel from the colour the old code asked for, against the gate's own one unit bar |
 | `WD2-F11` | low | fixed, tick 65 | 'each cell gets whole pixels' holds for 21 of the 64 possible token counts |
