@@ -41,6 +41,7 @@
     "check:meta": "node tools/check-meta.mjs",
     "check:motion": "node tools/check-motion.mjs",
     "check:palette": "node tools/check-palette.mjs",
+    "check:pin": "node tools/check-pin.mjs",
     "check:progress": "node tools/check-progress.mjs",
     "check:queued": "node tools/check-queued.mjs",
     "check:raw": "node tools/check-raw.mjs",

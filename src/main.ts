@@ -545,6 +545,30 @@ function drawAttention(p: Prediction) {
   const cube = cubeOf(p)
 
   /*
+   * A pin cannot outlive the sentence it was put in.
+   *
+   * WD2-F6. Pinning token 40 of a 47 token sentence and then typing a five
+   * token one left `pinnedToken` at 40: no chip could show it, because there
+   * is no fortieth chip, and `preview()` returns early whenever a pin exists,
+   * so hovering stopped doing anything at all with nothing on screen to undo.
+   * Measured at tick 180 on the same five token sentence, drawn twice:
+   *
+   *   clean            mean 75.4, brightest 166, hover lights 1 chip
+   *   after a stale pin  mean 84.1, brightest 190, hover lights 0
+   *
+   * The field is drawn through the dim ramp for every cell, because every row
+   * is "not the focused row" and every column is "not the focused column".
+   * That reads as washed out and measures as brighter, since the dim ramp is
+   * the same lightness at a quarter of the chroma and a desaturated blue has a
+   * higher relative luminance than a saturated one.
+   *
+   * A pin that still fits survives, the way the chosen head does. One that
+   * does not is dropped here, where the new prediction arrives.
+   */
+  if (pinnedToken !== null && pinnedToken >= cube.positions) pinnedToken = null
+  if (focusToken !== null && focusToken >= cube.positions) focusToken = null
+
+  /*
    * One scale for the whole grid, computed once.
    *
    * Every thumbnail used to divide by its own peak. Measured on the shipped

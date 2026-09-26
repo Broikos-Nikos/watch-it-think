@@ -42,6 +42,7 @@ const GATES = [
   'check:unknown',
   'check:axis',
   'check:forced',
+  'check:pin',
 ]
 
 /*
