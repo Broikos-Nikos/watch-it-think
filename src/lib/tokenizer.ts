@@ -84,8 +84,43 @@ const PY_SPACE_RUN = new RegExp(`[${PY_SPACE}]+`, 'gu')
  * from PY_SPACE rather than written out, so the two can never drift apart.
  */
 const W = String.raw`\p{L}\p{N}_`
+
+/**
+ * The code points the browser calls letters and the Python that trained this
+ * model does not.
+ *
+ * WD2-F4. `\p{L}` is a question about a Unicode version, and the two runtimes
+ * answer from different ones. Measured at tick 178 on this machine:
+ *
+ *   Python 3.14.4, unicodedata 16.0.0   142,940 word code points
+ *   V8, Unicode 17.0                    147,597
+ *   in the browser and not in Python      4,657, as 20 ranges and 6 singles
+ *   the other way                             0
+ *
+ * Every one of those is a character the browser glues into the word beside it
+ * while Python would cut it out as its own token, so it does not only change
+ * its own id: it changes the ids of the ordinary words either side of it, on a
+ * model that never saw that spelling. The fixture cannot catch it because the
+ * fixture is 242 sentences of Greek and English and these are Tangut, Vithkuqi
+ * and Garay.
+ *
+ * So the class is pinned rather than inherited. This list is what `re.UNICODE`
+ * said on 2026-09-26, it travels with the version that produced it, and
+ * `check:unicode` fails if the runtime ever disagrees with it in the direction
+ * that matters.
+ */
+const NEWER_THAN_PYTHON = '\u088F\u0C5C\u0CDC\uA7CE-\uA7CF\uA7D2\uA7D4\uA7F1\u{10940}-\u{10959}\u{10EC5}-\u{10EC7}\u{11DB0}-\u{11DDB}\u{11DE0}-\u{11DE9}\u{16EA0}-\u{16EB8}\u{16EBB}-\u{16ED3}\u{16FF2}-\u{16FF6}\u{187F8}-\u{187FF}\u{18D09}-\u{18D1E}\u{18D80}-\u{18DF2}\u{1E6C0}-\u{1E6DE}\u{1E6E0}-\u{1E6E2}\u{1E6E4}-\u{1E6E5}\u{1E6E7}-\u{1E6ED}\u{1E6F0}-\u{1E6F4}\u{1E6FE}-\u{1E6FF}\u{2B73A}-\u{2B73F}\u{2CEA2}-\u{2CEAD}\u{323B0}-\u{33479}'
+/* The guard and the class together as one atom, because `+` on
+   `(?!x)[y]` repeats the class and checks the lookahead once: written that way
+   first, and "a" then swallowed the excluded character and the "b" after it. */
+const PY_WORD = `(?:(?![${NEWER_THAN_PYTHON}])[${W}])`
+
 const WORD_RE = new RegExp(
-  `[${W}]+(?:['’´][${W}]+)?|[^${W}${PY_SPACE}]`,
+  /* A word, or a single character that is not a word and not whitespace, and
+     since tick 178 that second class has to include the code points above:
+     they are letters to this runtime, so the negated class would skip them
+     and the token Python emits would vanish rather than move. */
+  `${PY_WORD}+(?:['’´]${PY_WORD}+)?|[^${W}${PY_SPACE}]|[${NEWER_THAN_PYTHON}]`,
   'gu',
 )
 const PY_STRIP = new RegExp(`^[${PY_SPACE}]+|[${PY_SPACE}]+$`, 'gu')

@@ -8,7 +8,7 @@ no write access to the project: it produced a findings file and a list, and the
 fixes were separate work afterwards. Nobody audited their own code twenty
 minutes after writing it, which is the only reason any of this was found.
 
-**191 findings, 106 closed, 85 open**, across the 17 perspectives that produced them.
+**191 findings, 107 closed, 84 open**, across the 17 perspectives that produced them.
 
 That line and the count under every table below are checked against the tables
 themselves on every build, by `npm run check:audits`, and against the queue this
@@ -238,14 +238,14 @@ The maintainer six months from now: what rots first, and what the repository say
 
 The deep reviewer again, against the code the first pass produced.
 
-13 findings, 6 closed.
+13 findings, 7 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
 | `WD2-F1` | high | fixed, tick 65 | Past 44 tokens the thumbnails stop drawing half of every field, and 10 of the 24 no longer contain their own strongest link |
 | `WD2-F2` | high | fixed, tick 67 | A sentence typed before the page's own script has run is still replaced by the sample, and on a slow connection that window is 1,356 ms |
 | `WD2-F3` | high | fixed, tick 66 | The new row's entry animation is added and removed inside one task, so it has never run |
-| `WD2-F4` | medium | open | The browser's word class is two Unicode releases ahead of the Python the model was trained with, and 9,661 code points change the ids of the ordinary words beside them |
+| `WD2-F4` | medium | fixed, tick 178 | The browser's word class is two Unicode releases ahead of the Python the model was trained with, and 9,661 code points change the ids of the ordinary words beside them |
 | `WD2-F5` | medium | open | 'median of 2' prints the first run's number, which is the one figure the rewrite exists to stop showing |
 | `WD2-F6` | medium | open | A pinned token that outlives its sentence dims the entire field, hides itself, and switches hover off, with nothing on screen to undo it |
 | `WD2-F7` | medium | fixed, tick 66 | Reduced motion stops the CSS transition and nothing else, and the gate that says it all stops when asked only reads the transition |
