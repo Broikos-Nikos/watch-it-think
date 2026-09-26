@@ -464,6 +464,117 @@ try {
     console.log('  ok      the page declares the curve it draws with')
   }
 
+  /*
+   * ---- half five: the sweep, on a processor a sixth as fast -----------------
+   *
+   * WP-F6: sweeping the pointer across the axis redraws the 520 pixel field
+   * synchronously per token, 47 fps on a desktop and 11 on a mid range phone.
+   * It went with WP-F2, the drawing rewrite, which is what `same_root_as` on
+   * the finding says and what the numbers confirm. Measured at tick 174, a
+   * full 64 token sweep:
+   *
+   *   cpu x1   median 0.20 ms   p95 0.4   worst 0.8   total 15.9
+   *   cpu x4   median 0.80 ms   p95 1.8   worst 4.0   total 64.3
+   *   cpu x6   median 1.30 ms   p95 3.0   worst 5.5   total 97.6
+   *
+   * And 4.3 median, 9.3 at p95 when the sweep runs here, at the end of this
+   * gate, on a page that has already had 24 canvases read pixel by pixel and
+   * two sentences drawn through it. Both are the same page; the difference is
+   * what the tab has been doing, which is worth knowing before reading a
+   * budget that has to hold on a build machine.
+   *
+   * So the desktop reading is 5,000 fps equivalent and the slow one is 769,
+   * against the 47 and 11 the audit measured. Nothing here needed fixing, and
+   * nothing here was watching either: every budget in this file is measured on
+   * whatever machine happens to run it, and this repository has never once
+   * emulated the device the audit complained about.
+   *
+   * The events are dispatched rather than the mouse moved, because the cost
+   * under test is the handler's, and a real sweep fires exactly these.
+   */
+  /* Back to the full sentence: half three left the six token sample in the
+     box, and a sweep over six chips of a 36 cell field is not the sweep this
+     is about. Measured both ways at tick 174 and the cost barely moves, 1.4 ms
+     against 1.3, because it is dominated by the call rather than by the cells,
+     which is itself worth knowing and is not a reason to test the small one. */
+  await page.fill('textarea', FULL)
+  await page.waitForFunction((n) => document.querySelectorAll('.axis-token').length > n, 40, { timeout: 60_000 })
+  await page.waitForTimeout(500)
+
+  const cdp = await page.context().newCDPSession(page)
+
+  /*
+   * And the throttle is proved before it is trusted. A gate that believes it is
+   * measuring a slow machine, and is not, is the same failure as a control that
+   * passes: this one costs a busy loop before and after to see the clock change.
+   */
+  const spin = () =>
+    page.evaluate(() => {
+      const t0 = performance.now()
+      let n = 0
+      while (performance.now() - t0 < 20) n++
+      return n
+    })
+  const fast = await spin()
+  await cdp.send('Emulation.setCPUThrottlingRate', { rate: 6 })
+  const slow = await spin()
+  const ratio = fast / Math.max(slow, 1)
+
+  if (ratio < 2) {
+    failed++
+    console.error(`FAIL  CPU throttling did not take: ${fast} iterations against ${slow} throttled, ratio ${ratio.toFixed(1)}`)
+    console.error('      every number below would be this machine pretending to be a slower one')
+  } else {
+    console.log(
+      `  ok      the throttle is real: ${slow.toLocaleString('en-US')} iterations in 20 ms against ` +
+        `${fast.toLocaleString('en-US')} unthrottled, a ratio of ${ratio.toFixed(1)}`,
+    )
+
+    const sweep = await page.evaluate(() => {
+      const tokens = [...document.querySelectorAll('.axis-token')]
+      const per = []
+      for (const t of tokens) {
+        const t0 = performance.now()
+        t.dispatchEvent(new PointerEvent('pointerenter', { bubbles: false }))
+        per.push(performance.now() - t0)
+        t.dispatchEvent(new PointerEvent('pointerleave', { bubbles: false }))
+      }
+      per.sort((a, b) => a - b)
+      return {
+        n: tokens.length,
+        median: +per[Math.floor(per.length / 2)].toFixed(2),
+        p95: +per[Math.floor(per.length * 0.95)].toFixed(2),
+        total: +per.reduce((a, b) => a + b, 0).toFixed(1),
+      }
+    })
+
+    /*
+     * One frame at 60 Hz is 16.7 ms, so a p95 inside a frame is a sweep that
+     * keeps up with the display on a processor a sixth as fast as this one,
+     * and the median at half a frame. Against readings of 1.3 and 3.0 that is
+     * five and six times of room, which is the point: a budget set just above
+     * the current number fails on a slow morning and teaches everyone to
+     * ignore it.
+     */
+    const MEDIAN_MS = 8
+    const P95_MS = 16
+    if (sweep.median > MEDIAN_MS || sweep.p95 > P95_MS) {
+      failed++
+      console.error(
+        `FAIL  at cpu x6 a hover costs ${sweep.median} ms median and ${sweep.p95} ms at p95, over ${MEDIAN_MS} and ${P95_MS}`,
+      )
+      console.error(
+        `      ${sweep.n} tokens, ${sweep.total} ms for the whole sweep, which is ${Math.round(1000 / sweep.median)} fps equivalent`,
+      )
+    } else {
+      console.log(
+        `  ok      at cpu x6 a hover costs ${sweep.median} ms median, ${sweep.p95} at p95, ` +
+          `${sweep.total} ms for all ${sweep.n} tokens`,
+      )
+    }
+  }
+  await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 })
+
   await browser.close()
 } finally {
   server.stop()

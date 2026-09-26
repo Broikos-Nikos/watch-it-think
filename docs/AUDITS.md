@@ -8,7 +8,7 @@ no write access to the project: it produced a findings file and a list, and the
 fixes were separate work afterwards. Nobody audited their own code twenty
 minutes after writing it, which is the only reason any of this was found.
 
-**190 findings, 100 closed, 90 open**, across the 17 perspectives that produced them.
+**190 findings, 101 closed, 89 open**, across the 17 perspectives that produced them.
 
 That line and the count under every table below are checked against the tables
 themselves on every build, by `npm run check:audits`, and against the queue this
@@ -74,7 +74,7 @@ The measurement auditor: is every number reproducible, is the sample size stated
 
 Performance and access: bytes on first paint, main thread cost, contrast, focus, screen readers.
 
-15 findings, 9 closed.
+15 findings, 10 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
@@ -83,7 +83,7 @@ Performance and access: bytes on first paint, main thread cost, contrast, focus,
 | `WP-F4` | high | fixed, tick 47 | The live region announces the telemetry on every keystroke and never announces the answer |
 | `WP-F5` | high | fixed, tick 50 | The token highlight has no keyboard path at all |
 | `WP-F3` | medium | fixed, tick 173 | Choosing a head still rebuilds every button and the whole axis for a change that altered no data. The 350 ms it cost is gone with WP-F2, measured at 2.3 ms median, so this is waste rather than a delay |
-| `WP-F6` | medium | open | Sweeping the pointer across the axis redraws the 520 pixel field synchronously per token: 47 fps desktop, 11 fps mid range |
+| `WP-F6` | medium | fixed, tick 174 | Sweeping the pointer across the axis redraws the 520 pixel field synchronously per token: 47 fps desktop, 11 fps mid range |
 | `WP-F7` | medium | fixed, tick 50 | A tablist that controls nothing, 24 tab stops, dead arrow keys, and a focus ring identical to the selection |
 | `WP-F8` | medium | fixed, tick 47 | 25 canvases are the entire point of the page and carry no key, no values and no text alternative |
 | `WP-F9` | medium | open | Under forced colours the heat map inverts: the weakest cells become the brightest thing on screen |
