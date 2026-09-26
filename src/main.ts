@@ -85,13 +85,24 @@ const announce = {
   },
 }
 
-const SAMPLES = [
-  'turn off the kitchen lights',
-  'set an alarm for seven thirty tomorrow',
-  'what is the weather in Thessaloniki tomorrow',
-  'σβήσε τα φώτα στην κουζίνα',
-  'βάλε ξυπνητήρι στις εφτά και μισή',
-  'πάρε τηλέφωνο τη Μαρία',
+/**
+ * The six sentences offered to a visitor, each with the language it is in.
+ *
+ * WP-F11. Three of them are Greek and all six sat inside `lang="en"`, so a
+ * screen reader read "σβήσε τα φώτα στην κουζίνα" with an English voice: the
+ * one sentence on this page a Greek speaker is most likely to press, and the
+ * one it is least able to say. The language is data about the sentence, so it
+ * is written beside it rather than sniffed from the letters at render time: a
+ * regex over code points would also have to decide what to do with "Θα είμαι
+ * εκεί σε δέκα λεπτά", which is Greek, and with "Thessaloniki", which is not.
+ */
+const SAMPLES: { text: string; lang: 'en' | 'el' }[] = [
+  { text: 'turn off the kitchen lights', lang: 'en' },
+  { text: 'set an alarm for seven thirty tomorrow', lang: 'en' },
+  { text: 'what is the weather in Thessaloniki tomorrow', lang: 'en' },
+  { text: 'σβήσε τα φώτα στην κουζίνα', lang: 'el' },
+  { text: 'βάλε ξυπνητήρι στις εφτά και μισή', lang: 'el' },
+  { text: 'πάρε τηλέφωνο τη Μαρία', lang: 'el' },
 ]
 
 let router: Router | null = null
@@ -923,13 +934,14 @@ function wire() {
     queued = requestAnimationFrame(() => void think())
   })
 
-  for (const s of SAMPLES) {
+  for (const sample of SAMPLES) {
     const b = document.createElement('button')
     b.type = 'button'
-    b.textContent = s
+    b.textContent = sample.text
+    b.lang = sample.lang
     b.addEventListener('click', () => {
       touched = true
-      el.input.value = s
+      el.input.value = sample.text
       void think()
     })
     el.samples.append(b)
@@ -1187,7 +1199,7 @@ async function boot() {
   // window global for a case this line already covers. The one thing it caught
   // that this does not is somebody typing and then clearing the box before the
   // page loads, and an empty box should get the sample anyway.
-  if (!touched && !el.input.value) el.input.value = SAMPLES[0]
+  if (!touched && !el.input.value) el.input.value = SAMPLES[0].text
   await think()
 }
 
