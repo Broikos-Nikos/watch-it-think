@@ -116,9 +116,9 @@ a Python tokenizer; a JavaScript one that is merely close feeds it text it has
 never seen. 242 sentences, identical ids, including the whitespace code points
 where Python and JavaScript quietly disagree.
 
-40 gates run before anything reaches the page: twenty one in
-`npm run build` before the bundle is written, and nineteen more in
-`npm run verify` against a real browser. Eight of them, and what each one
+41 gates run before anything reaches the page: twenty one in
+`npm run build` before the bundle is written, and twenty more in
+`npm run verify`, nineteen of them against a real browser. Eight of them, and what each one
 stops:
 
 | gate | what it stops |
@@ -207,7 +207,7 @@ Before pushing:
 
 ```bash
 npx playwright install chromium   # once
-npm run verify    # nineteen browser gates against one shared server. About two minutes.
+npm run verify    # twenty gates, nineteen of them sharing one browser server. Two minutes.
 ```
 
 The split is deliberate. The two used to be one command taking 87 seconds, of

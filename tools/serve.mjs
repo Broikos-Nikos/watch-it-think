@@ -89,10 +89,39 @@ export async function serve({ timeoutMs = 60_000 } = {}) {
   const port = await freePort()
   const url = `http://localhost:${port}/`
 
+  /*
+   * `detached` off Windows, because the cleanup below kills a process group
+   * and a child only leads one when it is spawned this way.
+   *
+   * WD2-F9. Without it, `process.kill(-child.pid)` names a group that does not
+   * exist. Measured at tick 182 with these exact options: the call throws
+   * `ESRCH`, the catch falls through to `child.kill('SIGTERM')`, and that
+   * signals the wrapper rather than the server. The tree is four deep, not the
+   * two the old comment assumed:
+   *
+   *     22200  cmd.exe          <- child.pid, the shell
+   *       22560  node.exe       <- npm
+   *         27200  cmd.exe
+   *           35216  node.exe   <- vite preview, the one that holds the port
+   *
+   *   after child.kill('SIGTERM'): 3 of 4 still alive, and the preview still
+   *   answers on http://localhost:65062/
+   *
+   * Windows is excluded on purpose: it has no process groups, the branch above
+   * uses `taskkill /T` instead, and that is the only reason this file has
+   * worked for anyone here. Every other machine got the broken half, and
+   * because the port is fresh each run a leaked server never collides and so
+   * is never noticed.
+   *
+   * Nothing is unref'd. A detached child is not in the terminal's foreground
+   * group, so Ctrl-C no longer reaches it on its own, which is what the SIGINT
+   * handler below is for.
+   */
   const child = spawn('npm', ['run', 'preview', '--', '--port', String(port), '--strictPort'], {
     stdio: 'ignore',
     shell: true,
     cwd: root,
+    detached: process.platform !== 'win32',
   })
 
   /*
@@ -123,7 +152,10 @@ export async function serve({ timeoutMs = 60_000 } = {}) {
       if (process.platform === 'win32') {
         spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' })
       } else {
-        // vite preview under npm is a child of a child, so the group goes.
+        // The server is three levels under `child.pid`, so the group goes.
+        // The spawn above passes `detached` to make that group exist; the
+        // fallback is kept for the case where it does not, and it is known to
+        // be weak: measured at tick 182 it left three of four processes alive.
         try {
           process.kill(-child.pid, 'SIGTERM')
         } catch {

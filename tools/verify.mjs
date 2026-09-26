@@ -96,11 +96,26 @@ try {
   server.stop()
 }
 
+/*
+ * And one that is not a browser gate and cannot share the server.
+ *
+ * `check:stop` starts a preview of its own and requires it to be gone after
+ * `stop()`. It runs last, after the shared server above has been stopped, so
+ * that the two are never confused for one another, and it is counted
+ * separately because the line below says "browser gates" and it is not one.
+ * A count that says more than is true is what WD2-F8 was about.
+ */
+const stopCode = await new Promise((done) => {
+  const child = spawn('npm', ['run', 'check:stop'], { stdio: 'inherit', shell: true })
+  child.on('exit', (c) => done(c ?? 1))
+})
+if (stopCode !== 0) failed++
+
 const total = ((Date.now() - started) / 1000).toFixed(1)
 
 if (failed > 0) {
-  console.error(`${failed} of ${GATES.length} browser gates failed, in ${total}s.`)
+  console.error(`${failed} of ${GATES.length + 1} gates failed, in ${total}s.`)
   process.exit(1)
 }
 
-console.log(`${GATES.length} browser gates, one server, ${total}s.`)
+console.log(`${GATES.length} browser gates and check:stop, one shared server, ${total}s.`)
