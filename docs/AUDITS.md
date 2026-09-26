@@ -8,7 +8,7 @@ no write access to the project: it produced a findings file and a list, and the
 fixes were separate work afterwards. Nobody audited their own code twenty
 minutes after writing it, which is the only reason any of this was found.
 
-**191 findings, 107 closed, 84 open**, across the 17 perspectives that produced them.
+**192 findings, 109 closed, 83 open**, across the 17 perspectives that produced them.
 
 That line and the count under every table below are checked against the tables
 themselves on every build, by `npm run check:audits`, and against the queue this
@@ -238,7 +238,7 @@ The maintainer six months from now: what rots first, and what the repository say
 
 The deep reviewer again, against the code the first pass produced.
 
-13 findings, 7 closed.
+13 findings, 8 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
@@ -246,7 +246,7 @@ The deep reviewer again, against the code the first pass produced.
 | `WD2-F2` | high | fixed, tick 67 | A sentence typed before the page's own script has run is still replaced by the sample, and on a slow connection that window is 1,356 ms |
 | `WD2-F3` | high | fixed, tick 66 | The new row's entry animation is added and removed inside one task, so it has never run |
 | `WD2-F4` | medium | fixed, tick 178 | The browser's word class is two Unicode releases ahead of the Python the model was trained with, and 9,661 code points change the ids of the ordinary words beside them |
-| `WD2-F5` | medium | open | 'median of 2' prints the first run's number, which is the one figure the rewrite exists to stop showing |
+| `WD2-F5` | medium | fixed, tick 179 | 'median of 2' prints the first run's number, which is the one figure the rewrite exists to stop showing |
 | `WD2-F6` | medium | open | A pinned token that outlives its sentence dims the entire field, hides itself, and switches hover off, with nothing on screen to undo it |
 | `WD2-F7` | medium | fixed, tick 66 | Reduced motion stops the CSS transition and nothing else, and the gate that says it all stops when asked only reads the transition |
 | `WD2-F8` | medium | open | Three gate headers describe a check the gate does not make |
@@ -356,7 +356,7 @@ Not a perspective and not an agent. Findings this project raised against its
 own code while sweeping a class found somewhere else in the workspace, kept
 here because commit messages cite them like any other.
 
-15 findings, 7 closed.
+16 findings, 8 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
@@ -373,5 +373,6 @@ here because commit messages cite them like any other.
 | `WSEAL-F1` | medium | open | The page says the work happens in your browser and nothing enforces it |
 | `WVER-F1` | medium | fixed, tick 164 | A hole in the GATES array ran `npm run undefined` and counted it as a browser gate that passed |
 | `WCAP-F2` | medium | open | capture.mjs hands the committed GIF to ffmpeg and closes its browser outside a finally |
+| `WCNT-F2` | medium | fixed, tick 179 | The gate that holds the gate counts could not match a two word number, and then matched its tail |
 | `WCAP-F1` | low | open | check:capture caps the gif at 4 MB and the gif is 3.00 MB, so the ceiling permits silent growth |
 | `WNET-F1` | low | open | The README promises the model runs in your browser and nothing holds it: no gate watches the wire |

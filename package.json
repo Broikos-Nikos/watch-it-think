@@ -13,7 +13,7 @@
   "scripts": {
     "build": "tsc --noEmit && npm run check && vite build",
     "capture": "node tools/capture.mjs",
-    "check": "npm run check:authorship && npm run check:install && npm run check:palette && npm run check:licences && npm run check:claims && npm run check:tools && npm run check:tokenizer && npm run check:meta && npm run check:input && npm run check:upstream && npm run check:source && npm run check:counts && npm run check:deps && npm run check:concentration && npm run check:intent && npm run check:cost && npm run check:sigma && npm run check:quant && npm run check:audits && npm run check:unicode",
+    "check": "npm run check:authorship && npm run check:install && npm run check:palette && npm run check:licences && npm run check:claims && npm run check:tools && npm run check:tokenizer && npm run check:meta && npm run check:input && npm run check:upstream && npm run check:source && npm run check:counts && npm run check:deps && npm run check:concentration && npm run check:intent && npm run check:cost && npm run check:sigma && npm run check:quant && npm run check:audits && npm run check:unicode && npm run check:latency",
     "check:announce": "node tools/check-announce.mjs",
     "check:attention": "node tools/check-attention.mjs",
     "check:audits": "tsx tools/check-audits.ts",
@@ -35,6 +35,7 @@
     "check:quant": "node tools/check-quantisation.mjs",
     "check:install": "node tools/check-install-scripts.mjs",
     "check:keyboard": "node tools/check-keyboard.mjs",
+    "check:latency": "tsx tools/check-latency.ts",
     "check:layout": "node tools/check-layout.mjs",
     "check:licences": "node tools/check-licences.mjs",
     "check:meta": "node tools/check-meta.mjs",

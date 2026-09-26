@@ -1,8 +1,8 @@
 # Build, gate, and publish the page.
 #
-# 38 gates, and all of them run here.
+# 39 gates, and all of them run here.
 #
-# `npm run build` runs twenty of them before vite writes anything: every number in
+# `npm run build` runs twenty one of them before vite writes anything: every number in
 # the README is checked against `meta.json`, the tokenizer is round tripped
 # against the Python that trained the model, the install scripts allowlist is
 # asserted, every font's licence is read out of its own binary, and the input

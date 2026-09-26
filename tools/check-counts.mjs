@@ -105,7 +105,31 @@ for (const file of FILES) {
    * passed twice before this line was widened. Shapes are not the thing; being
    * next to the phrase is.
    */
-  const NUMBER = '(' + WORDS.join('|') + ')'
+  /*
+   * Longest first, or a two word number can never match.
+   *
+   * The alternation is tried left to right, so with 'twenty' before
+   * 'twenty one' the pattern captures 'twenty' out of "twenty one in `npm run
+   * build`" and then fails, reporting that the file does not state a count it
+   * states perfectly well. Found at tick 179, the first time this project had
+   * twenty one of anything.
+   */
+  /*
+   * Longest first, and never the tail of a longer number.
+   *
+   * Two failures at tick 179, the first time this project had twenty one of
+   * anything. Left to right, the alternation captured 'twenty' out of "twenty
+   * one" and then failed on a file that says it perfectly well; sorted longest
+   * first it captured 'twenty one' in one place and 'one' in another, because
+   * a pattern is free to start matching in the middle of the phrase. The
+   * lookbehind is built from the list rather than written out, so a word like
+   * 'thirty one' arrives with it already handled.
+   */
+  const heads = [...new Set(WORDS.filter((w) => w.includes(' ')).map((w) => w.split(' ')[0]))]
+  /* String.raw, because `\b` inside a template literal is a backspace
+     character and the lookbehind then asserts something no text contains. */
+  const notATail = heads.length > 0 ? String.raw`(?<!\b(?:${heads.join('|')}) )` : ''
+  const NUMBER = notATail + '(' + [...WORDS].sort((a, b) => b.length - a.length).join('|') + ')'
   const claims = (phrase) => {
     const found = []
     for (const re of [
