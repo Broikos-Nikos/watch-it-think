@@ -18,6 +18,13 @@
  * The score is concentration, the same number the caption under the large field
  * quotes.
  *
+ * Since tick 198 it also holds the rail's own geometry, because the rail and
+ * the labels on it are the same object: WD-F6 left it 279 pixels wide in a 358
+ * pixel column at 390, and the first fix for that let a cell reach 137.9
+ * pixels against a thumbnail drawn at 128. Both are measured here, at the two
+ * widths this page is looked at and at the one in between where the second
+ * appeared.
+ *
  * ## What the score is checked against, and what it is not
  *
  * WD2-F8. Until tick 181 this said the score was "checked against the library
@@ -248,6 +255,67 @@ try {
       `  ok      at ${drawn.positions} tokens every thumbnail still shows its own strongest link, ` +
         `${sharp} of them sharp`,
     )
+  }
+
+  /*
+   * And no thumbnail is shown larger than the picture it holds.
+   *
+   * WD-F6, tick 198. The rail used to be `repeat(4, 66px)` at every width, so
+   * at 390 it was 279 pixels in a 358 pixel column with 79 of them empty. It
+   * takes the line it is alone on now, and the first version of that let a
+   * cell reach 137.9 pixels at a container of 566.8 against a thumbnail
+   * `drawThumbs` draws at 128: the browser was upscaling a picture the page
+   * had deliberately drawn at twice its display size, and smoothing it.
+   *
+   * The backing store is read off the element rather than written here, so the
+   * day somebody draws these at 256 this stops holding them to 128.
+   *
+   * Three widths: one where the rail sits beside the field, one phone, and one
+   * in the band between, which is the only place the defect appeared.
+   */
+  for (const width of [1280, 390, 616]) {
+    const p = await browser.newPage({ viewport: { width, height: 1300 } })
+    await p.goto(BASE)
+    await p.waitForFunction(() => !!document.querySelector('.headcell canvas'), null, { timeout: 180_000 })
+    await p.waitForTimeout(1200)
+    const shown = await p.evaluate(() => {
+      const cells = [...document.querySelectorAll('.headcell canvas')]
+      /* The rightmost cell, not the rail's box: a grid stretched to its line
+         with four fixed tracks in it leaves the hole inside the box, where an
+         assertion about the box cannot see it. A control did exactly that and
+         passed. */
+      const cellBoxes = [...document.querySelectorAll('.headcell')].map((c) => c.getBoundingClientRect())
+      const rail = { right: Math.max(...cellBoxes.map((c) => c.right)), bottom: Math.max(...cellBoxes.map((c) => c.bottom)) }
+      const body = document.querySelector('.attention-body').getBoundingClientRect()
+      const field = document.querySelector('.field').getBoundingClientRect()
+      return {
+        n: cells.length,
+        store: cells[0] ? cells[0].width : 0,
+        widest: Math.max(...cells.map((c) => +c.getBoundingClientRect().width.toFixed(1))),
+        railEmpty: Math.round(body.right - rail.right),
+        beside: field.left > rail.right - 2 && field.top < rail.bottom - 2,
+      }
+    })
+    await p.close()
+
+    if (shown.n !== 24 || shown.store === 0) {
+      fail(`at ${width}: ${shown.n} thumbnails with a backing store of ${shown.store}, so this measured nothing`)
+    } else if (shown.widest > shown.store + 1) {
+      fail(
+        `at ${width}: a thumbnail is shown ${shown.widest}px wide against a backing store of ${shown.store}`,
+        'The page draws these at twice their display size on purpose. Shown larger, the browser upscales and smooths a picture that exists at a known resolution.',
+      )
+    } else if (!shown.beside && shown.railEmpty > 24) {
+      fail(
+        `at ${width}: the rail has the line to itself and leaves ${shown.railEmpty}px of it empty`,
+        'WD-F6: at 390 this was 79 pixels, and the rail had its right edge lined up with nothing.',
+      )
+    } else {
+      console.log(
+        `  ok      at ${width}: 24 thumbnails at ${shown.widest}px against a ${shown.store}px store, ` +
+          (shown.beside ? 'the rail beside the field' : `the rail alone on its line with ${shown.railEmpty}px spare`),
+      )
+    }
   }
 
   await browser.close()

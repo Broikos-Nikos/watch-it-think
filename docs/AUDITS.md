@@ -5,7 +5,7 @@ Commit messages cite identifiers like `WDR-F1`. This is what they refer to.
 Seventeen audit passes and the workspace sweeps. Each pass was run against
 one assigned perspective and nothing else.
 
-**198 findings, 122 closed, 76 open**, across the 17 perspectives that produced them.
+**198 findings, 123 closed, 75 open**, across the 17 perspectives that produced them.
 
 Held to the workspace queue this project is built from by
 `tools/check-audit-status.mjs`, which fails if a row here says anything the
@@ -141,7 +141,7 @@ queue does not.
 
 ## `WD`, design eye
 
-18 findings, 10 closed.
+18 findings, 11 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
@@ -150,7 +150,7 @@ queue does not.
 | `WD-F3` | high | fixed, tick 54 | The quantitative encoding and the brand accent are the same green, and the hottest cell of the heat map is louder than the answer |
 | `WD-F4` | high | fixed, tick 54 | The house style has not reached this project, and the page is its opposite on every axis that matters |
 | `WD-F5` | medium | fixed, tick 196 | The winner's percentage is cut in two by the bar behind it |
-| `WD-F6` | medium | open | The attention section uses half its column and leaves 448 pixels empty beside its own subject |
+| `WD-F6` | medium | fixed, tick 198 | The attention section uses half its column and leaves 448 pixels empty beside its own subject |
 | `WD-F7` | medium | fixed, tick 197 | The axis is not an axis |
 | `WD-F8` | medium | fixed, tick 55 | Twenty four thumbnails with no label, no order and no score, and the source already says they should have one |
 | `WD-F9` | medium | open | Thirteen rendered type sizes, six of them inside a 2.08 pixel band |

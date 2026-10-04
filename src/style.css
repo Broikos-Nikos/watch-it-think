@@ -48,6 +48,18 @@
    * accent that points at 98,304 things points at nothing. So the scale below
    * is not this colour, on purpose.
    */
+  /*
+   * The thumbnail rail's cell, and the gap between cells.
+   *
+   * It was `repeat(4, 66px)` with the 66 written once in the stylesheet and
+   * nowhere else, which is what WD-F6 asked for a token for: "make the
+   * thumbnail rail a stated token rather than repeat(4, 44px)". 66 is the width
+   * at which a cell carries its layer, head and concentration label; below about
+   * 56 the tag wraps.
+   */
+  --thumb: 66px;
+  --thumb-gap: 5px;
+
   --flame: #ff6a00;
   --flame-bright: #ff8a1f;
   --flame-deep: #e63c00;
@@ -444,11 +456,22 @@ footer {
   line-height: 1.5;
 }
 
+/*
+ * The rail and the field, side by side until they cannot be.
+ *
+ * `container-type: inline-size` is here so the rail can ask **this element**
+ * how wide it is rather than asking the viewport. The viewport is the wrong
+ * question: this section is 896 wide inside a 1280 window and 358 inside a 390
+ * one, and the number that decides whether two blocks fit side by side is the
+ * one in the middle. A media query here would be a guess about the page's
+ * gutters, which have changed twice.
+ */
 .attention-body {
   display: flex;
   flex-wrap: wrap;
   gap: 1.1rem;
   align-items: flex-start;
+  container-type: inline-size;
 }
 
 /* Six rows of four, laid out as the model is: layer down, head across. */
@@ -460,8 +483,66 @@ footer {
  */
 .heads {
   display: grid;
-  grid-template-columns: repeat(4, 66px);
-  gap: 5px;
+  grid-template-columns: repeat(4, var(--thumb));
+  gap: var(--thumb-gap);
+}
+
+/*
+ * And when it is alone on its line, it takes the line.
+ *
+ * WD-F6. Measured at tick 198 at 390: the rail was 279 pixels in a 358 pixel
+ * column, so 79 pixels of the line it had to itself were empty and its right
+ * edge lined up with nothing. The four columns are the model's four heads and
+ * they stay four: the audit's own suggestion was six across by four down, which
+ * would transpose the matrix at one width and make the axis mean something
+ * different on a phone than on a laptop. See D23.
+ *
+ * The threshold is the width below which the two blocks cannot sit side by
+ * side: the rail at 279, the 1.1rem gap at 17.6, and the field's flex basis at
+ * 320, which is 616.6.
+ *
+ * `check-fills.mjs` walks every width from 320 to 1280, and it catches this
+ * number being too **low** but not too high: set to 400 it reports the rail as
+ * 279 of 604 with 325 pixels empty, and set to 816 it reports nothing, because
+ * a rail that stretches early is still a rail using its line. The claim first
+ * written here was that the gate catches it in either direction, which was
+ * wrong, and the control that passed is what said so. What a threshold set too
+ * high costs is vertical space on a laptop, not a broken instrument, and no
+ * gate in this project measures that yet.
+ */
+@container (max-width: 616px) {
+  .heads {
+    width: 100%;
+    /*
+     * Four tracks of their own width, with the line's leftover in the gaps.
+     *
+     * `repeat(4, minmax(0, 1fr))` was the first version and it was wrong in the
+     * middle of the range: measured at a container of 566.8, a cell came out
+     * 137.9 pixels against a thumbnail drawn at 128, so the browser was
+     * upscaling a picture the page had deliberately drawn at twice its display
+     * size, and the rail stood 922 pixels tall before the field it belongs to.
+     * `space-between` puts the slack between the cells instead, so the fourth
+     * cell's right edge still lands on the line's right edge, which is what
+     * WD-F6 asked for: the rail's edge lined up with nothing.
+     */
+    grid-template-columns: repeat(4, auto);
+    justify-content: space-between;
+  }
+
+  /*
+   * Fluid up to the size the thumbnail is actually drawn at.
+   *
+   * 128 is `c.width` in `drawThumbs`, chosen there so every cell of a 64 token
+   * sentence has two whole pixels. Showing it at 138 is an upscale of a
+   * picture that exists at 128, and `check:attention` holds this to the
+   * backing store rather than to the number written here.
+   *
+   * `cqi` is the container's inline size, which is the same question the query
+   * above asks, so the two cannot disagree about which width they mean.
+   */
+  .heads .headcell {
+    width: min(128px, calc((100cqi - 3 * var(--thumb-gap)) / 4));
+  }
 }
 
 .headcell {
