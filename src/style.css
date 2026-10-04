@@ -959,3 +959,65 @@ footer {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
+
+/*
+ * The shape of an answer, before there is one.
+ *
+ * WD-F12. The region is in flow from first paint, and these are the same
+ * elements the answer uses with nothing in them. They are dimmed rather than
+ * animated: a shimmer would be the only moving thing on a page whose whole
+ * subject is a picture that moves, and `prefers-reduced-motion` would have to
+ * turn it off anyway.
+ *
+ * Every placeholder is a fixed fraction of its row so the skeleton cannot be
+ * read as data: the bars do not vary, which is what tells a reader at a glance
+ * that this is a shape and not a result.
+ */
+.result[data-state='waiting'] {
+  opacity: 0.55;
+}
+
+.race li.is-skeleton .name,
+.race li.is-skeleton .pct {
+  min-height: 1em;
+}
+
+.race li.is-skeleton .bar {
+  width: 38%;
+  background: var(--lift);
+}
+
+.race li.is-skeleton .pct::after {
+  content: '';
+  display: inline-block;
+  width: 2.4em;
+  height: 0.7em;
+  border-radius: var(--radius-0);
+  background: var(--lift);
+}
+
+.headcell.is-skeleton {
+  pointer-events: none;
+}
+
+.headcell.is-skeleton canvas {
+  background: var(--lift);
+}
+
+/*
+ * And the two blocks whose height comes from their content.
+ *
+ * An empty element has no line box, so the verdict was 0 pixels tall while
+ * waiting and 60.5 once answered. A non breaking space in a pseudo element
+ * gives it its line box back, sized by the type scale rather than by a number
+ * somebody measured once. The tag row reserves one row the same way.
+ */
+.intent:empty::before,
+.tags:empty::before,
+/* The same for the two labels on a thumbnail and the axis strip under the
+   field: empty, they have no line box, and the grid was 61 pixels shorter
+   while waiting than once it had an answer in it. */
+.headcell-tag:empty::before,
+.axis:empty::before {
+  content: '\0000a0';
+}

@@ -136,7 +136,9 @@ try {
     await page.waitForTimeout(1200)
 
     const after = await page.evaluate(() => ({
-      resultHidden: document.querySelector('[data-result]')?.hidden ?? null,
+      /* `data-state`, not `hidden`: WD-F12 put this region in flow at all times,
+   so the page says it has no answer rather than disappearing. */
+      resultWaiting: document.querySelector('[data-result]')?.dataset.state === 'waiting',
       intent: (document.querySelector('[data-intent]')?.textContent ?? '').trim(),
       status: (document.querySelector('[data-status]')?.textContent ?? '').trim(),
     }))
@@ -145,7 +147,7 @@ try {
     // the DOM behind `hidden`, and reading it was this assertion's own first
     // mistake: it failed against a page that had correctly hidden the result and
     // simply had not erased what was underneath.
-    if (after.resultHidden !== true) {
+    if (after.resultWaiting !== true) {
       fail(
         `an input of U+0085 alone got an answer: ${JSON.stringify(after.intent)}`,
         'Python calls it whitespace, the tokenizer normalises it away, and the model saw only <cls>',

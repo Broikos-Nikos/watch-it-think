@@ -165,7 +165,8 @@ try {
 
     const got = await page.evaluate(() => ({
       line: document.querySelector('[data-status]')?.textContent?.trim() ?? '',
-      hidden: !!document.querySelector('[data-result]')?.hidden,
+      /* `data-state`, not `hidden`: WD-F12 put this region in flow at all times. */
+      hidden: document.querySelector('[data-result]')?.dataset.state === 'waiting',
       chips: document.querySelectorAll('[data-axis] .axis-token').length,
     }))
     const positions = Number(/^(\d+) position/.exec(got.line)?.[1] ?? NaN)

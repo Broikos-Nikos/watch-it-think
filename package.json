@@ -28,6 +28,7 @@
     "check:type": "node tools/check-type.mjs",
     "check:tokens": "node tools/check-tokens.mjs",
     "check:rhythm": "node tools/check-rhythm.mjs",
+    "check:shapes": "node tools/check-shapes.mjs",
     "witness:controls": "tsx tools/witness-controls.ts",
     "check:draw": "node tools/check-draw.mjs",
     "check:race": "node tools/check-race.mjs",

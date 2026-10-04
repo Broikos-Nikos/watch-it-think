@@ -137,7 +137,19 @@
       -->
       <p class="sr-only" role="status" aria-live="polite" aria-atomic="true" data-announce></p>
 
-      <section class="result" data-result hidden>
+      <!--
+        WD-F12. This used to carry `hidden`, and the answer landing took the
+        document from 1000 pixels to 1989 in one frame. Worse the other way: a
+        reader 933 pixels down looking at the attention grid, who cleared the
+        box, was thrown to the top, because the page they were reading stopped
+        existing. Measured at tick 207.
+
+        It is in flow from first paint now, and `data-state` says whether it
+        holds an answer. The shape is the same in both states, so the answer
+        fills something that is already there, and `check:shapes` holds the two
+        heights to each other.
+      -->
+      <section class="result" data-result data-state="waiting">
         <h2 class="sr-only">The answer</h2>
         <div class="verdict">
           <span class="intent" data-intent></span>
@@ -170,7 +182,21 @@
         <section class="attention" aria-label="Attention">
           <div class="attention-head">
             <h2>What it looked at</h2>
-            <p class="attention-note" data-attention-note></p>
+            <!--
+              WD-F12. This prose is the page's own and never changes with the
+              sentence, so it ships in the document: written by script, it was
+              115 pixels of the 349 that appeared when the first answer landed.
+              `drawAttention` still writes it, with the model's own numbers, so
+              a different model would correct it rather than contradict it.
+            -->
+            <p class="attention-note" data-attention-note>
+              24 fields for this sentence, one per layer and head. Every row sums to one, so a bright row is a
+              token that made up its mind and a flat row is one that did not. The first position is the cls
+              token, and the intent is read from it and from the average of every position together, so every
+              row here is part of the answer. All twenty four share one scale, so a faint field really is a
+              faint one, and the colour is the square root of the value so the weak ones stay readable. The
+              exact figure is on every label.
+            </p>
           </div>
 
           <div class="attention-body">

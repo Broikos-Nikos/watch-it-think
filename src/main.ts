@@ -274,7 +274,7 @@ function render(p: Prediction) {
   el.status.textContent =
     `${plural(p.dims.positions, 'position')}, ${plural(p.dims.layers, 'layer')}, ` +
     `${plural(p.dims.heads, 'head')}, ${latency.report(p.ms)}`
-  el.result.hidden = false
+  el.result.dataset.state = 'answered'
 
   // The answer, the confidence, and the arguments, in a sentence rather than as
   // a layout. The runner up is included because a router that is 95 percent
@@ -326,6 +326,62 @@ function render(p: Prediction) {
 const raceRows = new Map<string, HTMLLIElement>()
 
 /**
+ * The shape of an answer, before there is one.
+ *
+ * WD-F12. The result section used to be `hidden` until the first answer, so the
+ * document went from 1000 pixels to 1989 in one frame when the model landed,
+ * and back to 1000 the moment the box was emptied. Measured at tick 207: a
+ * reader 933 pixels down, looking at the attention grid, who cleared the box
+ * was thrown to the top of the page, because what they were reading stopped
+ * existing.
+ *
+ * So the region is in flow from first paint and this draws what will be there:
+ * six rows and twenty four cells, the same elements the answer uses, empty. The
+ * answer then fills a shape rather than creating one. Nothing here carries a
+ * number or a name, because a skeleton that invents content is worse than a
+ * gap: `check:shapes` holds the two states to the same height and this one to
+ * no readable text.
+ */
+function drawSkeleton(): void {
+  if (raceRows.size > 0) return
+  const rows: HTMLLIElement[] = []
+  for (let i = 0; i < 6; i++) {
+    const row = document.createElement('li')
+    row.className = 'is-skeleton'
+    const track = document.createElement('span')
+    track.className = 'track'
+    const bar = document.createElement('span')
+    bar.className = 'bar'
+    const name = document.createElement('span')
+    name.className = 'name'
+    track.append(bar, name)
+    const pct = document.createElement('span')
+    pct.className = 'pct'
+    row.append(track, pct)
+    rows.push(row)
+  }
+  el.race.replaceChildren(...rows)
+
+  const cells: HTMLElement[] = []
+  for (let i = 0; i < 24; i++) {
+    const cell = document.createElement('div')
+    cell.className = 'headcell is-skeleton'
+    const c = document.createElement('canvas')
+    c.width = 1
+    c.height = 1
+    /* The same two labels the real cell carries, empty: without them the cell
+       is 73 pixels shorter and the grid grows when the answer lands. */
+    const tag = document.createElement('span')
+    tag.className = 'headcell-tag'
+    const score = document.createElement('span')
+    score.className = 'headcell-score'
+    cell.append(c, tag, score)
+    cells.push(cell)
+  }
+  el.heads.replaceChildren(...cells)
+}
+
+/**
  * One animation per row at a time, and none at all when motion is refused.
  *
  * Two things the second deep review found. A row that moves twice before the
@@ -347,6 +403,9 @@ function animate(row: Element, frames: Keyframe[]): void {
 }
 
 function drawRace(top: { intent: string; prob: number }[]): void {
+  /* The skeleton's rows belong to no intent, so they are not in `raceRows` and
+     the loop below would leave them in place for ever. */
+  for (const li of [...el.race.children]) if (li.classList.contains('is-skeleton')) li.remove()
   const arriving: HTMLLIElement[] = []
   // Where everything is now, before the DOM is touched. This is the F of FLIP
   // and it has to be read in one pass, or the first write forces a layout and
@@ -987,7 +1046,20 @@ async function think() {
    */
   const text = el.input.value
   if (!hasWords(text)) {
-    el.result.hidden = true
+    /*
+     * Waiting, not hidden. WD-F12: hiding this region took 989 pixels out of
+     * the document in one frame and threw a reader who was 933 pixels down it
+     * back to the top. The shape stays, the answer does not, and nothing here
+     * is readable as an answer to an empty box: `waiting` blanks the intent,
+     * the confidence and the arguments.
+     */
+    el.result.dataset.state = 'waiting'
+    el.intent.textContent = ''
+    el.confidence.textContent = ''
+    el.tags.replaceChildren()
+    raceRows.clear()
+    el.race.replaceChildren()
+    drawSkeleton()
     el.status.textContent = 'type something'
     return
   }
@@ -1121,6 +1193,8 @@ function inert(why: string) {
 
 async function boot() {
   wire()
+  /* The shape first, so the answer fills it rather than creating it. WD-F12. */
+  drawSkeleton()
 
   // The description first, from 10 KB, so the page is not blank for the length
   // of a 5.28 MB download and is not blank for ever if that download fails.

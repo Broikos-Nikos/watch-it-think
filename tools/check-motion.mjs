@@ -189,7 +189,16 @@ try {
   const reduced = await browser.newContext({ reducedMotion: 'reduce' })
   const rp = await reduced.newPage()
   await rp.goto(BASE, { waitUntil: 'domcontentloaded' })
-  await rp.waitForFunction(() => !!document.querySelector('.race li'), null, { timeout: 180_000 })
+  /*
+   * For an answer, not for a row. WD-F12 put a skeleton of six empty rows on the
+   * page from first paint, so `.race li` exists before the model has arrived,
+   * and this gate started typing into a page that was still loading and sampling
+   * the first draw: ten animations, every one of them the bar's own width
+   * transition at the 1 ms this stylesheet reduces it to. The assertion did not
+   * change; what it waits for did.
+   */
+  await rp.waitForFunction(() => !!document.querySelector('.word'), null, { timeout: 180_000 })
+  await rp.waitForTimeout(600)
   // Both halves. The stylesheet's transition AND anything the script starts.
   //
   // This used to read the transition alone and report "it all stops when
