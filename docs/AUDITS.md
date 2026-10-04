@@ -5,7 +5,7 @@ Commit messages cite identifiers like `WDR-F1`. This is what they refer to.
 Seventeen audit passes and the workspace sweeps. Each pass was run against
 one assigned perspective and nothing else.
 
-**198 findings, 123 closed, 75 open**, across the 17 perspectives that produced them.
+**198 findings, 124 closed, 74 open**, across the 17 perspectives that produced them.
 
 Held to the workspace queue this project is built from by
 `tools/check-audit-status.mjs`, which fails if a row here says anything the
@@ -122,7 +122,7 @@ queue does not.
 
 ## `WS`, supply chain
 
-12 findings, 3 closed.
+12 findings, 4 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
@@ -130,7 +130,7 @@ queue does not.
 | `WS-F2` | medium | fixed, tick 189 | 'Nothing leaves this page' is the one claim in the repository with no gate, and nothing enforces it at runtime |
 | `WS-F3` | medium | open | The one file every visitor downloads and executes is the one file with no hash |
 | `WS-F4` | medium | open | numpy is the only unpinned dependency in the pipeline, and it is the one that produces the repository's strongest number |
-| `WS-F5` | medium | open | .capture/ is not ignored, and npm run capture leaves a full screen recording in it on any failure |
+| `WS-F5` | medium | fixed, tick 199 | .capture/ is not ignored, and npm run capture leaves a full screen recording in it on any failure |
 | `WS-F6` | medium | open | ffmpeg is an undeclared, unpinned binary taken off PATH, and it makes the repository's front door |
 | `WS-F7` | medium | open | meta.json is fetched at runtime and 109 of its strings reach innerHTML, while the gate reading that file checks only its numbers |
 | `WS-F8` | medium | open | There is no CI, so nothing has ever installed this project from its own lockfile |

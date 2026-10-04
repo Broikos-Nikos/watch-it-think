@@ -25,7 +25,7 @@
  */
 
 import { execFileSync, spawn, spawnSync } from 'node:child_process'
-import { mkdirSync, renameSync, rmSync, readdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, renameSync, rmSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { reachable } from './wait-for.mjs'
@@ -38,6 +38,19 @@ const OUT = resolve(root, 'docs/think.gif')
 const WORK = resolve(root, '.capture')
 
 const SENTENCE = process.env.WIT_SENTENCE ?? 'σβήσε τα φώτα στην κουζίνα'
+
+/*
+ * A seam for the failure path, because the failure path is the half that was
+ * broken and the half nothing ran.
+ *
+ * WS-F5. `CAPTURE_FAIL_AT=start` throws just after the page loads, which is
+ * what a slow vocabulary, a missing font or a machine that prefers reduced
+ * motion produce on their own, and what `tokenlab` had to produce by hand to
+ * measure the same defect. `check-capture-exit.mjs` at the workspace uses it on
+ * every project that films itself. Three lines of test seam against a gate that
+ * would otherwise have to edit this file to run.
+ */
+const FAIL_AT = process.env.CAPTURE_FAIL_AT ?? ''
 const SIZE = { width: 1000, height: 820 }
 const FPS = 10
 const WIDTH = 880
@@ -109,8 +122,40 @@ const context = await browser.newContext({
 // does, so everything before this point is the model downloading.
 const videoStart = Date.now()
 
+/*
+ * Everything the recorder does, inside one try.
+ *
+ * WS-F5, and `tokenlab` DR-F9 before it in the same words. Playwright only
+ * finalises a video when its context closes, so until this wrapper existed any
+ * throw between here and the end left `.capture/` behind with a **zero byte**
+ * webm in it and the recording gone. Measured at tick 199 by throwing right
+ * after the model arrives: 0 bytes. Throwing after `browser.close()` instead,
+ * which is the line ffmpeg is on the other side of and so where this actually
+ * fails: **971,857 bytes** of finished recording, left in a directory nothing
+ * mentions.
+ *
+ * The server did not leak either way, and neither did the browser: nothing
+ * answered on 5183 afterwards and the chromium process count was 9 before and
+ * 9 after. `process.on('exit', stop)` and Playwright's own exit handling were
+ * already doing their half.
+ */
+let looked = null
+let seconds = 0
+let failure = null
+
+try {
 const page = await context.newPage()
 await page.goto(BASE, { waitUntil: 'domcontentloaded' })
+
+/*
+ * The seam fires here and not a line earlier. A context with no page in it has
+ * no video to finalise, so throwing before the first `newPage` tests the
+ * message and not the thing the message is about.
+ */
+if (FAIL_AT === 'start') {
+  await page.waitForTimeout(500)
+  throw new Error('CAPTURE_FAIL_AT=start, the seam the failure path is tested through')
+}
 
 // Wait for the model rather than for a timeout. 5.28 MB off a local server is
 // fast, and the recording should not open on a spinner either way.
@@ -174,7 +219,7 @@ await page.waitForTimeout(700)
 //
 // So the recording writes down the tokens it was made under, and check:capture
 // compares them against the page that exists.
-const looked = await page.evaluate(() => {
+looked = await page.evaluate(() => {
   const s = getComputedStyle(document.documentElement)
   const pick = ['--ink', '--lift', '--text', '--flame', '--flame-bright', '--scale-hue', '--focus']
   const out = {}
@@ -193,10 +238,32 @@ const looked = await page.evaluate(() => {
   return out
 })
 
-const seconds = (Date.now() - startedAt) / 1000
-await context.close()
-await browser.close()
-stop()
+seconds = (Date.now() - startedAt) / 1000
+} catch (err) {
+  failure = err
+} finally {
+  /*
+   * Closed even when something above threw, because this is what writes the
+   * video file. A failed run that keeps its recording can be looked at; one
+   * that loses it leaves a stack trace and an empty directory.
+   */
+  await context.close().catch(() => {})
+  await browser.close().catch(() => {})
+  stop()
+}
+
+if (failure) {
+  console.error(`FAIL  ${failure.message}`)
+  const kept = existsSync(WORK) ? readdirSync(WORK).filter((f) => f.endsWith('.webm')) : []
+  if (kept.length > 0) {
+    const bytes = kept.reduce((n, f) => n + statSync(resolve(WORK, f)).size, 0)
+    console.error(`      the recording is in ${WORK}, ${bytes} bytes, finished and kept, for looking at`)
+    console.error('      .capture is in .gitignore, so it cannot reach a commit. Delete it when you are done.')
+  } else {
+    console.error(`      nothing was recorded, and ${WORK} is empty`)
+  }
+  process.exit(1)
+}
 
 const video = readdirSync(WORK).find((f) => f.endsWith('.webm'))
 if (!video) {
