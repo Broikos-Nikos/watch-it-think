@@ -34,6 +34,26 @@
  * the proof link is a rule about the opening section rather than about the
  * picture. Under the picture is still one click away, and it costs the reader
  * who does not care nothing. See D13.
+ *
+ * ## What needs a browser here, and what was only borrowing one
+ *
+ * WM2-F7, the maintainer pass: this gate "boots a browser to assert that the
+ * h1 contains the word trained; the h1 is literal static markup in
+ * index.html:24". It did, and so was the icon declaration beside it: two
+ * assertions about bytes in a committed file, made by asking a page.
+ *
+ * The finding's cost figure does not reproduce. It said the pair of gates it
+ * names cost "4.7 s and two Chromium boots". Measured at tick 203: this gate is
+ * 0.8 s of a 182 s suite, and a Chromium launch on this machine is 50 ms
+ * against 54 ms to connect to one already running, so sharing the browser would
+ * save nothing at all. The reason to move them is not the clock. An assertion
+ * about static markup that runs in a browser needs a server, a page load and a
+ * model to be irrelevant before it can fail for its own reason, and the rest of
+ * the time it fails for somebody else's.
+ *
+ * One assertion here genuinely needs the page: whether the headline fits on a
+ * 390 by 844 screen without scrolling is a question about layout. That one
+ * stays, and it is now the only reason this gate opens a browser.
  */
 
 import { readFileSync } from 'node:fs'
@@ -149,6 +169,56 @@ void firstBlock
 // ---- the page makes the same promise ---------------------------------------
 
 /*
+ * The two assertions about the document itself, read from the document.
+ *
+ * WM2-F7. Both of these asked a running page about markup that is written out
+ * in `index.html` and never touched by script: the headline, and the icon
+ * declaration beside it. Same assertions, against the file the page is built
+ * from, so they can fail for their own reason rather than waiting on a server,
+ * a page load and a model that have nothing to do with them.
+ */
+const html = readFileSync(resolve(root, 'index.html'), 'utf8')
+
+const h1 = (html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1] ?? '')
+  .replace(/<[^>]*>/g, '')
+  .replace(/\s+/g, ' ')
+  .trim()
+if (!h1) {
+  fail('index.html has no h1', 'the page has to say what it is before anything else does')
+} else if (!/\btrained\b/i.test(h1)) {
+  fail(
+    `the page headline does not say the model was trained: ${JSON.stringify(h1)}`,
+    'it used to give a parameter count, which is a specification and not a reason',
+  )
+} else {
+  console.log(`  ok      the page headline says it too: ${JSON.stringify(h1)}`)
+}
+
+/*
+ * The tab has an icon, so no browser asks for one that is not there.
+ *
+ * Every visit logged "Failed to load resource: 404 (favicon.ico)" before the
+ * visitor had done anything, and the first thing a suspicious reader does is
+ * open the console. This asserts the declaration rather than the 404, because
+ * headless chromium does not request `/favicon.ico` at all: measured, and the
+ * note is in `check:weight` where the obvious assertion would have gone and
+ * would have passed against the broken page.
+ */
+const iconTag = html.match(/<link[^>]*rel=["'][^"']*\bicon\b[^"']*["'][^>]*>/i)?.[0] ?? ''
+const iconHref = iconTag.match(/href=["']([^"']*)["']/i)?.[1] ?? ''
+if (!iconTag) {
+  fail(
+    'the document declares no icon, so every visit asks for /favicon.ico and gets a 404',
+    'the first thing a suspicious reader does is open the console',
+  )
+} else if (!iconHref.startsWith('data:')) {
+  fail('the icon is a second request', 'an inline data URI costs nothing and cannot 404')
+} else {
+  console.log(`  ok      the tab has an inline icon, ${JSON.stringify(iconHref.slice(0, 24))}...`)
+}
+
+
+/*
  * The server comes from tools/serve.mjs: one preview on a port the operating
  * system hands out, proved to be serving this build. Each gate used to spawn
  * its own on a hardcoded number, which is how ten of them leaked and how one
@@ -166,41 +236,6 @@ try {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
   await page.goto(BASE, { waitUntil: 'domcontentloaded' })
   await page.waitForSelector('h1')
-
-  const h1 = (await page.textContent('h1'))?.trim() ?? ''
-  if (!/\btrained\b/i.test(h1)) {
-    fail(
-      `the page headline does not say the model was trained: ${JSON.stringify(h1)}`,
-      'it used to give a parameter count, which is a specification and not a reason',
-    )
-  } else {
-    console.log(`  ok      the page headline says it too: ${JSON.stringify(h1)}`)
-  }
-
-  /*
-   * The tab has an icon, so no browser asks for one that is not there.
-   *
-   * Every visit logged "Failed to load resource: 404 (favicon.ico)" before the
-   * visitor had done anything, and the first thing a suspicious reader does is
-   * open the console. This asserts the declaration rather than the 404, because
-   * headless chromium does not request `/favicon.ico` at all: measured, and the
-   * note is in `check:weight` where the obvious assertion would have gone and
-   * would have passed against the broken page.
-   */
-  const icon = await page.evaluate(() => {
-    const l = document.querySelector('link[rel~="icon"]')
-    return l ? { href: l.getAttribute('href').slice(0, 24), inline: l.getAttribute('href').startsWith('data:') } : null
-  })
-  if (!icon) {
-    fail(
-      'the document declares no icon, so every visit asks for /favicon.ico and gets a 404',
-      'the first thing a suspicious reader does is open the console',
-    )
-  } else if (!icon.inline) {
-    fail('the icon is a second request', 'an inline data URI costs nothing and cannot 404')
-  } else {
-    console.log(`  ok      the tab has an inline icon, ${JSON.stringify(icon.href)}...`)
-  }
 
   // On the device most people will open it on, the claim has to be visible
   // without scrolling.
