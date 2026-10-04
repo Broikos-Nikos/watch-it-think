@@ -108,15 +108,16 @@ same 800 rows: **0 disagreements**.
 this repository re-declares the model architecture is that the original throws
 attention away. That is a risk, so every layer and head is recomputed from the
 raw weights in numpy and compared: **1.0e-06 across 96 fields**. Reversing the
-layer order or rolling the head axis passes every other gate at exactly zero and
-fails this one at 9.6e-01.
+layer order fails this one at 9.9e-01 and rolling the head axis at 9.6e-01,
+while both pass every other gate at exactly zero. Those two are measured, by
+`npm run witness:controls`, against the graph this page loads.
 
 **The tokenizer is a port, and ports drift.** The model was trained on ids from
 a Python tokenizer; a JavaScript one that is merely close feeds it text it has
 never seen. 242 sentences, identical ids, including the whitespace code points
 where Python and JavaScript quietly disagree.
 
-45 gates run before anything reaches the page: twenty two in
+46 gates run before anything reaches the page: twenty three in
 `npm run build` before the bundle is written, and twenty three more in
 `npm run verify`, twenty two of them against a real browser. Eight of them, and what each one
 stops:
@@ -200,7 +201,7 @@ do not need any of it to run the page.
 Before committing:
 
 ```bash
-npm run build     # typecheck, twenty two file gates, then the bundle. About 13 seconds.
+npm run build     # typecheck, twenty three file gates, then the bundle. About 16 seconds.
 ```
 
 Before pushing:

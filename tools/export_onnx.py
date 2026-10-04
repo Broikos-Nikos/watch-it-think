@@ -550,10 +550,18 @@ def main() -> int:
                 "fields": checked,
                 "values": value_n,
                 "valueMean": value_mean,
+                # No control value in this string any more. It said "about
+                # 9.8e-01" while the README said 9.6e-01 for the same two
+                # mutations, and neither was output by anything: both were hand
+                # mutations quoted out of commit messages, one of them from a
+                # sample of four English sentences the gate no longer uses. The
+                # two controls are measured by `npm run witness:controls`,
+                # against the graph this file exports, and they are written into
+                # the `controls` block beside this one. WME2-F7.
                 "note": "every layer and head recomputed from the raw weights "
                         "in numpy. The tolerance is the one that means "
-                        "something: reversing the layers or rolling the head "
-                        "axis fails it at about 9.8e-01.",
+                        "something: the two controls under `controls` are what "
+                        "a wrong layer index or head axis costs, measured.",
             },
         },
     }

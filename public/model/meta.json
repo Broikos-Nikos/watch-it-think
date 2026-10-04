@@ -193,7 +193,7 @@
   "onnxBytes": 20420994,
   "parity": {
     "copyAgainstOriginal": {
-      "value": 0.0,
+      "value": 0,
       "tolerance": 0.0001,
       "sentences": 22,
       "note": "the re-declared architecture against bslm/model.py"
@@ -227,7 +227,14 @@
       "fields": 96,
       "values": 188280,
       "valueMean": 0.016953473548765568,
-      "note": "every layer and head recomputed from the raw weights in numpy. The tolerance is the one that means something: reversing the layers or rolling the head axis fails it at about 9.8e-01."
+      "note": "every layer and head recomputed from the raw weights in numpy. The tolerance is the one that means something: the two controls under `controls` are what a wrong layer index or head axis costs, measured.",
+      "controls": {
+        "measuredBy": "npm run witness:controls",
+        "against": "public/model/router.int8.onnx, the graph the page loads",
+        "note": "the distance between the mutated cube and the graph own output. The witness own agreement with the weights, recorded above, is the error bar on these.",
+        "layersReversed": 0.9888703669421375,
+        "headAxisRolled": 0.961853077635169
+      }
     }
   },
   "quantisation": {
@@ -257,7 +264,7 @@
     "rowsRead": 10578,
     "rowsEvaluated": 10578,
     "heldOutSentences": 10578,
-    "budgetPoints": 1.0,
+    "budgetPoints": 1,
     "fp32": {
       "n": 10578,
       "intentAccuracy": 74.58,

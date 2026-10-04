@@ -13,7 +13,7 @@
   "scripts": {
     "build": "tsc --noEmit && npm run check && vite build",
     "capture": "node tools/capture.mjs",
-    "check": "npm run check:authorship && npm run check:install && npm run check:palette && npm run check:licences && npm run check:claims && npm run check:tools && npm run check:tokenizer && npm run check:meta && npm run check:input && npm run check:upstream && npm run check:source && npm run check:counts && npm run check:deps && npm run check:concentration && npm run check:ramp && npm run check:intent && npm run check:cost && npm run check:sigma && npm run check:quant && npm run check:audits && npm run check:unicode && npm run check:latency",
+    "check": "npm run check:authorship && npm run check:install && npm run check:palette && npm run check:licences && npm run check:claims && npm run check:tools && npm run check:tokenizer && npm run check:meta && npm run check:witness && npm run check:input && npm run check:upstream && npm run check:source && npm run check:counts && npm run check:deps && npm run check:concentration && npm run check:ramp && npm run check:intent && npm run check:cost && npm run check:sigma && npm run check:quant && npm run check:audits && npm run check:unicode && npm run check:latency",
     "check:announce": "node tools/check-announce.mjs",
     "check:attention": "node tools/check-attention.mjs",
     "check:audits": "tsx tools/check-audits.ts",
@@ -23,6 +23,8 @@
     "check:boot": "node tools/check-boot.mjs",
     "check:capture": "node tools/check-capture.mjs",
     "check:claims": "node tools/check-claims.mjs",
+    "check:witness": "tsx tools/check-witness.ts",
+    "witness:controls": "tsx tools/witness-controls.ts",
     "check:draw": "node tools/check-draw.mjs",
     "check:race": "node tools/check-race.mjs",
     "check:first-screen": "node tools/check-first-screen.mjs",
