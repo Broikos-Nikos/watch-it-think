@@ -33,8 +33,8 @@ transformer  onnx  onnxruntime-web  attention-visualization  in-browser-ml  mach
 
 - Settings, Pages, Build and deployment, Source: **GitHub Actions**.
 
-42 gates run before anything deploys: twenty two in `npm run build` and
-twenty in `npm run verify`, in a job that holds no deployment permission. A push that
+43 gates run before anything deploys: twenty two in `npm run build` and
+twenty one in `npm run verify`, in a job that holds no deployment permission. A push that
 breaks a number in the README, or that leaves the recording showing a headline
 the page no longer has, does not publish.
 

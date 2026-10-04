@@ -12,7 +12,44 @@
       attention field in the scale hue with one cell in flame, which is the one
       place the accent is spent at full size too.
     -->
-    <link rel="icon" href="data:image/svg+xml,<svg%20xmlns="http://www.w3.org/2000/svg"%20viewBox="0%200%2016%2016"><rect%20width="16"%20height="16"%20fill="#080604"/><g%20fill="#1d4ed8"%20opacity=".55"><rect%20x="1"%20y="1"%20width="3"%20height="3"/><rect%20x="5"%20y="5"%20width="3"%20height="3"/><rect%20x="9"%20y="9"%20width="3"%20height="3"/><rect%20x="1"%20y="9"%20width="3"%20height="3"/><rect%20x="9"%20y="1"%20width="3"%20height="3"/></g><rect%20x="5"%20y="9"%20width="3"%20height="3"%20fill="#2563eb"/><rect%20x="12"%20y="12"%20width="3"%20height="3"%20fill="#ff6a00"/></svg>">
+    <!--
+      The inner quotes are single on purpose.
+
+      WICON-F1. This attribute was double quoted inside a double quoted
+      attribute, so the parser ended `href` at the first inner quote, ended
+      the `<head>` there, and put the rest of the icon into the body as
+      elements. Measured at tick 189 on the built page: `document.head` held
+      three children, the charset, the viewport and this link, and
+      `document.body.firstElementChild` was a tag called
+      `rect%20width="16"...`. Chrome hoists the title so nothing looked
+      wrong, and the cost only appeared when a Content-Security-Policy was
+      added and the browser refused it: "delivered via a <meta> element
+      outside the document's <head>, which is disallowed. The policy has
+      been ignored."
+    -->
+    <link rel="icon" href="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2016'><rect%20width='16'%20height='16'%20fill='#080604'/><g%20fill='#1d4ed8'%20opacity='.55'><rect%20x='1'%20y='1'%20width='3'%20height='3'/><rect%20x='5'%20y='5'%20width='3'%20height='3'/><rect%20x='9'%20y='9'%20width='3'%20height='3'/><rect%20x='1'%20y='9'%20width='3'%20height='3'/><rect%20x='9'%20y='1'%20width='3'%20height='3'/></g><rect%20x='5'%20y='9'%20width='3'%20height='3'%20fill='#2563eb'/><rect%20x='12'%20y='12'%20width='3'%20height='3'%20fill='#ff6a00'/></svg>">
+    <!--
+      WS-F2. The page says three times that nothing you type leaves it: in the
+      README, in `router.ts`, and in the standfirst every visitor reads. It was
+      true, measured at tick 189 by driving the built page and recording every
+      request: 11 on load, all same origin, 0 while the page was used, 0
+      carrying the text typed into the box, nothing in localStorage,
+      sessionStorage, cookies or a service worker. What it was not was held by
+      anything. The strongest sentence on the page was the one with no gate, on
+      a project whose README says "not one of them was written before the defect
+      it exists for".
+
+      So: a policy the browser enforces, and `check:network` beside it. The
+      policy is not copied from `tokenlab`'s, which is the only other page here
+      that has one, because this page runs a model: `'wasm-unsafe-eval'` and
+      `blob:` are what onnxruntime needs to compile the graph and start its
+      threaded workers, and leaving them out would be a policy that reads
+      stricter and ships a broken page.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' blob:; worker-src 'self' blob:; child-src 'self' blob:; connect-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'"
+    />
     <title>watch it think</title>
     <meta
       name="description"

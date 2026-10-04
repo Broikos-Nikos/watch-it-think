@@ -34,6 +34,7 @@ const GATES = [
   'check:motion',
   'check:attention',
   'check:weight',
+  'check:network',
   'check:capture',
   'check:first-screen',
   'check:cap',

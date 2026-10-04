@@ -52,6 +52,7 @@
     "check:tools": "node tools/check-tools.mjs",
     "check:unicode": "tsx tools/check-unicode.ts",
     "check:weight": "node tools/check-weight.mjs",
+    "check:network": "node tools/check-network.mjs",
     "dev": "vite",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",

@@ -5,7 +5,7 @@ Commit messages cite identifiers like `WDR-F1`. This is what they refer to.
 Seventeen audit passes and the workspace sweeps. Each pass was run against
 one assigned perspective and nothing else.
 
-**195 findings, 115 closed, 80 open**.
+**196 findings, 119 closed, 77 open**.
 
 Held to the workspace queue this project is built from by
 `tools/check-audit-status.mjs`, which fails if a row here says anything the
@@ -122,12 +122,12 @@ queue does not.
 
 ## `WS`, supply chain
 
-12 findings, 2 closed.
+12 findings, 3 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
 | `WS-F1` | high | fixed, tick 49 | allowScripts in package.json is a security control that nothing reads: @lavamoat/allow-scripts is not a dependency, so protobufjs: false blocks nothing |
-| `WS-F2` | medium | open | 'Nothing leaves this page' is the one claim in the repository with no gate, and nothing enforces it at runtime |
+| `WS-F2` | medium | fixed, tick 189 | 'Nothing leaves this page' is the one claim in the repository with no gate, and nothing enforces it at runtime |
 | `WS-F3` | medium | open | The one file every visitor downloads and executes is the one file with no hash |
 | `WS-F4` | medium | open | numpy is the only unpinned dependency in the pipeline, and it is the one that produces the repository's strongest number |
 | `WS-F5` | medium | open | .capture/ is not ignored, and npm run capture leaves a full screen recording in it on any failure |
@@ -312,7 +312,7 @@ Not a perspective and not an agent. Findings raised against this project while
 a class found somewhere else in the workspace was being swept across all eight,
 kept here because commit messages cite them like any other.
 
-19 findings, 10 closed.
+20 findings, 13 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
@@ -326,12 +326,13 @@ kept here because commit messages cite them like any other.
 | `WFOLD-F1` | medium | open | The picture the page is built on is below the fold at both widths |
 | `WGIF-F1` | medium | open | The picture at the top runs eight seconds, so a reader sees it once |
 | `WHEAD-F1` | medium | open | A forwarded link unfurls into a bare URL: no og tags anywhere in the head |
+| `WICON-F1` | medium | fixed, tick 189 | The inline favicon ended the head, so the document put markup in the body and refused a policy |
 | `WNOT-F1` | medium | open | The bundle ships onnxruntime-web and its licence travels with nothing |
-| `WSEAL-F1` | medium | open | The page says the work happens in your browser and nothing enforces it |
+| `WSEAL-F1` | medium | fixed, tick 189 | The page says the work happens in your browser and nothing enforces it |
 | `WVER-F1` | medium | fixed, tick 164 | A hole in the GATES array ran `npm run undefined` and counted it as a browser gate that passed |
 | `WCAP-F2` | medium | open | capture.mjs hands the committed GIF to ffmpeg and closes its browser outside a finally |
 | `WCNT-F2` | medium | fixed, tick 179 | The gate that holds the gate counts could not match a two word number, and then matched its tail |
 | `WCAP-F1` | low | open | check:capture caps the gif at 4 MB and the gif is 3.00 MB, so the ceiling permits silent growth |
 | `WGRP-F1` | low | fixed, tick 182 | check-groups read a call inside a comment as a call |
-| `WNET-F1` | low | open | The README promises the model runs in your browser and nothing holds it: no gate watches the wire |
+| `WNET-F1` | low | fixed, tick 189 | The README promises the model runs in your browser and nothing holds it: no gate watches the wire |
 | `WRAMP-F1` | low | fixed, tick 184 | Nothing held the 256 step ramp table against the curve it was built from |
