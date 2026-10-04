@@ -5,7 +5,7 @@ Commit messages cite identifiers like `WDR-F1`. This is what they refer to.
 Seventeen audit passes and the workspace sweeps. Each pass was run against
 one assigned perspective and nothing else.
 
-**197 findings, 119 closed, 78 open**, across the 17 perspectives that produced them.
+**198 findings, 121 closed, 77 open**, across the 17 perspectives that produced them.
 
 Held to the workspace queue this project is built from by
 `tools/check-audit-status.mjs`, which fails if a row here says anything the
@@ -141,7 +141,7 @@ queue does not.
 
 ## `WD`, design eye
 
-18 findings, 8 closed.
+18 findings, 9 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
@@ -149,7 +149,7 @@ queue does not.
 | `WD-F2` | high | fixed, tick 53 | The leader changes eight times while you type, and the page renders every change as a blink |
 | `WD-F3` | high | fixed, tick 54 | The quantitative encoding and the brand accent are the same green, and the hottest cell of the heat map is louder than the answer |
 | `WD-F4` | high | fixed, tick 54 | The house style has not reached this project, and the page is its opposite on every axis that matters |
-| `WD-F5` | medium | open | The winner's percentage is cut in two by the bar behind it |
+| `WD-F5` | medium | fixed, tick 196 | The winner's percentage is cut in two by the bar behind it |
 | `WD-F6` | medium | open | The attention section uses half its column and leaves 448 pixels empty beside its own subject |
 | `WD-F7` | medium | open | The axis is not an axis |
 | `WD-F8` | medium | fixed, tick 55 | Twenty four thumbnails with no label, no order and no score, and the source already says they should have one |
@@ -312,7 +312,7 @@ Not a perspective and not an agent. Findings raised against this project while
 a class found somewhere else in the workspace was being swept across all eight,
 kept here because commit messages cite them like any other.
 
-21 findings, 13 closed.
+22 findings, 14 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
@@ -335,5 +335,6 @@ kept here because commit messages cite them like any other.
 | `WCAP-F1` | low | open | check:capture caps the gif at 4 MB and the gif is 3.00 MB, so the ceiling permits silent growth |
 | `WGRP-F1` | low | fixed, tick 182 | check-groups read a call inside a comment as a call |
 | `WNET-F1` | low | fixed, tick 189 | The README promises the model runs in your browser and nothing holds it: no gate watches the wire |
+| `WRACE-F1` | low | fixed, tick 196 | The recording in the README still showed the defect the audit filed it for |
 | `WRAMP-F1` | low | fixed, tick 184 | Nothing held the 256 step ramp table against the curve it was built from |
 | `WTAP-F1` | low | open | Controls shorter than 24 pixels at a phone width |

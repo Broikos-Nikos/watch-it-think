@@ -29,6 +29,7 @@ const GATES = [
   'check:progress',
   'check:degraded',
   'check:draw',
+  'check:race',
   'check:announce',
   'check:keyboard',
   'check:motion',

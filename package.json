@@ -23,6 +23,7 @@
     "check:capture": "node tools/check-capture.mjs",
     "check:claims": "node tools/check-claims.mjs",
     "check:draw": "node tools/check-draw.mjs",
+    "check:race": "node tools/check-race.mjs",
     "check:first-screen": "node tools/check-first-screen.mjs",
     "check:forced": "node tools/check-forced.mjs",
     "check:input": "tsx tools/check-input-bound.ts",

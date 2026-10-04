@@ -369,14 +369,28 @@ function drawRace(top: { intent: string; prob: number }[]): void {
       // this page builds its tag row from the visitor's own words one section
       // down. Two audits have now checked that nothing can escape through
       // there, and the cheapest way to keep that true is to stop parsing.
+      /*
+       * The bar lives in a track of its own, which is the name's column.
+       *
+       * WD-F5. It used to be absolutely positioned against the whole row, so
+       * its width was a percentage of a box that included the percentage
+       * label, and a confident answer drew the bar across its own number: at
+       * 95.8 percent, 15 of the label's 41 pixels sat on saturated orange and
+       * it read as "95." then "8%". Naming the grid column on an absolutely
+       * positioned child is not enough in practice, so the track is an element
+       * and the bar is positioned against that.
+       */
+      const track = document.createElement('span')
+      track.className = 'track'
       const bar = document.createElement('span')
       bar.className = 'bar'
       const name = document.createElement('span')
       name.className = 'name'
       name.textContent = intent
+      track.append(bar, name)
       const pct = document.createElement('span')
       pct.className = 'pct'
-      row.append(bar, name, pct)
+      row.append(track, pct)
       raceRows.set(intent, row)
     }
 
