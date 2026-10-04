@@ -60,6 +60,39 @@
   --thumb: 66px;
   --thumb-gap: 5px;
 
+  /*
+   * The type scale: one ratio, seven steps, nothing off it.
+   *
+   * WD-F9. Measured at tick 204 on the rendered page at 1280: thirteen visible
+   * sizes, and six of them, 11.52 11.52 12.16 12.48 12.8 13.12 13.6, inside a
+   * 2.08 pixel band doing the same job on eight different elements. Nobody can
+   * see 12.16 against 12.48, so those differences carried no hierarchy, only
+   * the evidence that the type was set element by element as each was added.
+   * The one visible heading rendered at 16.8 against a textarea at 19.2: a
+   * heading smaller than an input, bold and nothing else.
+   *
+   * Every step here is 1.25 from the one below, anchored on the 16 pixel root,
+   * so each is a round multiple of the last rather than a taste. The two
+   * display sizes skip a step each, which is the one deliberate gap: the
+   * billboard numbers are meant to be a different register from the text, not
+   * the next size up from it.
+   *
+   *   --type-0  10.24  the label inside a 66 pixel thumbnail
+   *   --type-1  12.80  everything secondary: captions, status, chips, footer
+   *   --type-2  16.00  the body, the words of the sentence, the standfirst
+   *   --type-3  20.00  the box you type in, and the confidence beside the answer
+   *   --type-4  25.00  a section heading, which is now above the input
+   *   --type-5  39.06  the answer itself
+   *   --type-6  61.04  the headline
+   */
+  --type-0: 0.64rem;
+  --type-1: 0.8rem;
+  --type-2: 1rem;
+  --type-3: 1.25rem;
+  --type-4: 1.5625rem;
+  --type-5: 2.4414rem;
+  --type-6: 3.8147rem;
+
   --flame: #ff6a00;
   --flame-bright: #ff8a1f;
   --flame-deep: #e63c00;
@@ -106,6 +139,10 @@ body {
 }
 
 .sr-only {
+  /* On the scale as well, though nobody sees it: a heading in here keeps the
+     browser default otherwise, 18.72 and 24 pixels, and then "every size on
+     this page is a step" needs an exception list to be true. WD-F9. */
+  font-size: inherit;
   position: absolute;
   width: 1px;
   height: 1px;
@@ -129,7 +166,7 @@ header {
 /* Identity is not data and not the argument. House grey. */
 .wordmark {
   font-family: var(--mono);
-  font-size: 0.78rem;
+  font-size: var(--type-1);
   letter-spacing: 0.24em;
   text-transform: uppercase;
   color: var(--dim);
@@ -138,7 +175,8 @@ header {
 h1 {
   margin: 0.6rem 0 0;
   max-width: 20ch;
-  font-size: clamp(2.1rem, 1.2rem + 4vw, 4rem);
+  /* Both ends on the scale: --type-5 one step down at a phone, --type-6 at a laptop. */
+  font-size: clamp(1.9531rem, 1.2rem + 4vw, var(--type-6));
   font-weight: 800;
   line-height: 1.03;
   letter-spacing: -0.035em;
@@ -168,7 +206,8 @@ textarea {
   background: var(--lift);
   color: var(--text);
   font: inherit;
-  font-size: clamp(1rem, 0.9rem + 0.5vw, 1.2rem);
+  /* --type-2 at a phone, --type-3 at a laptop, and the section heading above it. */
+  font-size: clamp(var(--type-2), 0.9rem + 0.5vw, var(--type-3));
 }
 
 textarea:focus-visible {
@@ -189,7 +228,7 @@ textarea:focus-visible {
   background: transparent;
   color: var(--faint);
   font: inherit;
-  font-size: 0.8rem;
+  font-size: var(--type-1);
   cursor: pointer;
 }
 
@@ -202,7 +241,7 @@ textarea:focus-visible {
 .status {
   margin: 0;
   font-family: var(--mono);
-  font-size: 0.76rem;
+  font-size: var(--type-1);
   color: var(--faint);
 }
 
@@ -261,14 +300,15 @@ textarea:focus-visible {
  */
 .intent {
   font-family: var(--mono);
-  font-size: clamp(1.5rem, 1rem + 2.2vw, 2.4rem);
+  /* --type-4 at a phone, --type-5 at a laptop. */
+  font-size: clamp(var(--type-4), 1rem + 2.2vw, var(--type-5));
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--flame-bright);
 }
 
 .confidence {
-  font-size: 1.05rem;
+  font-size: var(--type-3);
   font-variant-numeric: tabular-nums;
   color: var(--flame);
 }
@@ -293,7 +333,7 @@ textarea:focus-visible {
   padding: 0.4rem 0.7rem;
   border-radius: 6px;
   font-family: var(--mono);
-  font-size: 0.85rem;
+  font-size: var(--type-1);
   isolation: isolate;
 }
 
@@ -371,7 +411,7 @@ textarea:focus-visible {
   border-radius: 12px;
   background: var(--lift);
   font-family: var(--mono);
-  font-size: 0.95rem;
+  font-size: var(--type-2);
 }
 
 /*
@@ -399,7 +439,8 @@ textarea:focus-visible {
 
 .word small {
   margin-left: 0.4em;
-  font-size: 0.62em;
+  /* One step under the word it labels, not a fraction of it. */
+  font-size: var(--type-1);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--slot);
@@ -408,7 +449,7 @@ textarea:focus-visible {
 footer {
   padding-block: 2rem 3.5rem;
   max-width: 62rem;
-  font-size: 0.78rem;
+  font-size: var(--type-1);
   color: var(--faint);
 }
 
@@ -430,7 +471,9 @@ footer {
 
 .attention h2 {
   margin: 0;
-  font-size: 1.05rem;
+  /* --type-4, a step above the box you type in. It was 16.8 against the
+     textarea's 19.2, a heading only because it was bold. WD-F9. */
+  font-size: var(--type-4);
   font-weight: 700;
   letter-spacing: -0.01em;
 }
@@ -444,14 +487,14 @@ footer {
   margin: 0.5rem 0 0;
   max-width: 62ch;
   color: var(--faint);
-  font-size: 0.82rem;
+  font-size: var(--type-1);
   line-height: 1.5;
 }
 
 .attention-note {
   margin: 0.35rem 0 0;
   max-width: 62ch;
-  font-size: 0.82rem;
+  font-size: var(--type-1);
   color: var(--faint);
   line-height: 1.5;
 }
@@ -583,7 +626,7 @@ footer {
 .headcell-tag,
 .headcell-score {
   font-family: var(--mono);
-  font-size: 0.6rem;
+  font-size: var(--type-0);
   letter-spacing: 0.02em;
 }
 
@@ -679,7 +722,7 @@ footer {
      column this page has. */
   overflow-wrap: anywhere;
   max-width: 54ch;
-  font-size: 0.78rem;
+  font-size: var(--type-1);
   color: var(--faint);
   line-height: 1.5;
   font-variant-numeric: tabular-nums;
@@ -706,7 +749,7 @@ footer {
   margin: 0.3rem 0 0;
   padding: 0;
   font-family: var(--mono);
-  font-size: 0.72rem;
+  font-size: var(--type-1);
 }
 
 /*
@@ -723,7 +766,7 @@ footer {
   grid-template-rows: repeat(var(--n, 1), minmax(0, 1fr));
   min-width: 0;
   font-family: var(--mono);
-  font-size: 0.72rem;
+  font-size: var(--type-1);
   color: var(--faint);
 }
 
