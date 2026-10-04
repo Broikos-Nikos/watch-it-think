@@ -117,6 +117,17 @@
   --gap-3: 8px;
   --gap-4: 12px;
   --gap-5: 20px;
+  /*
+   * The section step, added at tick 206 and the scale's limit raised with it.
+   *
+   * WD-F11 asks for "a genuine section break", and five steps could not say
+   * one: 20 was both the largest gap and the gap between every pair of blocks
+   * on the page, so the layout said that the answer, the runners up and the
+   * evidence were equally important. A sixth step is a decision recorded in
+   * `check:tokens`, which states the limit, rather than a value typed where it
+   * was needed, which is what WD-F10 was about.
+   */
+  --gap-6: 32px;
 
   --radius-0: 2px;
   --radius-1: 4px;
@@ -238,11 +249,27 @@ h1 {
   color: var(--dim);
 }
 
+/*
+ * Three tiers of air, and they are the hierarchy.
+ *
+ * WD-F11. Measured at tick 206 at 1280, and worse than when it was filed: the
+ * box to the chips 20, the chips to the telemetry 20, the telemetry to the
+ * answer 20, the answer to the race 20, the race to the tags 20, the tags to
+ * the whole attention section 20. Six identical gaps, which is a layout saying
+ * that `light.control 95.8%` matters exactly as much as the grey line of
+ * timings above it. The audit filed it as 16 16 16 20 20 20; tick 205 put every
+ * value on a scale and made the last of the difference go away, which is the
+ * cost of tidying before deciding what the tidiness is for.
+ *
+ *   --gap-4  inside a group:  the box, its chips, its telemetry
+ *   --gap-3  under the answer: the race and the tags are its detail, bound to it
+ *   --gap-6  between regions: what you typed, what it answered, what it looked at
+ */
 main {
   padding-block: clamp(1.5rem, 4vw, 2.5rem);
   display: flex;
   flex-direction: column;
-  gap: var(--gap-5);
+  gap: var(--gap-4);
 }
 
 textarea {
@@ -330,7 +357,14 @@ textarea:focus-visible {
 .result {
   display: flex;
   flex-direction: column;
-  gap: var(--gap-5);
+  /* The race and the tags are the answer's supporting detail, so they sit
+     close enough to belong to it. */
+  gap: var(--gap-3);
+  /* And a full step of air above the answer, which is the one break on this
+     page a reader has to see. The container's own gap is already there, so it
+     comes off: the break is --gap-6 measured edge to edge, not --gap-6 plus
+     whatever the parent was doing. */
+  margin-top: calc(var(--gap-6) - var(--gap-4));
 }
 
 .verdict {
@@ -514,7 +548,10 @@ footer {
   display: flex;
   flex-direction: column;
   gap: var(--gap-4);
-  padding-top: 0.5rem;
+  /* A section break: the rule, a step of air above it and a step below, so the
+     evidence reads as a different region rather than as one more block. */
+  margin-top: calc(var(--gap-6) - var(--gap-3));
+  padding-top: var(--gap-5);
   border-top: 1px solid var(--edge);
 }
 

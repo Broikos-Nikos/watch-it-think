@@ -59,7 +59,11 @@ const rootBlock = code.slice(code.indexOf(':root'), code.indexOf('\n}', code.ind
 
 /* How many steps each scale is allowed. The point is not the number, it is that
    the number is small and stated: a scale nobody can add to quietly. */
-const LIMITS = { gap: 5, radius: 4 }
+/* Six since tick 206, not five. WD-F11 needed a section break and five steps
+   could not express one: 20 was both the largest gap and the gap between
+   every pair of blocks on the page. Raising a stated limit with a reason is
+   the mechanism; typing 32 where it was needed is the defect. */
+const LIMITS = { gap: 6, radius: 4 }
 
 const declared = (prefix) => [...rootBlock.matchAll(new RegExp(`--${prefix}-[a-z0-9]+:`, 'g'))].length
 

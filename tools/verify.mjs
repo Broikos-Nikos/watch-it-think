@@ -38,6 +38,7 @@ const GATES = [
   'check:network',
   'check:capture',
   'check:first-screen',
+  'check:rhythm',
   'check:cap',
   'check:queued',
   'check:raw',
