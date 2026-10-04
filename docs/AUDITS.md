@@ -5,7 +5,7 @@ Commit messages cite identifiers like `WDR-F1`. This is what they refer to.
 Seventeen audit passes and the workspace sweeps. Each pass was run against
 one assigned perspective and nothing else.
 
-**198 findings, 131 closed, 67 open**, across the 17 perspectives that produced them.
+**198 findings, 132 closed, 66 open**, across the 17 perspectives that produced them.
 
 Held to the workspace queue this project is built from by
 `tools/check-audit-status.mjs`, which fails if a row here says anything the
@@ -141,7 +141,7 @@ queue does not.
 
 ## `WD`, design eye
 
-18 findings, 14 closed.
+18 findings, 15 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
@@ -156,7 +156,7 @@ queue does not.
 | `WD-F9` | medium | fixed, tick 204 | Thirteen rendered type sizes, six of them inside a 2.08 pixel band |
 | `WD-F10` | medium | fixed, tick 205 | Ten gap values, six radii, seven surface darks, and fifteen colour literals outside the token block |
 | `WD-F11` | medium | fixed, tick 206 | The rhythm gives the answer the same air as a row of chips |
-| `WD-F12` | medium | open | The state between loading and answered is a hole, and the answer lands by shoving the input box 74 pixels down the page |
+| `WD-F12` | medium | fixed, tick 207 | The state between loading and answered is a hole, and the answer lands by shoving the input box 74 pixels down the page |
 | `WD-F13` | medium | fixed, tick 53 | The big canvas resizes as you type, so the only thing that moves is the layout |
 | `WD-F14` | low | open | Three focus languages, two focus colours, and the house token reached two of five focusable things |
 | `WD-F15` | low | fixed, tick 54 | The tag code is 9.4 pixels, and it is the only orange text in the answer |
