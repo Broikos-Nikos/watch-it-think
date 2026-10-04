@@ -30,6 +30,10 @@ const WORDS = [
   'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten',
   'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen',
   'nineteen', 'twenty', 'twenty one', 'twenty two', 'twenty three', 'twenty four', 'twenty five',
+  /* The list ran out at tick 205, with the build chain at twenty six. It had
+     stopped at twenty five, so the gate asked for the numeral and the prose
+     would have started counting in digits halfway through a sentence. */
+  'twenty six', 'twenty seven', 'twenty eight', 'twenty nine', 'thirty',
 ]
 
 const pkg = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'))
