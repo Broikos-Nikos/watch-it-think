@@ -1,29 +1,61 @@
 # The audits
 
-Commit messages in this repository cite identifiers like `WH-F2` and `WP2-F1`.
-This is what they refer to.
+Commit messages cite identifiers like `WDR-F1`. This is what they refer to.
 
-Each audit was run by a separate agent against one assigned perspective, with
-no write access to the project: it produced a findings file and a list, and the
-fixes were separate work afterwards. Nobody audited their own code twenty
-minutes after writing it, which is the only reason any of this was found.
+Seventeen audit passes and the workspace sweeps. Each pass was run against
+one assigned perspective and nothing else.
 
-**194 findings, 115 closed, 79 open**, across the 17 perspectives that produced them.
+**195 findings, 115 closed, 80 open**.
 
-That line and the count under every table below are checked against the tables
-themselves on every build, by `npm run check:audits`, and against the queue this
-project is built from by the loop that closes the findings. Until tick 164 this
-file did not exist: 46 commits cited 51 finding identifiers and 39 of them
-resolved to nothing a reader could reach.
+Held to the workspace queue this project is built from by
+`tools/check-audit-status.mjs`, which fails if a row here says anything the
+queue does not.
 
-The full audit files are not in this repository. They are working documents of
-the workspace this project was built in, and they quote intermediate states of
-files that no longer exist. What follows is the list itself, which is the part
-a commit message needs to resolve.
+## `WDR`, deep reviewer
+
+15 findings, 10 closed.
+
+| id | severity | status | finding |
+|---|---|---|---|
+| `WDR-F1` | high | fixed, tick 29 | tools/export_onnx.py does not parse, so the export in this repository cannot be run at all. A heredoc reintroduced an unterminated string at tick 20 and the output was filtered |
+| `WDR-F2` | high | fixed, tick 30 | The attention tensor, the only reason the export file exists, is the one output no gate compares. Reversing the layers or rolling the head axis passes every gate |
+| `WDR-F3` | high | fixed, tick 31 | The tokenizer port disagrees with bslm/tokenizer.py on five whitespace code points including the byte order mark, while the gate prints identical because none of its 230 sentences contains one |
+| `WDR-F4` | medium | fixed, tick 157 | concentration() computes a different quantity from the one its docstring describes |
+| `WDR-F5` | medium | fixed, tick 158 | The page says the intent is read from the first position; it is read from the first position plus the mean of every position |
+| `WDR-F6` | medium | fixed, tick 159 | 5.28 MB over the wire describes one of the seven files the page downloads |
+| `WDR-F7` | medium | fixed, tick 160 | A word past the token cap is dropped from the tag row and from the evaluation, silently and in the evaluation favour |
+| `WDR-F8` | medium | not reproduced, tick 161 | One long word freezes the page for seconds and every millisecond of it is thrown away |
+| `WDR-F9` | medium | fixed, tick 162 | dump_python_tokenizer.py still states the exact falsehood the port was fixed for |
+| `WDR-F10` | medium | fixed, tick 163 | The accuracy budget is spent on intent accuracy, and the attention the page draws is never measured at all |
+| `WDR-F11` | low | open | The gate never exercises padding, a batch above one, a single token, or a sentence at the cap |
+| `WDR-F12` | low | open | positions comes from the tokenizer, not from the tensor, and the two are never checked against each other |
+| `WDR-F13` | low | open | focusToken survives into a shorter sentence and blanks the field |
+| `WDR-F14` | low | open | concentration returns 1 for a single token, so every head reads 100 percent |
+| `WDR-F15` | low | open | User text reaches innerHTML, safe only because of an invariant nothing states |
+
+## `WM`, measurement
+
+15 findings, 13 closed.
+
+| id | severity | status | finding |
+|---|---|---|---|
+| `WM-F1` | high | fixed, tick 33 | The attention witness runs on four English sentences, 6 to 14 tokens, and three places say it runs on more. meta.json's sentences: 20 is the sample for gates 1 to 3 only |
+| `WM-F2` | high | fixed, tick 34 | Not one published number can be reproduced by someone who has only the clone: the checkpoint and test set are named nowhere and hashed nowhere |
+| `WM-F3` | high | fixed, tick 35 | Five latency numbers, none reproduces, and meta.json's was measured on native onnxruntime while the page runs wasm at a few times that |
+| `WM-F4` | high | fixed, tick 37 | The devlog says both accuracy figures are in meta.json so neither can be quoted alone. meta.json contains neither the 72.00 abstain figure nor the threshold |
+| `WM-F5` | medium | fixed, tick 33 | meta.json ships one tolerance over four parity numbers; three were applied, and attentionRowSumDeviation cannot fail because it measures a softmax summing to 1 |
+| `WM-F6` | medium | fixed, tick 170 | 97.28 percent tag accuracy is reported with no baseline, and always predicting O scores 74.98 percent on the same tags |
+| `WM-F7` | medium | fixed, tick 34 | The page tells the visitor the held out set is the adversarial one, and the pipeline records nothing about which file was evaluated |
+| `WM-F8` | medium | fixed, tick 171 | meta.json's source string is a hardcoded literal repeated in four places, and its config reports dropout 0.1 for a graph exported with dropout zero |
+| `WM-F9` | medium | fixed, tick 172 | Each of the 24 thumbnails is normalised to its own peak, so the small multiples the page exists for are not comparable. Measured spread 0.267 to 0.999 |
+| `WM-F10` | medium | fixed, tick 34 | quantize.py's docstring states 10,578 as a property of the tool, and rowsRead and rowsEvaluated are both called the held out set |
+| `WM-F11` | medium | fixed, tick 34 | tokenizer.ts names check-tokenizer.py, which does not exist, and the gate compares against an unversioned fixture rather than running both |
+| `WM-F12` | medium | fixed, tick 37 | Devlog proof blocks are typed reconstructions: one drops the n= that states the sample size, one is off by 1,077 bytes, and the 800 row cross check has no script |
+| `WM-F13` | low | open | ship_int8 compares a difference of two already rounded percentages against the budget |
+| `WM-F14` | low | fixed, tick 35 | The page's live latency is one unwarmed sample printed to a tenth of a millisecond, and N tokens counts the cls vector |
+| `WM-F15` | low | open | Two pointers to things that do not exist: npm run capture, and a README this repository does not have |
 
 ## `WH`, hostile stranger
-
-The hostile stranger: an empty box, a paste the size of a book, emoji, a phone, no mouse, and the network pulled out mid download.
 
 16 findings, 13 closed.
 
@@ -46,33 +78,7 @@ The hostile stranger: an empty box, a paste the size of a book, emoji, a phone, 
 | `WH-F15` | low | fixed, tick 38 | The word cache is an unbounded Map with no eviction: five 800 KB pastes took the heap from 17.2 to 62.9 MB and it did not come back |
 | `WH-F16` | low | open | Every visit logs a favicon 404 before the visitor has done anything |
 
-## `WM`, measurement
-
-The measurement auditor: is every number reproducible, is the sample size stated, is any comparison unfair.
-
-15 findings, 13 closed.
-
-| id | severity | status | finding |
-|---|---|---|---|
-| `WM-F1` | high | fixed, tick 33 | The attention witness runs on four English sentences, 6 to 14 tokens, and three places say it runs on more. meta.json's sentences: 20 is the sample for gates 1 to 3 only |
-| `WM-F2` | high | fixed, tick 34 | Not one published number can be reproduced by someone who has only the clone: the checkpoint and test set are named nowhere and hashed nowhere |
-| `WM-F3` | high | fixed, tick 35 | Five latency numbers, none reproduces, and meta.json's was measured on native onnxruntime while the page runs wasm at a few times that |
-| `WM-F4` | high | fixed, tick 37 | The devlog says both accuracy figures are in meta.json so neither can be quoted alone. meta.json contains neither the 72.00 abstain figure nor the threshold |
-| `WM-F5` | medium | fixed, tick 33 | meta.json ships one tolerance over four parity numbers; three were applied, and attentionRowSumDeviation cannot fail because it measures a softmax summing to 1 |
-| `WM-F6` | medium | fixed, tick 170 | 97.28 percent tag accuracy is reported with no baseline, and always predicting O scores 74.98 percent on the same tags |
-| `WM-F7` | medium | fixed, tick 34 | The page tells the visitor the held out set is the adversarial one, and the pipeline records nothing about which file was evaluated |
-| `WM-F8` | medium | fixed, tick 171 | meta.json's source string is a hardcoded literal repeated in four places, and its config reports dropout 0.1 for a graph exported with dropout zero |
-| `WM-F9` | medium | fixed, tick 172 | Each of the 24 thumbnails is normalised to its own peak, so the small multiples the page exists for are not comparable. Measured spread 0.267 to 0.999 |
-| `WM-F10` | medium | fixed, tick 34 | quantize.py's docstring states 10,578 as a property of the tool, and rowsRead and rowsEvaluated are both called the held out set |
-| `WM-F11` | medium | fixed, tick 34 | tokenizer.ts names check-tokenizer.py, which does not exist, and the gate compares against an unversioned fixture rather than running both |
-| `WM-F12` | medium | fixed, tick 37 | Devlog proof blocks are typed reconstructions: one drops the n= that states the sample size, one is off by 1,077 bytes, and the 800 row cross check has no script |
-| `WM-F13` | low | open | ship_int8 compares a difference of two already rounded percentages against the budget |
-| `WM-F14` | low | fixed, tick 35 | The page's live latency is one unwarmed sample printed to a tenth of a millisecond, and N tokens counts the cls vector |
-| `WM-F15` | low | open | Two pointers to things that do not exist: npm run capture, and a README this repository does not have |
-
 ## `WP`, performance access
-
-Performance and access: bytes on first paint, main thread cost, contrast, focus, screen readers.
 
 15 findings, 13 closed.
 
@@ -94,33 +100,7 @@ Performance and access: bytes on first paint, main thread cost, contrast, focus,
 | `WP-F14` | low | open | list-style: none strips the list semantics of the race and the axis in Safari |
 | `WP-F15` | low | open | Nothing says how long any of the 19.8 MB may be cached, and the model files are not content hashed |
 
-## `WDR`, deep reviewer
-
-The deep reviewer: correctness, read as code rather than as comments.
-
-15 findings, 10 closed.
-
-| id | severity | status | finding |
-|---|---|---|---|
-| `WDR-F1` | high | fixed, tick 29 | tools/export_onnx.py does not parse, so the export in this repository cannot be run at all. A heredoc reintroduced an unterminated string at tick 20 and the output was filtered |
-| `WDR-F2` | high | fixed, tick 30 | The attention tensor, the only reason the export file exists, is the one output no gate compares. Reversing the layers or rolling the head axis passes every gate |
-| `WDR-F3` | high | fixed, tick 31 | The tokenizer port disagrees with bslm/tokenizer.py on five whitespace code points including the byte order mark, while the gate prints identical because none of its 230 sentences contains one |
-| `WDR-F4` | medium | fixed, tick 157 | concentration() computes a different quantity from the one its docstring describes |
-| `WDR-F5` | medium | fixed, tick 158 | The page says the intent is read from the first position; it is read from the first position plus the mean of every position |
-| `WDR-F6` | medium | fixed, tick 159 | 5.28 MB over the wire describes one of the seven files the page downloads |
-| `WDR-F7` | medium | fixed, tick 160 | A word past the token cap is dropped from the tag row and from the evaluation, silently and in the evaluation favour |
-| `WDR-F8` | medium | not reproduced, tick 161 | One long word freezes the page for seconds and every millisecond of it is thrown away |
-| `WDR-F9` | medium | fixed, tick 162 | dump_python_tokenizer.py still states the exact falsehood the port was fixed for |
-| `WDR-F10` | medium | fixed, tick 163 | The accuracy budget is spent on intent accuracy, and the attention the page draws is never measured at all |
-| `WDR-F11` | low | open | The gate never exercises padding, a batch above one, a single token, or a sentence at the cap |
-| `WDR-F12` | low | open | positions comes from the tokenizer, not from the tensor, and the two are never checked against each other |
-| `WDR-F13` | low | open | focusToken survives into a shorter sentence and blanks the field |
-| `WDR-F14` | low | open | concentration returns 1 for a single token, so every head reads 100 percent |
-| `WDR-F15` | low | open | User text reaches innerHTML, safe only because of an invariant nothing states |
-
 ## `WE`, hiring engineer
-
-The hiring engineer, three minutes: does this person ship and measure, and would you open a second repository.
 
 13 findings, 12 closed.
 
@@ -142,8 +122,6 @@ The hiring engineer, three minutes: does this person ship and measure, and would
 
 ## `WS`, supply chain
 
-The supply chain: what this project installs, what it ships inside the bundle, and whether either is what the README says.
-
 12 findings, 2 closed.
 
 | id | severity | status | finding |
@@ -162,8 +140,6 @@ The supply chain: what this project installs, what it ships inside the bundle, a
 | `WS-F12` | low | open | onnxruntime-web installs 139 MB to ship 14 MB, and the honest limits tell the visitor about the download and not the reader about the clone |
 
 ## `WD`, design eye
-
-The design eye: type, spacing, rhythm, colour, motion, and whether it reads as designed or as a template.
 
 18 findings, 8 closed.
 
@@ -190,8 +166,6 @@ The design eye: type, spacing, rhythm, colour, motion, and whether it reads as d
 
 ## `WR`, recruiter
 
-The recruiter, ten seconds, not technical: does anything here stop the scroll.
-
 12 findings, 7 closed.
 
 | id | severity | status | finding |
@@ -210,8 +184,6 @@ The recruiter, ten seconds, not technical: does anything here stop the scroll.
 | `WR-F11` | low | fixed, tick 57 | The picture weighs 3.85 MB, and a better encoder is not the fix |
 
 ## `WM2`, maintainer
-
-The maintainer six months from now: what rots first, and what the repository says about itself that has stopped being true.
 
 16 findings, 7 closed.
 
@@ -236,8 +208,6 @@ The maintainer six months from now: what rots first, and what the repository say
 
 ## `WD2`, deep reviewer, second pass
 
-The deep reviewer again, against the code the first pass produced.
-
 13 findings, 12 closed.
 
 | id | severity | status | finding |
@@ -258,8 +228,6 @@ The deep reviewer again, against the code the first pass produced.
 
 ## `WR2`, recruiter, second pass
 
-The recruiter again, on the same ten seconds, after the first pass had been answered.
-
 4 findings, 3 closed.
 
 | id | severity | status | finding |
@@ -271,8 +239,6 @@ The recruiter again, on the same ten seconds, after the first pass had been answ
 
 ## `WDR3`, deep reviewer, third pass
 
-A third reading of the code, once the page had stopped changing under it.
-
 3 findings, 0 closed.
 
 | id | severity | status | finding |
@@ -283,8 +249,6 @@ A third reading of the code, once the page had stopped changing under it.
 
 ## `WDE2`, design eye, second pass
 
-The design eye again, after the shared grid scale landed.
-
 2 findings, 0 closed.
 
 | id | severity | status | finding |
@@ -293,8 +257,6 @@ The design eye again, after the shared grid scale landed.
 | `WDE2-F2` | low | open | There is a hole under the grid at desktop width |
 
 ## `WH2`, hostile stranger, second pass
-
-The hostile stranger again, this time with the network failing halfway through the model.
 
 4 findings, 1 closed.
 
@@ -306,8 +268,6 @@ The hostile stranger again, this time with the network failing halfway through t
 | `WH2-F4` | low | open | "Reloading is worth a try" and nothing to click |
 
 ## `WP2`, performance access, second pass
-
-Performance and access again, measured on the live host rather than on localhost, which is the difference that mattered.
 
 5 findings, 2 closed.
 
@@ -321,8 +281,6 @@ Performance and access again, measured on the live host rather than on localhost
 
 ## `WMA2`, maintainer, second pass
 
-The maintainer again, over the tooling that had grown around the page.
-
 3 findings, 0 closed.
 
 | id | severity | status | finding |
@@ -332,8 +290,6 @@ The maintainer again, over the tooling that had grown around the page.
 | `WMA2-F3` | low | open | Every browser gate pays for its own browser |
 
 ## `WME2`, measurement, second pass
-
-The measurement auditor again, on the numbers added since the first pass.
 
 10 findings, 2 closed.
 
@@ -350,13 +306,13 @@ The measurement auditor again, on the numbers added since the first pass.
 | `WME2-F9` | low | open | The download prose has drifted, and nine correct README numbers are held by nothing |
 | `WME2-F10` | low | open | Numbers and claims in gate comments and the workflow that measurement contradicts |
 
-## `self`, this project against itself (not an audit pass)
+## `self`, swept from elsewhere (not an audit pass)
 
-Not a perspective and not an agent. Findings this project raised against its
-own code while sweeping a class found somewhere else in the workspace, kept
-here because commit messages cite them like any other.
+Not a perspective and not an agent. Findings raised against this project while
+a class found somewhere else in the workspace was being swept across all eight,
+kept here because commit messages cite them like any other.
 
-18 findings, 10 closed.
+19 findings, 10 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
@@ -367,6 +323,7 @@ here because commit messages cite them like any other.
 | `WCON-F1` | medium | fixed, tick 176 | Thirty six controls are bounded by a line nobody can see: the text box at 1.36:1, six buttons at 1.36, 23 table head buttons at 1.36 and six axis tokens at 1.07 |
 | `WDEP-F1` | medium | fixed, tick 155 | wait-on was 40 of the 78 packages this project installed, for one await in the capture tool |
 | `WEVAL-F1` | medium | open | The quantisation table compares fp32 and int8 on differences of 0 to 16 rows out of 10,578, with no paired test, no discordant counts, and one of the four metrics pointing the other way |
+| `WFOLD-F1` | medium | open | The picture the page is built on is below the fold at both widths |
 | `WGIF-F1` | medium | open | The picture at the top runs eight seconds, so a reader sees it once |
 | `WHEAD-F1` | medium | open | A forwarded link unfurls into a bare URL: no og tags anywhere in the head |
 | `WNOT-F1` | medium | open | The bundle ships onnxruntime-web and its licence travels with nothing |
