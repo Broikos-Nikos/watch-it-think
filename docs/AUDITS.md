@@ -5,7 +5,7 @@ Commit messages cite identifiers like `WDR-F1`. This is what they refer to.
 Seventeen audit passes and the workspace sweeps. Each pass was run against
 one assigned perspective and nothing else.
 
-**198 findings, 129 closed, 69 open**, across the 17 perspectives that produced them.
+**198 findings, 130 closed, 68 open**, across the 17 perspectives that produced them.
 
 Held to the workspace queue this project is built from by
 `tools/check-audit-status.mjs`, which fails if a row here says anything the
@@ -141,7 +141,7 @@ queue does not.
 
 ## `WD`, design eye
 
-18 findings, 12 closed.
+18 findings, 13 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
@@ -154,7 +154,7 @@ queue does not.
 | `WD-F7` | medium | fixed, tick 197 | The axis is not an axis |
 | `WD-F8` | medium | fixed, tick 55 | Twenty four thumbnails with no label, no order and no score, and the source already says they should have one |
 | `WD-F9` | medium | fixed, tick 204 | Thirteen rendered type sizes, six of them inside a 2.08 pixel band |
-| `WD-F10` | medium | open | Ten gap values, six radii, seven surface darks, and fifteen colour literals outside the token block |
+| `WD-F10` | medium | fixed, tick 205 | Ten gap values, six radii, seven surface darks, and fifteen colour literals outside the token block |
 | `WD-F11` | medium | open | The rhythm gives the answer the same air as a row of chips |
 | `WD-F12` | medium | open | The state between loading and answered is a hole, and the answer lands by shoving the input box 74 pixels down the page |
 | `WD-F13` | medium | fixed, tick 53 | The big canvas resizes as you type, so the only thing that moves is the layout |
