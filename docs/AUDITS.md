@@ -5,7 +5,7 @@ Commit messages cite identifiers like `WDR-F1`. This is what they refer to.
 Seventeen audit passes and the workspace sweeps. Each pass was run against
 one assigned perspective and nothing else.
 
-**196 findings, 119 closed, 77 open**.
+**197 findings, 119 closed, 78 open**, across the 17 perspectives that produced them.
 
 Held to the workspace queue this project is built from by
 `tools/check-audit-status.mjs`, which fails if a row here says anything the
@@ -312,7 +312,7 @@ Not a perspective and not an agent. Findings raised against this project while
 a class found somewhere else in the workspace was being swept across all eight,
 kept here because commit messages cite them like any other.
 
-20 findings, 13 closed.
+21 findings, 13 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
@@ -336,3 +336,4 @@ kept here because commit messages cite them like any other.
 | `WGRP-F1` | low | fixed, tick 182 | check-groups read a call inside a comment as a call |
 | `WNET-F1` | low | fixed, tick 189 | The README promises the model runs in your browser and nothing holds it: no gate watches the wire |
 | `WRAMP-F1` | low | fixed, tick 184 | Nothing held the 256 step ramp table against the curve it was built from |
+| `WTAP-F1` | low | open | Controls shorter than 24 pixels at a phone width |
