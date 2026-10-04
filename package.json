@@ -18,6 +18,7 @@
     "check:attention": "node tools/check-attention.mjs",
     "check:audits": "tsx tools/check-audits.ts",
     "check:axis": "tsx tools/check-axis.ts",
+    "check:axes": "node tools/check-axes.mjs",
     "check:authorship": "node tools/check-authorship.mjs",
     "check:boot": "node tools/check-boot.mjs",
     "check:capture": "node tools/check-capture.mjs",

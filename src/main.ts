@@ -38,6 +38,8 @@ const el = {
   fieldCaption: document.querySelector<HTMLElement>('[data-field-caption]')!,
   attentionNote: document.querySelector<HTMLElement>('[data-attention-note]')!,
   axis: document.querySelector<HTMLElement>('[data-axis]')!,
+  fieldRows: document.querySelector<HTMLElement>('[data-field-rows]')!,
+  field_: document.querySelector<HTMLElement>('.field')!,
   footer: document.querySelector<HTMLElement>('[data-footer]')!,
   announce: document.querySelector<HTMLElement>('[data-announce]')!,
 }
@@ -733,6 +735,56 @@ function drawAttention(p: Prediction) {
    * getting a vote.
    */
   el.axis.dir = getComputedStyle(el.input).direction
+
+  /*
+   * One track per token, for both axes and the pixels between them.
+   *
+   * WD-F7. The chips were a wrapped flex row whose widths came from their own
+   * words, 25 to 94 pixels against columns a uniform 42.8, so nothing but
+   * counting connected a chip to a column. `--n` puts the two axes and the
+   * canvas on the same division: a label is one column wide because the grid
+   * says so, not because a number was computed twice and happened to agree.
+   *
+   * The left gutter is a constant, and that is a decision rather than laziness.
+   * Sizing it to the longest label is the obvious thing and it was tried first:
+   * `check:layout` caught it immediately, because the longest label changes on
+   * every keystroke and the canvas is sized from what is left, so the field
+   * took **6 different widths while a sentence was being typed**. A label
+   * clipped at four characters is a small cost; a picture that changes size
+   * under the reader is not.
+   */
+  el.field_.style.setProperty('--n', String(cube.positions))
+  const rowLabels = Array.from({ length: cube.positions }, (_, pos) => cut(fullLabelAt(p, pos)))
+
+  /*
+   * The same tokens down the left edge, as labels rather than as controls.
+   *
+   * `aria-hidden` on the strip: a screen reader is given this sentence's tokens
+   * once, as the buttons of the column axis, and hearing all 47 again to be
+   * told the matrix is square is worse than not hearing them. The canvas
+   * carries its own description for the same reason.
+   */
+  el.fieldRows.replaceChildren(
+    ...rowLabels.map((text) => {
+      const d = document.createElement('div')
+      d.className = 'field-row'
+      d.textContent = text
+      return d
+    }),
+  )
+
+  /*
+   * And the page decides when a label stops being one.
+   *
+   * Measured at tick 197: a column is 99.9 pixels at 6 tokens, 42.8 at 14 and
+   * 8.1 at 64. Under about 24 pixels a monospace label holds two characters,
+   * which names nothing, and the row axis has the same problem in the other
+   * direction. Rather than let the browser squeeze them into a texture, both
+   * axes go away and the caption keeps saying which way round the matrix is,
+   * which is the state every sentence was in before this tick.
+   */
+  const FITS = 24
+  el.field_.dataset.axisFits = el.field_.clientWidth / Math.max(1, cube.positions) >= FITS ? 'yes' : 'no'
 
   el.axis.replaceChildren(
     ...Array.from({ length: cube.positions }, (_, pos) => {

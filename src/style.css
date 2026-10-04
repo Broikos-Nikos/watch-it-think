@@ -535,10 +535,36 @@ footer {
 /* Superseded by the shared focus rule further down, which uses the house
    orange so focus and selection cannot be confused. */
 
+/*
+ * The field, its row axis and its column axis, on one grid.
+ *
+ * WD-F7. The axis was a wrapped flex row outside this figure: 297 pixels left
+ * of the canvas, 79 below it, chips between 25 and 94 pixels wide against
+ * columns a uniform 42.8. Nothing connected a chip to a column except counting.
+ *
+ * The canvas sits in the second column of this grid and both axes are laid on
+ * the same tracks, so a label is exactly as wide as the column it names and
+ * exactly as tall as the row it names, by construction rather than by
+ * arithmetic that could drift.
+ */
 .field {
   margin: 0;
   flex: 1 1 320px;
   min-width: 0;
+  display: grid;
+  /* minmax(0, 1fr) for the same reason as the axis below: a fr track keeps its
+     content as a minimum, and the canvas carries one through aspect-ratio. */
+  grid-template-columns: var(--row-axis, 3.5rem) minmax(0, 1fr);
+  /* The caption spans both columns because it describes the figure, not the
+     canvas: indented under the canvas it had 296 pixels on a 390 pixel phone,
+     and a 50 character German compound tokenises into a name longer than that.
+     check:layout caught it as 407 inside 390 with no element over the edge,
+     which is what an overflowing text box looks like from outside. */
+  grid-template-areas:
+    'rows    canvas'
+    '.       cols'
+    'caption caption';
+  column-gap: 0.35rem;
 }
 
 /*
@@ -554,6 +580,7 @@ footer {
  * always, whatever resolution is being drawn into it.
  */
 .field canvas {
+  grid-area: canvas;
   display: block;
   width: 100%;
   aspect-ratio: 1;
@@ -565,7 +592,11 @@ footer {
 }
 
 .field figcaption {
+  grid-area: caption;
   margin-top: 0.5rem;
+  /* It names tokens, and a token is not a word: it can be longer than any
+     column this page has. */
+  overflow-wrap: anywhere;
   max-width: 54ch;
   font-size: 0.78rem;
   color: var(--faint);
@@ -573,29 +604,118 @@ footer {
   font-variant-numeric: tabular-nums;
 }
 
+/*
+ * One chip per column, on the column's own track.
+ *
+ * `--n` is the token count, written by `drawAxis`, so the chips and the pixels
+ * underneath them are divided the same way. The chips keep their class and
+ * stay buttons: hover, pin, and the arrow key walk all still work, and the
+ * four gates that count `.axis-token` still count the same elements.
+ */
 .axis {
+  grid-area: cols;
   list-style: none;
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  /* `minmax(0, 1fr)`, not `1fr`: a fr track's minimum is its content's
+     min-content width, and the chips are `nowrap`, so with plain `1fr` one
+     German compound made the page 447 pixels wide inside a 360 pixel phone.
+     check:layout caught it. */
+  grid-template-columns: repeat(var(--n, 1), minmax(0, 1fr));
   min-width: 0;
-  gap: 3px;
-  margin: 0;
+  margin: 0.3rem 0 0;
   padding: 0;
   font-family: var(--mono);
   font-size: 0.72rem;
 }
 
 /*
+ * The row axis, which is the same tokens down the left edge.
+ *
+ * `aria-hidden`, and the column axis is not: a screen reader is given this
+ * sentence's tokens once, as the buttons it can press, and hearing all 47 of
+ * them twice to be told the matrix is square is worse than not hearing them.
+ * The canvas carries its own description for the same reason.
+ */
+.field-rows {
+  grid-area: rows;
+  display: grid;
+  grid-template-rows: repeat(var(--n, 1), minmax(0, 1fr));
+  min-width: 0;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--faint);
+}
+
+.field-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 0.15rem;
+  overflow: hidden;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+/*
+ * Below this the labels are not labels, and the chips are still controls.
+ *
+ * A row 10 pixels tall cannot hold 0.72rem of type, and a column 24 pixels wide
+ * holds about three characters. Measured at tick 197: at 6 tokens a column is
+ * 99.9 pixels and at 64 it is 8.1, so the page has to decide rather than let
+ * the browser squeeze.
+ *
+ * The row axis goes, because it only ever labelled. The column axis does not,
+ * because it is also the only way to pin a token with a pointer: hiding it at
+ * 47 tokens broke `check:pin`, and it had quietly made `check:axis` measure a
+ * widest chip of 0 pixels and pass. So under the threshold the strip stops
+ * claiming alignment and goes back to what it was, a wrapped row of controls
+ * across the whole figure, and the caption keeps saying which way round the
+ * matrix is.
+ */
+.field[data-axis-fits='no'] .field-rows {
+  display: none;
+}
+
+.field[data-axis-fits='no'] .axis {
+  /* Row two of the figure's grid, both columns: a control strip is not a scale,
+     so it has no reason to start where the canvas starts. */
+  grid-area: 2 / 1 / 3 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.field[data-axis-fits='no'] .axis-token {
+  /* Its own word's width again. `cut` already holds these to the vocabulary's
+     longest token, which `check:axis` measures against half the row. */
+  padding: 0.15em 0.4em;
+}
+
+/*
  * A real button now, not a list item. Hover was the only way to use these,
  * which meant they did nothing on a phone and nothing from a keyboard.
  */
+/* The list item is the track; the button fills it. Without this the button
+   sizes to its own word again and the alignment is only true for the first
+   chip. */
+.axis li {
+  display: block;
+  min-width: 0;
+}
+
 .axis-token {
   appearance: none;
+  width: 100%;
   border: 1px solid var(--control-edge);
-  font: inherit;
-  overflow-wrap: anywhere;
-  padding: 0.15em 0.4em;
   border-radius: 4px;
+  font: inherit;
+  /* One column wide, whatever the word is. `overflow-wrap: anywhere` was what
+     let `Thessaloniki` be 94 pixels while its column was 42.8. */
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: clip;
+  padding: 0.15em 0.2em;
   background: var(--lift);
   color: var(--faint);
   cursor: pointer;

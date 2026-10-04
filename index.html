@@ -181,13 +181,25 @@
             -->
             <div class="heads" data-heads role="tablist" aria-label="Layer and head"></div>
 
+            <!--
+              WD-F7. The axis used to sit outside this figure, 297 pixels left
+              of the canvas and 79 below it, as a wrapped row of chips between
+              25 and 94 pixels wide against columns a uniform 42.8. A heat map
+              whose rows and columns are both tokens shipped with no row labels
+              and no column labels, and the only way to know which column was
+              `weather` was to count.
+
+              It is an axis now: one chip per column, exactly one column wide,
+              directly under the field and the same width as it, with the same
+              tokens repeated down the left edge as the row axis.
+            -->
             <figure class="field">
+              <div class="field-rows" data-field-rows aria-hidden="true"></div>
               <canvas data-field width="520" height="520" role="img" data-field-alt></canvas>
+              <ol class="axis" data-axis dir="auto" aria-label="Tokens, in order"></ol>
               <figcaption data-field-caption></figcaption>
             </figure>
           </div>
-
-          <ol class="axis" data-axis dir="auto" aria-label="Tokens, in order"></ol>
         </section>
       </section>
     </main>
