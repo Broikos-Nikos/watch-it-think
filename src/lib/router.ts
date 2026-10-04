@@ -32,6 +32,7 @@
 // meta.json carries these numbers under quantisation.int8.byLength.
 import * as ort from 'onnxruntime-web/wasm'
 import { Tokenizer, type TokenizerData } from './tokenizer'
+import { checkLabels } from './labels'
 
 /*
  * The runtime is named here file by file, and the two files come through the
@@ -179,6 +180,19 @@ export class Router {
   static async loadMeta(base = './model/'): Promise<Meta> {
     const res = await fetch(new URL(base + 'meta.json', document.baseURI).href)
     if (!res.ok) throw new Error(`meta.json did not arrive (${res.status})`)
+    /*
+     * Not `checkLabels` here, deliberately, and it was here for one measurement.
+     *
+     * This path exists to describe the page before the graph arrives, and
+     * everything it prints is a count: parameters, layers, heads, and how many
+     * intents there are. Refusing the labels at this point threw the
+     * description away as well, and the page came up with an empty standfirst
+     * and a disabled box, which is WH-F5 exactly, closed at tick 103. Measured
+     * at tick 202 against a server handing out a hostile meta.json: standfirst
+     * "", and the status carrying the refusal.
+     *
+     * `load` below refuses them, which is the path that prints them.
+     */
     return (await res.json()) as Meta
   }
 
@@ -191,7 +205,7 @@ export class Router {
     if (!metaRes.ok || !tokRes.ok) {
       throw new Error(`the model files did not arrive (${metaRes.status}, ${tokRes.status})`)
     }
-    const meta = (await metaRes.json()) as Meta
+    const meta = checkLabels((await metaRes.json()) as Meta)
     const tokenizer = new Tokenizer((await tokRes.json()) as TokenizerData)
 
     /*

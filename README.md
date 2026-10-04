@@ -117,7 +117,7 @@ a Python tokenizer; a JavaScript one that is merely close feeds it text it has
 never seen. 242 sentences, identical ids, including the whitespace code points
 where Python and JavaScript quietly disagree.
 
-46 gates run before anything reaches the page: twenty three in
+47 gates run before anything reaches the page: twenty four in
 `npm run build` before the bundle is written, and twenty three more in
 `npm run verify`, twenty two of them against a real browser. Eight of them, and what each one
 stops:
@@ -201,7 +201,7 @@ do not need any of it to run the page.
 Before committing:
 
 ```bash
-npm run build     # typecheck, twenty three file gates, then the bundle. About 16 seconds.
+npm run build     # typecheck, twenty four file gates, then the bundle. About 16 seconds.
 ```
 
 Before pushing:
