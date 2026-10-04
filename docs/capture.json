@@ -12,5 +12,106 @@
     "bodyFont": "Manrope, system-ui, -apple-system, \"Segoe UI\", sans-serif",
     "headline": "I trained this model. Watch it think.",
     "standfirst": "5,086,061 parameters, trained from nothing, 6 layers and 4 attention heads. It decides which of 44 things you are asking for, on your machine, and nothing you type leaves this page."
+  },
+  "drawing": {
+    "thumbs": [
+      {
+        "tag": "L1H1",
+        "peak": 152.9
+      },
+      {
+        "tag": "L1H2",
+        "peak": 161.5
+      },
+      {
+        "tag": "L1H3",
+        "peak": 160
+      },
+      {
+        "tag": "L1H4",
+        "peak": 162.2
+      },
+      {
+        "tag": "L2H1",
+        "peak": 104.1
+      },
+      {
+        "tag": "L2H2",
+        "peak": 113.9
+      },
+      {
+        "tag": "L2H3",
+        "peak": 109.8
+      },
+      {
+        "tag": "L2H4",
+        "peak": 99.2
+      },
+      {
+        "tag": "L3H1",
+        "peak": 103.3
+      },
+      {
+        "tag": "L3H2",
+        "peak": 109.8
+      },
+      {
+        "tag": "L3H3",
+        "peak": 104.9
+      },
+      {
+        "tag": "L3H4",
+        "peak": 102.5
+      },
+      {
+        "tag": "L4H1",
+        "peak": 138.5
+      },
+      {
+        "tag": "L4H2",
+        "peak": 129.5
+      },
+      {
+        "tag": "L4H3",
+        "peak": 89.4
+      },
+      {
+        "tag": "L4H4",
+        "peak": 152.2
+      },
+      {
+        "tag": "L5H1",
+        "peak": 152.9
+      },
+      {
+        "tag": "L5H2",
+        "peak": 139.3
+      },
+      {
+        "tag": "L5H3",
+        "peak": 88.4
+      },
+      {
+        "tag": "L5H4",
+        "peak": 91
+      },
+      {
+        "tag": "L6H1",
+        "peak": 152.9
+      },
+      {
+        "tag": "L6H2",
+        "peak": 165.7
+      },
+      {
+        "tag": "L6H3",
+        "peak": 88.4
+      },
+      {
+        "tag": "L6H4",
+        "peak": 160.7
+      }
+    ],
+    "spread": 77.3
   }
 }

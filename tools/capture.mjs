@@ -140,8 +140,17 @@ const videoStart = Date.now()
  * already doing their half.
  */
 let looked = null
+let drawing = null
 let seconds = 0
 let failure = null
+/*
+ * Hoisted, because the trim below reads it and the trim is outside the try.
+ * It was `const startedAt` inside the block from tick 199 until tick 200, and
+ * `npm run capture` died on `startedAt is not defined` every time it got as far
+ * as encoding. Nothing caught it: the gate written in the same tick as the
+ * wrapper drives the failure path, which exits before this line is reached.
+ */
+let startedAt = 0
 
 try {
 const page = await context.newPage()
@@ -178,7 +187,7 @@ await page.waitForTimeout(400)
 await page.fill('textarea', '')
 await page.waitForTimeout(500)
 
-const startedAt = Date.now()
+startedAt = Date.now()
 
 // Typed, not pasted. The point is watching the answer move while the sentence
 // is still being written.
@@ -238,6 +247,40 @@ looked = await page.evaluate(() => {
   return out
 })
 
+/*
+ * And what the drawing looked like, which is the half the paint cannot say.
+ *
+ * WME2-F5. `check:capture` compared seven custom properties, a font, the
+ * headline and the standfirst, and passed over a recording made before the
+ * thumbnails stopped being scaled panel by panel: the filmed grid showed 22 of
+ * 24 heads at one palette colour while the page had gone to 87.6 through
+ * 165.7. Every property it watched had stayed put, because a change to the
+ * drawing is not a change to the paint.
+ *
+ * So the recording writes down the peak luma of each of the twenty four
+ * thumbnails, read straight off their canvases with `getImageData`, and the
+ * gate reads the same twenty four off the page that exists. Measured at tick
+ * 200: identical across two runs to 0.0, and unchanged by clicking a head, so
+ * the comparison can be tight.
+ */
+drawing = await page.evaluate(() => {
+  const peak = (c) => {
+    const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data
+    let top = 0
+    for (let i = 0; i < d.length; i += 4) {
+      const v = 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]
+      if (v > top) top = v
+    }
+    return +top.toFixed(1)
+  }
+  const thumbs = [...document.querySelectorAll('.headcell')].map((cell) => ({
+    tag: cell.querySelector('.headcell-tag')?.textContent?.trim() ?? '',
+    peak: peak(cell.querySelector('canvas')),
+  }))
+  const peaks = thumbs.map((t) => t.peak)
+  return { thumbs, spread: +(Math.max(...peaks) - Math.min(...peaks)).toFixed(1) }
+})
+
 seconds = (Date.now() - startedAt) / 1000
 } catch (err) {
   failure = err
@@ -289,6 +332,29 @@ const filters = `${CROP},fps=${FPS},scale=${WIDTH}:-1:flags=lanczos`
 const LEAD_IN = 0.4
 const offset = Math.max(0, (startedAt - videoStart) / 1000 - LEAD_IN)
 const trim = ['-ss', String(offset)]
+/*
+ * The second seam, at the encoder.
+ *
+ * `start` proves what a dying run leaves behind. It proves nothing about the
+ * run that works, and tick 199 wrapped this recorder in a try that scoped a
+ * `const` the trim arithmetic below reads, so `npm run capture` died on a
+ * ReferenceError every time it got this far, with the gate written in the same
+ * tick green. This one throws after everything the recorder and the arithmetic
+ * do and before the first frame is encoded, so the whole success path runs and
+ * nothing in docs/ is rewritten.
+ */
+if (FAIL_AT === 'encode') {
+  /* Reported here rather than thrown: by this line the recorder's try is
+     closed, in two of these seven, and an uncaught throw would print a node
+     stack instead of saying where the recording is. */
+  const kept = existsSync(WORK) ? readdirSync(WORK).filter((f) => f.endsWith('.webm')) : []
+  const bytes = kept.reduce((n, f) => n + statSync(resolve(WORK, f)).size, 0)
+  console.error('FAIL  CAPTURE_FAIL_AT=encode, the seam that proves the success path runs')
+  console.error(`      the recording is in ${WORK}, ${bytes} bytes, finished and kept, for looking at`)
+  console.error('      .capture is in .gitignore, so it cannot reach a commit. Delete it when you are done.')
+  process.exit(1)
+}
+
 
 ff([...trim, '-i', webm, '-vf', `${filters},palettegen=max_colors=64:stats_mode=diff`, palette])
 ff([
@@ -304,7 +370,7 @@ rmSync(WORK, { recursive: true, force: true })
 
 writeFileSync(
   resolve(root, 'docs/capture.json'),
-  JSON.stringify({ recorded: new Date().toISOString().slice(0, 10), sentence: SENTENCE, looked }, null, 2) + '\n',
+  JSON.stringify({ recorded: new Date().toISOString().slice(0, 10), sentence: SENTENCE, looked, drawing }, null, 2) + '\n',
 )
 
 const { size } = await import('node:fs').then((m) => m.promises.stat(OUT))

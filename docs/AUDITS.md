@@ -5,7 +5,7 @@ Commit messages cite identifiers like `WDR-F1`. This is what they refer to.
 Seventeen audit passes and the workspace sweeps. Each pass was run against
 one assigned perspective and nothing else.
 
-**198 findings, 124 closed, 74 open**, across the 17 perspectives that produced them.
+**198 findings, 125 closed, 73 open**, across the 17 perspectives that produced them.
 
 Held to the workspace queue this project is built from by
 `tools/check-audit-status.mjs`, which fails if a row here says anything the
@@ -291,7 +291,7 @@ queue does not.
 
 ## `WME2`, measurement, second pass
 
-10 findings, 2 closed.
+10 findings, 3 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
@@ -299,7 +299,7 @@ queue does not.
 | `WME2-F2` | high | not reproduced, tick 150 | Two gate counts in the README are wrong, and the gate for gate counts exempts them |
 | `WME2-F3` | medium | open | check:claims cannot fail on three of its twenty four claims |
 | `WME2-F4` | medium | open | check:upstream's "every percentage" misses the one that is spelled out |
-| `WME2-F5` | medium | open | The recording predates the shared thumbnail scale, and check:capture cannot see a drawing change |
+| `WME2-F5` | medium | fixed, tick 200 | The recording predates the shared thumbnail scale, and check:capture cannot see a drawing change |
 | `WME2-F6` | medium | open | At the 64 token cap on a 100 percent scaled screen, the thumbnails on screen are not the ones the gates measure |
 | `WME2-F7` | low | open | The witness control's failure value is two different numbers, and no command produces either |
 | `WME2-F8` | low | open | meta.json was edited by hand, and the tools would no longer write it |
