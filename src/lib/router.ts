@@ -20,7 +20,14 @@
 // millisecond of CPU", which had never been measured and is wrong. Measured,
 // int8, native onnxruntime at one thread, 200 reps a length after warmup:
 //
-//   T=6   0.57 ms      T=14  0.94 ms      T=32  1.80 ms      T=64  3.66 ms
+//   T=6   0.58 ms      T=14  0.97 ms      T=32  1.92 ms      T=64  3.70 ms
+//
+// WM2-F8: this line read 0.57, 0.94, 1.80, 3.66, and the file it cites eight
+// lines down carries 0.576, 0.968, 1.919, 3.697. Measured at tick 209, all
+// four were wrong at the two decimals written here and one of them by 6.2
+// percent. `check:claims` holds this line to `meta.json` now, the way it has
+// always held the README, so a comment that cites a file cannot disagree
+// with it.
 //
 // Attention is quadratic in the token count, so there is no such thing as one
 // number here. wasm is several times slower again: the page's own live figure

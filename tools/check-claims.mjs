@@ -110,6 +110,45 @@ for (const [what, value] of claims) {
 }
 
 /*
+ * ---- and the comments that cite the same file ------------------------------
+ *
+ * WM2-F8. `src/lib/router.ts` carries the four latency figures in prose, eight
+ * lines above the sentence "meta.json carries these numbers under
+ * quantisation.int8.byLength". Measured at tick 209: it said 0.57, 0.94, 1.80,
+ * 3.66 against 0.576, 0.968, 1.919, 3.697, so all four were wrong at the two
+ * decimals it writes and one by 6.2 percent.
+ *
+ * It is the most carefully reasoned prose in the source and the place a
+ * maintainer goes to understand why wasm was chosen over a WebGPU bridge. A
+ * comment that cites a file and disagrees with it teaches a reader to stop
+ * trusting the comments, which is worse than the six percent.
+ *
+ * So a source file that cites `meta.json` is held to it the way the README is.
+ * The list is deliberately short: a file earns a place here by naming the file
+ * it is quoting, which is the thing that makes a stale figure a contradiction
+ * rather than a rounding.
+ */
+const CITING = [['src/lib/router.ts', 'quantisation.int8.byLength', claims.filter(([what]) => what.startsWith('latency at '))]]
+
+for (const [file, cites, owed] of CITING) {
+  const text = readFileSync(resolve(root, file), 'utf8')
+  if (!text.includes(cites)) {
+    failed++
+    console.error(`FAIL  ${file} no longer says it carries ${cites}`)
+    console.error('      This list is for files that cite the measurement. One that does not should not be here.')
+    continue
+  }
+  const missing = owed.filter(([, value]) => !text.includes(value))
+  if (missing.length > 0) {
+    failed++
+    console.error(`FAIL  ${file} cites ${cites} and contradicts it in ${missing.length} of ${owed.length} figures`)
+    console.error(`      it does not say ${missing.map(([, v]) => JSON.stringify(v)).join(', ')}`)
+  } else {
+    console.log(`  ok      ${file} cites ${cites} and all ${owed.length} of its figures match`)
+  }
+}
+
+/*
  * ---- and the other direction, which is the half that counts ---------------
  *
  * WD2-F8. The loop above used to carry the comment "Counted, not merely found:
