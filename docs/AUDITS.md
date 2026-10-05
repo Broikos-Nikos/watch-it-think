@@ -185,7 +185,7 @@ queue does not.
 
 ## `WM2`, maintainer
 
-16 findings, 8 closed.
+16 findings, 9 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
@@ -196,7 +196,7 @@ queue does not.
 | `WM2-F5` | high | fixed, tick 63 | The README describes an eight gate build. There are nineteen, and ten of them need a browser |
 | `WM2-F6` | medium | fixed, tick 63 | Eighty seven seconds and twenty npm spawns before every commit, and the sibling repository already shows the answer |
 | `WM2-F7` | medium | fixed, tick 203 | Two gates spend a preview server and a Chromium on assertions that are file reads |
-| `WM2-F8` | medium | open | Six stale latency numbers live in two source comments, and both point the reader at meta.json as the authority while contradicting it |
+| `WM2-F8` | medium | fixed, tick 209 | Six stale latency numbers live in two source comments, and both point the reader at meta.json as the authority while contradicting it |
 | `WM2-F9` | medium | fixed, tick 63 | The cleanup is taskkill, so on any machine that is not Windows nothing is cleaned up |
 | `WM2-F10` | medium | open | RELEASE=1 is documented only inside the gate that reads it, and the publish step it names does not exist |
 | `WM2-F11` | medium | open | Nine of the gates' DOM hooks are presentational class names, and eighteen design findings are about to rewrite that markup |
