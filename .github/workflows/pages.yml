@@ -1,6 +1,6 @@
 # Build, gate, and publish the page.
 #
-# 51 gates, and all of them run here.
+# 52 gates, and all of them run here.
 #
 # `npm run build` runs twenty six of them before vite writes anything: every number in
 # the README is checked against `meta.json`, the tokenizer is round tripped
@@ -8,8 +8,8 @@
 # asserted, every font's licence is read out of its own binary, and the input
 # bounds are proved in TypeScript.
 #
-# The rest run in their own job against the built output, twenty five in
-# `npm run verify`, of which twenty four need a real browser and share one server
+# The rest run in their own job against the built output, twenty six in
+# `npm run verify`, of which twenty five need a real browser and share one server
 # rather than starting one each. The last is `check:stop`, which starts a server
 # of its own and requires it to be gone again afterwards, because the cleanup
 # path this runner uses is not the one the machine it was written on uses.
