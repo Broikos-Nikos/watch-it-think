@@ -116,7 +116,7 @@ try {
   page.on('pageerror', (e) => errors.push(String(e).split('\n')[0]))
 
   await page.goto(server.url)
-  await page.waitForFunction(() => !!document.querySelector('.word'), null, { timeout: 180_000 })
+  await page.waitForFunction(() => !!document.querySelector('[data-word]'), null, { timeout: 180_000 })
 
   const trials = [
     ...cases.map((c) => ({ text: c.text, expected: c.words.length === 0 ? 0 : c.ids.length, from: 'Python' })),
@@ -167,7 +167,7 @@ try {
       line: document.querySelector('[data-status]')?.textContent?.trim() ?? '',
       /* `data-state`, not `hidden`: WD-F12 put this region in flow at all times. */
       hidden: document.querySelector('[data-result]')?.dataset.state === 'waiting',
-      chips: document.querySelectorAll('[data-axis] .axis-token').length,
+      chips: document.querySelectorAll('[data-axis] [data-token]').length,
     }))
     const positions = Number(/^(\d+) position/.exec(got.line)?.[1] ?? NaN)
 

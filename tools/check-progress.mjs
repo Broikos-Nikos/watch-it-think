@@ -117,7 +117,7 @@ try {
   let answered = false
   while (Date.now() < deadline) {
     await sample()
-    answered = await page.evaluate(() => !!document.querySelector('.word'))
+    answered = await page.evaluate(() => !!document.querySelector('[data-word]'))
     if (answered) break
     await page.waitForTimeout(120)
   }

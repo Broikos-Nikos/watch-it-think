@@ -68,7 +68,7 @@ const browser = await chromium.launch()
 try {
   const page = await browser.newPage()
   await page.goto(server.url, { waitUntil: 'domcontentloaded' })
-  await page.waitForFunction(() => document.querySelectorAll('.headcell').length > 0, null, { timeout: 180_000 })
+  await page.waitForFunction(() => document.querySelectorAll('[data-head-cell]').length > 0, null, { timeout: 180_000 })
 
   const read = async (text) => {
     await page.fill('textarea, input[type=text]', text)

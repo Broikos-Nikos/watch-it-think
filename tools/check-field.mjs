@@ -81,7 +81,7 @@ const LOOK = () => {
   const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data
   const seen = new Set()
   for (let i = 0; i < d.length; i += 4) seen.add((d[i] << 16) | (d[i + 1] << 8) | d[i + 2])
-  const tokens = document.querySelectorAll('.axis-token').length
+  const tokens = document.querySelectorAll('[data-token]').length
   return {
     tokens,
     backing: c.width,
@@ -95,7 +95,7 @@ try {
   const browser = await chromium.launch()
   const page = await browser.newPage({ viewport: { width: 1280, height: 1100 }, deviceScaleFactor: 1 })
   await page.goto(server.url)
-  await page.waitForFunction(() => !!document.querySelector('.word'), null, { timeout: 180_000 })
+  await page.waitForFunction(() => !!document.querySelector('[data-word]'), null, { timeout: 180_000 })
   await page.waitForTimeout(1200)
 
   /* 1. the element does not move while the sentence grows */

@@ -57,9 +57,9 @@ const LOOK = () => {
   return {
     hash,
     size: `${c.width}x${c.height}`,
-    chips: document.querySelectorAll('.axis-token').length,
-    pinned: document.querySelectorAll('.axis-token.is-pinned').length,
-    focused: document.querySelectorAll('.axis-token.is-focus').length,
+    chips: document.querySelectorAll('[data-token]').length,
+    pinned: document.querySelectorAll('[data-token][data-pinned]').length,
+    focused: document.querySelectorAll('[data-token][data-focus]').length,
   }
 }
 
@@ -70,29 +70,29 @@ try {
   for (const pinFirst of [false, true]) {
     const page = await browser.newPage({ viewport: { width: 1280, height: 1100 } })
     await page.goto(server.url)
-    await page.waitForFunction(() => !!document.querySelector('.word'), null, { timeout: 180_000 })
+    await page.waitForFunction(() => !!document.querySelector('[data-word]'), null, { timeout: 180_000 })
 
     if (pinFirst) {
       await page.fill('textarea', LONG)
-      await page.waitForFunction(() => document.querySelectorAll('.axis-token').length > 40, null, { timeout: 60_000 })
-      await page.locator('.axis-token').nth(40).click()
+      await page.waitForFunction(() => document.querySelectorAll('[data-token]').length > 40, null, { timeout: 60_000 })
+      await page.locator('[data-token]').nth(40).click()
       await page.waitForTimeout(250)
-      const pinned = await page.evaluate(() => document.querySelectorAll('.axis-token.is-pinned').length)
+      const pinned = await page.evaluate(() => document.querySelectorAll('[data-token][data-pinned]').length)
       if (pinned !== 1) fail(`the pin did not take: ${pinned} chips pinned on the long sentence`)
     }
 
     await page.fill('textarea', SHORT)
     await page.waitForFunction(
-      (n) => document.querySelectorAll('.axis-token').length === n,
+      (n) => document.querySelectorAll('[data-token]').length === n,
       5,
       { timeout: 60_000 },
     )
     await page.waitForTimeout(400)
 
     const seen = await page.evaluate(LOOK)
-    await page.locator('.axis-token').nth(2).hover()
+    await page.locator('[data-token]').nth(2).hover()
     await page.waitForTimeout(250)
-    seen.hoverLights = await page.evaluate(() => document.querySelectorAll('.axis-token.is-focus').length)
+    seen.hoverLights = await page.evaluate(() => document.querySelectorAll('[data-token][data-focus]').length)
 
     readings[pinFirst ? 'afterPin' : 'clean'] = seen
     await page.close()

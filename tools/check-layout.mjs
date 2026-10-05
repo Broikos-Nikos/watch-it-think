@@ -74,7 +74,7 @@ try {
     const page = await context.newPage()
     await page.goto(BASE, { waitUntil: 'load' })
     // The model has to arrive before there is a tag row or an axis to overflow.
-    await page.waitForFunction(() => !!document.querySelector('.word'), null, { timeout: 120_000 })
+    await page.waitForFunction(() => !!document.querySelector('[data-word]'), null, { timeout: 120_000 })
 
     for (const input of INPUTS) {
       await page.fill('textarea', input.text)

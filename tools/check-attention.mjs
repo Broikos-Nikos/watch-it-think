@@ -72,15 +72,15 @@ try {
   const browser = await chromium.launch()
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
   await page.goto(BASE, { waitUntil: 'domcontentloaded' })
-  await page.waitForFunction(() => document.querySelectorAll('.headcell').length > 0, null, { timeout: 180_000 })
+  await page.waitForFunction(() => document.querySelectorAll('[data-head-cell]').length > 0, null, { timeout: 180_000 })
   await page.waitForTimeout(700)
 
   const grid = await page.evaluate(() => {
-    const cells = [...document.querySelectorAll('.headcell')]
+    const cells = [...document.querySelectorAll('[data-head-cell]')]
     return cells.map((c) => ({
       text: c.innerText.replace(/\s+/g, ' ').trim(),
-      tag: c.querySelector('.headcell-tag')?.textContent?.trim() ?? null,
-      score: c.querySelector('.headcell-score')?.textContent?.trim() ?? null,
+      tag: c.querySelector('[data-head-tag]')?.textContent?.trim() ?? null,
+      score: c.querySelector('[data-head-score]')?.textContent?.trim() ?? null,
       title: c.getAttribute('title'),
       label: c.getAttribute('aria-label'),
       width: Math.round(c.getBoundingClientRect().width),
@@ -133,14 +133,14 @@ try {
    * were printed all land here as two numbers that differ.
    */
   const pair = await page.evaluate(() => {
-    const on = [...document.querySelectorAll('.headcell')].findIndex(
+    const on = [...document.querySelectorAll('[data-head-cell]')].findIndex(
       (c) => c.getAttribute('aria-selected') === 'true',
     )
     const cap = document.querySelector('[data-field-caption]')?.textContent ?? ''
     return {
       on,
-      tag: document.querySelectorAll('.headcell')[on]?.querySelector('.headcell-tag')?.textContent?.trim() ?? '',
-      grid: Number(document.querySelectorAll('.headcell')[on]?.querySelector('.headcell-score')?.textContent ?? NaN),
+      tag: document.querySelectorAll('[data-head-cell]')[on]?.querySelector('[data-head-tag]')?.textContent?.trim() ?? '',
+      grid: Number(document.querySelectorAll('[data-head-cell]')[on]?.querySelector('[data-head-score]')?.textContent ?? NaN),
       caption: Number(cap.match(/Concentration (\d+) percent/)?.[1] ?? NaN),
       says: cap.match(/layer (\d+) of \d+, head (\d+) of/)?.slice(1, 3).map(Number) ?? [],
     }
@@ -204,8 +204,8 @@ try {
   await page.waitForTimeout(1200)
 
   const drawn = await page.evaluate(() => {
-    const cells = [...document.querySelectorAll('.headcell')]
-    const positions = document.querySelectorAll('.axis-token').length
+    const cells = [...document.querySelectorAll('[data-head-cell]')]
+    const positions = document.querySelectorAll('[data-token]').length
     let missing = 0
     const checked = []
 
@@ -224,7 +224,7 @@ try {
       // The score printed beside it says how concentrated the field is. A
       // concentrated field must have a bright pixel somewhere; if the drawing
       // dropped it, the canvas is dimmer than the number claims.
-      const score = Number(cell.querySelector('.headcell-score')?.textContent ?? '0')
+      const score = Number(cell.querySelector('[data-head-score]')?.textContent ?? '0')
       checked.push({ score, best })
       if (score >= 30 && best < 200) missing++
       void width
@@ -276,18 +276,18 @@ try {
   for (const width of [1280, 390, 616]) {
     const p = await browser.newPage({ viewport: { width, height: 1300 } })
     await p.goto(BASE)
-    await p.waitForFunction(() => !!document.querySelector('.headcell canvas'), null, { timeout: 180_000 })
+    await p.waitForFunction(() => !!document.querySelector('[data-head-cell] canvas'), null, { timeout: 180_000 })
     await p.waitForTimeout(1200)
     const shown = await p.evaluate(() => {
-      const cells = [...document.querySelectorAll('.headcell canvas')]
+      const cells = [...document.querySelectorAll('[data-head-cell] canvas')]
       /* The rightmost cell, not the rail's box: a grid stretched to its line
          with four fixed tracks in it leaves the hole inside the box, where an
          assertion about the box cannot see it. A control did exactly that and
          passed. */
-      const cellBoxes = [...document.querySelectorAll('.headcell')].map((c) => c.getBoundingClientRect())
+      const cellBoxes = [...document.querySelectorAll('[data-head-cell]')].map((c) => c.getBoundingClientRect())
       const rail = { right: Math.max(...cellBoxes.map((c) => c.right)), bottom: Math.max(...cellBoxes.map((c) => c.bottom)) }
-      const body = document.querySelector('.attention-body').getBoundingClientRect()
-      const field = document.querySelector('.field').getBoundingClientRect()
+      const body = document.querySelector('[data-attention-body]').getBoundingClientRect()
+      const field = document.querySelector('[data-figure]').getBoundingClientRect()
       return {
         n: cells.length,
         store: cells[0] ? cells[0].width : 0,

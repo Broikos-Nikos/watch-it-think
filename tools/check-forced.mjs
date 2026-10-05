@@ -64,7 +64,7 @@ const server = process.env.WIT_URL ? await useShared(process.env.WIT_URL) : awai
 const farthest = (page, nth, bg) =>
   page.evaluate(
     ({ nth }) => {
-      const c = document.querySelectorAll('.headcell canvas')[nth]
+      const c = document.querySelectorAll('[data-head-cell] canvas')[nth]
       const d = c.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, c.width, c.height).data
       const out = []
       for (let i = 0; i < d.length; i += 4) {
@@ -83,7 +83,7 @@ try {
     const context = await browser.newContext({ viewport: { width: 1280, height: 1100 }, forcedColors })
     const page = await context.newPage()
     await page.goto(server.url)
-    await page.waitForFunction(() => document.querySelectorAll('.headcell').length > 0, null, { timeout: 180_000 })
+    await page.waitForFunction(() => document.querySelectorAll('[data-head-cell]').length > 0, null, { timeout: 180_000 })
     await page.waitForTimeout(400)
 
     const bg = await page.evaluate(() =>
@@ -97,9 +97,9 @@ try {
        whatever head is selected, and how far its thumbnail reaches from the
        page. The thumbnails share one scale, so the two orderings have to agree. */
     const heads = []
-    const cells = await page.locator('.headcell').count()
+    const cells = await page.locator('[data-head-cell]').count()
     for (let i = 0; i < cells; i++) {
-      await page.locator('.headcell').nth(i).click()
+      await page.locator('[data-head-cell]').nth(i).click()
       await page.waitForTimeout(60)
       const caption = (await page.textContent('[data-field-caption]')) ?? ''
       heads.push({

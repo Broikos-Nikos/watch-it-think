@@ -129,7 +129,7 @@ try {
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } })
     const page = await ctx.newPage()
     await page.goto(BASE, { waitUntil: 'domcontentloaded' })
-    await page.waitForFunction(() => !!document.querySelector('.word'), null, { timeout: 300_000 })
+    await page.waitForFunction(() => !!document.querySelector('[data-word]'), null, { timeout: 300_000 })
     await page.waitForTimeout(600)
 
     await page.fill('textarea', '')
@@ -171,12 +171,12 @@ try {
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } })
     const page = await ctx.newPage()
     await page.goto(BASE, { waitUntil: 'domcontentloaded' })
-    await page.waitForFunction(() => !!document.querySelector('.word'), null, { timeout: 300_000 })
+    await page.waitForFunction(() => !!document.querySelector('[data-word]'), null, { timeout: 300_000 })
 
     const positionsFor = async (text) => {
       await page.fill('textarea', text)
       await page.waitForTimeout(900)
-      return (await page.evaluate(() => document.querySelectorAll('.axis-token').length))
+      return (await page.evaluate(() => document.querySelectorAll('[data-token]').length))
     }
     const plain = await positionsFor('hello')
     const marked = await positionsFor('\uFEFFhello')
@@ -203,12 +203,12 @@ try {
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } })
     const page = await ctx.newPage()
     await page.goto(BASE, { waitUntil: 'domcontentloaded' })
-    await page.waitForFunction(() => !!document.querySelector('.word'), null, { timeout: 300_000 })
+    await page.waitForFunction(() => !!document.querySelector('[data-word]'), null, { timeout: 300_000 })
 
     await page.fill('textarea', 'the hash is 9f86d081884c7d659a2feaa0c55ad015 ok')
     await page.waitForTimeout(1200)
     const axis = await page.evaluate(() =>
-      [...document.querySelectorAll('.axis-token')].map((b) => b.textContent.trim()),
+      [...document.querySelectorAll('[data-token]')].map((b) => b.textContent.trim()),
     )
     const dots = axis.filter((t) => t === '..').length
 
@@ -235,7 +235,7 @@ try {
      * A Range around the text node gives what the browser actually drew.
      */
     const chips = await page.evaluate(() =>
-      [...document.querySelectorAll('.word')].map((s) => {
+      [...document.querySelectorAll('[data-word]')].map((s) => {
         const node = s.firstChild
         if (!node || node.nodeType !== Node.TEXT_NODE) return { text: '', width: 0 }
         const r = document.createRange()

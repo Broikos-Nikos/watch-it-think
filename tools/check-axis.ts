@@ -63,7 +63,7 @@ try {
   for (const width of [1280, 390]) {
     const page = await browser.newPage({ viewport: { width, height: 1000 } })
     await page.goto(server.url)
-    await page.waitForFunction(() => !!document.querySelector('.word'), null, { timeout: 180_000 })
+    await page.waitForFunction(() => !!document.querySelector('[data-word]'), null, { timeout: 180_000 })
 
     await page.evaluate((text) => {
       const box = document.querySelector('#input') as HTMLTextAreaElement
@@ -71,7 +71,7 @@ try {
       box.dispatchEvent(new Event('input', { bubbles: true }))
     }, SENTENCE)
     await page.waitForFunction(
-      (n) => document.querySelectorAll('.axis-token').length > n,
+      (n) => document.querySelectorAll('[data-token]').length > n,
       10,
       { timeout: 60_000 },
     )
@@ -81,7 +81,7 @@ try {
        arrives as "ReferenceError: __name is not defined" from a line that looks
        fine. */
     const seen = await page.evaluate(() => {
-      const nodes = [...document.querySelectorAll('.axis-token')]
+      const nodes = [...document.querySelectorAll('[data-token]')]
       const widths = nodes.map((n) => n.getBoundingClientRect().width)
       const sorted = [...widths].sort((a, b) => a - b)
       const longest = nodes.reduce((a, b) => ((b.textContent ?? '').length > (a.textContent ?? '').length ? b : a))

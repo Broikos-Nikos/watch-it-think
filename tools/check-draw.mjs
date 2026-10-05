@@ -113,7 +113,7 @@ try {
   }
 
   // ---- half two: geometry, and the budget ---------------------------------
-  await page.waitForFunction(() => !!document.querySelector('.word'), null, { timeout: 120_000 })
+  await page.waitForFunction(() => !!document.querySelector('[data-word]'), null, { timeout: 120_000 })
 
   /* What the page opened with, read before any half of this gate types over
      it, so the short case in half three is the state a visitor meets rather
@@ -134,7 +134,7 @@ try {
   // rather than a synthetic one: select every head in turn and time the repaint
   // the visitor actually triggers.
   const perf = await page.evaluate(async () => {
-    const cells = [...document.querySelectorAll('.headcell')]
+    const cells = [...document.querySelectorAll('[data-head-cell]')]
     const times = []
     for (let i = 0; i < cells.length; i++) {
       const t0 = performance.now()
@@ -147,7 +147,7 @@ try {
       heads: cells.length,
       medianMs: +times[Math.floor(times.length / 2)].toFixed(2),
       worstMs: +times[times.length - 1].toFixed(2),
-      positions: document.querySelectorAll('.axis-token').length,
+      positions: document.querySelectorAll('[data-token]').length,
     }
   })
 
@@ -190,17 +190,17 @@ try {
         n.__mark = i
       })
     }
-    const cells = [...document.querySelectorAll('.headcell')]
+    const cells = [...document.querySelectorAll('[data-head-cell]')]
     const target = cells.findIndex((c) => c.getAttribute('aria-selected') !== 'true')
     cells[target].click()
     await new Promise((r) => requestAnimationFrame(r))
     const kept = (sel) => [...document.querySelectorAll(sel)].filter((n) => n.__mark !== undefined).length
-    const now = [...document.querySelectorAll('.headcell')]
+    const now = [...document.querySelectorAll('[data-head-cell]')]
     return {
       target,
       heads: { kept: kept('.headcell'), of: now.length },
-      canvases: { kept: kept('.headcell canvas'), of: document.querySelectorAll('.headcell canvas').length },
-      axis: { kept: kept('.axis-token'), of: document.querySelectorAll('.axis-token').length },
+      canvases: { kept: kept('.headcell canvas'), of: document.querySelectorAll('[data-head-cell] canvas').length },
+      axis: { kept: kept('.axis-token'), of: document.querySelectorAll('[data-token]').length },
       selected: now.map((c, i) => [i, c.getAttribute('aria-selected') === 'true', c.classList.contains('is-on'), c.tabIndex === 0]),
       caption: document.querySelector('[data-field-caption]')?.textContent ?? '',
     }
@@ -268,7 +268,7 @@ try {
   const geom = await page.evaluate(() => {
     const c = document.querySelector('[data-field]')
     const ctx = c.getContext('2d', { willReadFrequently: true })
-    const n = document.querySelectorAll('.axis-token').length
+    const n = document.querySelectorAll('[data-token]').length
     const cell = Math.min(c.width, c.height) / n
     const img = ctx.getImageData(0, 0, c.width, c.height).data
     const at = (q, k) => {
@@ -361,7 +361,7 @@ try {
     'send a message to Maria about the files she asked for yesterday evening after work ' +
     'and book a table for four at the place near the harbour on Saturday night please'
   await page.fill('textarea', FULL)
-  await page.waitForFunction(() => document.querySelectorAll('.headcell').length > 0, null, { timeout: 60_000 })
+  await page.waitForFunction(() => document.querySelectorAll('[data-head-cell]').length > 0, null, { timeout: 60_000 })
   await page.waitForTimeout(700)
 
   const brightest = (sel, nth) =>
@@ -384,8 +384,8 @@ try {
   // what the model sees, and the tokenizer splits some words into several.
   // Half two already counts them this way and the first version of this half
   // did not, so it reported 57 for a field that was larger than that.
-  const positions = await page.evaluate(() => document.querySelectorAll('.axis-token').length)
-  const cells = await page.locator('.headcell canvas').count()
+  const positions = await page.evaluate(() => document.querySelectorAll('[data-token]').length)
+  const cells = await page.locator('[data-head-cell] canvas').count()
   /*
    * What this asserted until the thumbnails were given a shared scale: every
    * thumbnail's brightest pixel is as bright as the same head on the large
@@ -412,7 +412,7 @@ try {
   const readGrid = async () => {
     const heads = []
     for (let i = 0; i < cells; i++) {
-      await page.locator('.headcell').nth(i).click()
+      await page.locator('[data-head-cell]').nth(i).click()
       await page.waitForTimeout(90)
       const caption = (await page.textContent('[data-field-caption]')) ?? ''
       const strongest = Number(caption.match(/strongest single link (\d+) percent/)?.[1] ?? NaN)
@@ -516,7 +516,7 @@ try {
   await page.fill('textarea', '')
   await page.fill('textarea', OPENING)
   await page.waitForTimeout(700)
-  const short = await page.evaluate(() => document.querySelectorAll('.axis-token').length)
+  const short = await page.evaluate(() => document.querySelectorAll('[data-token]').length)
   if (short > 12) {
     failed++
     console.error(`FAIL  the opening sample made ${short} positions, so this is not the short case it exists for`)
@@ -567,7 +567,7 @@ try {
      against 1.3, because it is dominated by the call rather than by the cells,
      which is itself worth knowing and is not a reason to test the small one. */
   await page.fill('textarea', FULL)
-  await page.waitForFunction((n) => document.querySelectorAll('.axis-token').length > n, 40, { timeout: 60_000 })
+  await page.waitForFunction((n) => document.querySelectorAll('[data-token]').length > n, 40, { timeout: 60_000 })
   await page.waitForTimeout(500)
 
   const cdp = await page.context().newCDPSession(page)
@@ -600,7 +600,7 @@ try {
     )
 
     const sweep = await page.evaluate(() => {
-      const tokens = [...document.querySelectorAll('.axis-token')]
+      const tokens = [...document.querySelectorAll('[data-token]')]
       const per = []
       for (const t of tokens) {
         const t0 = performance.now()

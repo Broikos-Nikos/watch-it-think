@@ -36,7 +36,7 @@ const fail = (what, detail) => {
 
 const ready = async (page) => {
   await page.goto(BASE, { waitUntil: 'domcontentloaded' })
-  await page.waitForFunction(() => !!document.querySelector('.axis-token'), null, { timeout: 120_000 })
+  await page.waitForFunction(() => !!document.querySelector('[data-token]'), null, { timeout: 120_000 })
   await page.waitForTimeout(500)
 }
 
@@ -67,10 +67,10 @@ try {
       fail('the touch context still reports hover, so this check proves nothing')
     }
 
-    await page.locator('.axis-token').nth(2).tap()
+    await page.locator('[data-token]').nth(2).tap()
     await page.waitForTimeout(400)
     const pinned = await page.evaluate(
-      () => document.querySelectorAll('.axis-token.is-pinned, .axis-token[aria-pressed="true"]').length,
+      () => document.querySelectorAll('[data-token][data-pinned], [data-token][aria-pressed="true"]').length,
     )
     if (pinned === 0) {
       fail('tapping a token on a phone highlights nothing', 'the chips are a picture on the device most people will open this on')
@@ -79,9 +79,9 @@ try {
     }
 
     // Tapping it again lets go, or there is no way to undo a tap.
-    await page.locator('.axis-token').nth(2).tap()
+    await page.locator('[data-token]').nth(2).tap()
     await page.waitForTimeout(400)
-    const stillPinned = await page.evaluate(() => document.querySelectorAll('.axis-token.is-pinned').length)
+    const stillPinned = await page.evaluate(() => document.querySelectorAll('[data-token][data-pinned]').length)
     if (stillPinned !== 0) {
       fail('tapping a pinned token again does not let go of it')
     } else {
@@ -99,7 +99,7 @@ try {
 
     // The grid is one tab stop, not twenty four.
     const stops = await page.evaluate(
-      () => document.querySelectorAll('.headcell:not([tabindex="-1"])').length,
+      () => document.querySelectorAll('[data-head-cell]:not([tabindex="-1"])').length,
     )
     if (stops !== 1) {
       fail(`the head grid is ${stops} tab stops`, 'one control should be one stop, with arrows to move inside it')
@@ -109,7 +109,7 @@ try {
 
     // Arrow keys move the selection.
     const before = await page.textContent('[data-field-caption]')
-    await page.locator('.headcell[tabindex="0"]').focus()
+    await page.locator('[data-head-cell][tabindex="0"]').focus()
     await page.keyboard.press('ArrowRight')
     await page.waitForTimeout(400)
     const after = await page.textContent('[data-field-caption]')
@@ -120,10 +120,10 @@ try {
     }
 
     // A token can be reached and chosen from the keyboard alone.
-    await page.locator('.axis-token').nth(1).focus()
+    await page.locator('[data-token]').nth(1).focus()
     await page.keyboard.press('Enter')
     await page.waitForTimeout(400)
-    let pinned = await page.evaluate(() => document.querySelectorAll('.axis-token.is-pinned').length)
+    let pinned = await page.evaluate(() => document.querySelectorAll('[data-token][data-pinned]').length)
     if (pinned !== 1) {
       fail('Enter on a focused token pinned nothing')
     } else {
@@ -134,7 +134,7 @@ try {
     await page.keyboard.press('ArrowRight')
     await page.waitForTimeout(200)
     const moved = await page.evaluate(
-      () => [...document.querySelectorAll('.axis-token')].indexOf(document.activeElement),
+      () => [...document.querySelectorAll('[data-token]')].indexOf(document.activeElement),
     )
     if (moved !== 2) {
       fail(`ArrowRight left focus on token ${moved} rather than 2`)
@@ -144,7 +144,7 @@ try {
 
     await page.keyboard.press('Escape')
     await page.waitForTimeout(300)
-    pinned = await page.evaluate(() => document.querySelectorAll('.axis-token.is-pinned').length)
+    pinned = await page.evaluate(() => document.querySelectorAll('[data-token][data-pinned]').length)
     if (pinned !== 0) {
       fail('Escape did not let go of the pinned token')
     } else {
@@ -160,7 +160,7 @@ try {
     // falling back to currentColor: a gate that reads a computed value has to
     // check the value is the intended one, not merely that two things differ.
     const rings = await page.evaluate(() => {
-      const t = document.querySelectorAll('.axis-token')[3]
+      const t = document.querySelectorAll('[data-token]')[3]
       const declared = getComputedStyle(document.documentElement).getPropertyValue('--focus').trim()
       t.focus()
       const focusColour = getComputedStyle(t).outlineColor

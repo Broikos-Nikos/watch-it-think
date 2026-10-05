@@ -74,7 +74,7 @@ const LOOK = () => ({
   readable: [
     (document.querySelector('[data-intent]')?.textContent ?? '').trim(),
     (document.querySelector('[data-confidence]')?.textContent ?? '').trim(),
-    ...[...document.querySelectorAll('.race .pct')].map((e) => e.textContent.trim()),
+    ...[...document.querySelectorAll('[data-race] [data-row-pct]')].map((e) => e.textContent.trim()),
   ].filter(Boolean),
 })
 
@@ -96,7 +96,7 @@ try {
   await page.waitForTimeout(700)
   const waiting = await page.evaluate(LOOK)
 
-  await page.waitForFunction(() => !!document.querySelector('.word'), null, { timeout: 180_000 })
+  await page.waitForFunction(() => !!document.querySelector('[data-word]'), null, { timeout: 180_000 })
   await page.waitForTimeout(1500)
   const answered = await page.evaluate(LOOK)
 
@@ -135,7 +135,7 @@ try {
 
   /* 3. clearing moves nothing */
   await page.evaluate(() => {
-    const where = document.querySelector('.attention').getBoundingClientRect().top + window.scrollY - 40
+    const where = document.querySelector('[data-attention]').getBoundingClientRect().top + window.scrollY - 40
     window.scrollTo({ top: where, behavior: 'instant' })
   })
   await page.waitForTimeout(250)

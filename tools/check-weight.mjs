@@ -88,7 +88,7 @@ try {
   })
 
   await page.goto(BASE, { waitUntil: 'domcontentloaded' })
-  await page.waitForFunction(() => !!document.querySelector('.word'), null, { timeout: 180_000 })
+  await page.waitForFunction(() => !!document.querySelector('[data-word]'), null, { timeout: 180_000 })
   await page.waitForTimeout(800)
 
   // Read before the browser closes. The first version of this asked a closed
@@ -131,7 +131,7 @@ try {
 
     const load = async (page) => {
       await page.goto(BASE, { waitUntil: 'domcontentloaded' })
-      await page.waitForFunction(() => !!document.querySelector('.word'), null, { timeout: 180_000 })
+      await page.waitForFunction(() => !!document.querySelector('[data-word]'), null, { timeout: 180_000 })
       await page.waitForTimeout(600)
       return page.evaluate(() => (document.querySelector('[data-footer]')?.textContent ?? '').trim())
     }

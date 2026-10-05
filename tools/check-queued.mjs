@@ -77,7 +77,7 @@ try {
       line: document.querySelector('[data-status]')?.textContent?.trim() ?? '',
       said: document.querySelector('[data-announce]')?.textContent?.trim() ?? '',
       box: document.querySelector('#input')?.value ?? '',
-      answered: !!document.querySelector('.word'),
+      answered: !!document.querySelector('[data-word]'),
     }))
 
     if (after.answered) {
@@ -95,10 +95,10 @@ try {
     }
 
     /* And the promise is kept: that sentence, not the default sample. */
-    await page.waitForFunction(() => !!document.querySelector('.word'), null, { timeout: 180_000 })
+    await page.waitForFunction(() => !!document.querySelector('[data-word]'), null, { timeout: 180_000 })
     const kept = await page.evaluate(() => ({
       box: document.querySelector('#input')?.value ?? '',
-      words: [...document.querySelectorAll('.word')].map((w) => w.textContent.trim()).join(' '),
+      words: [...document.querySelectorAll('[data-word]')].map((w) => w.textContent.trim()).join(' '),
       busy: document.querySelector('main')?.getAttribute('aria-busy') ?? null,
     }))
     if (kept.box !== sentence.trim()) {

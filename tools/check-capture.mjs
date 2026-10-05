@@ -153,7 +153,7 @@ try {
   const browser = await chromium.launch()
   const page = await browser.newPage()
   await page.goto(BASE, { waitUntil: 'domcontentloaded' })
-  await page.waitForFunction(() => !!document.querySelector('.word'), null, { timeout: 180_000 })
+  await page.waitForFunction(() => !!document.querySelector('[data-word]'), null, { timeout: 180_000 })
   // The standfirst is written from meta.json during boot, so an empty one here
   // would read as drift when it is only impatience.
   await page.waitForFunction(
@@ -201,7 +201,7 @@ try {
     await page.waitForTimeout(300)
     await page.fill('textarea', was.sentence)
     await page.waitForFunction(
-      (n) => document.querySelectorAll('.headcell canvas').length === n,
+      (n) => document.querySelectorAll('[data-head-cell] canvas').length === n,
       was.drawing.thumbs.length,
       { timeout: 60_000 },
     )
@@ -217,8 +217,8 @@ try {
         }
         return +top.toFixed(1)
       }
-      return [...document.querySelectorAll('.headcell')].map((cell) => ({
-        tag: cell.querySelector('.headcell-tag')?.textContent?.trim() ?? '',
+      return [...document.querySelectorAll('[data-head-cell]')].map((cell) => ({
+        tag: cell.querySelector('[data-head-tag]')?.textContent?.trim() ?? '',
         peak: peak(cell.querySelector('canvas')),
       }))
     })

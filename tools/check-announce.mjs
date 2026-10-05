@@ -43,7 +43,7 @@ try {
   const browser = await chromium.launch()
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
   await page.goto(BASE, { waitUntil: 'domcontentloaded' })
-  await page.waitForFunction(() => !!document.querySelector('.word'), null, { timeout: 120_000 })
+  await page.waitForFunction(() => !!document.querySelector('[data-word]'), null, { timeout: 120_000 })
   await page.waitForTimeout(1200)
 
   // ---- 1. the telemetry is not announced ----------------------------------

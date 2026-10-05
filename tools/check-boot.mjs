@@ -52,7 +52,7 @@ async function withSlowModel(browser, during) {
   const result = await during(page)
 
   // boot() finishes when the first real answer is on screen.
-  await page.waitForFunction(() => !!document.querySelector('.word'), null, { timeout: 60_000 })
+  await page.waitForFunction(() => !!document.querySelector('[data-word]'), null, { timeout: 60_000 })
   await page.waitForTimeout(800)
 
   const value = await page.inputValue('textarea')
@@ -144,7 +144,7 @@ try {
     // Only now let the application load.
     open = false
     for (const release of waiting) release()
-    await page.waitForFunction(() => !!document.querySelector('.word'), null, { timeout: 120_000 })
+    await page.waitForFunction(() => !!document.querySelector('[data-word]'), null, { timeout: 120_000 })
     await page.waitForTimeout(900)
 
     const value = await page.inputValue('textarea')

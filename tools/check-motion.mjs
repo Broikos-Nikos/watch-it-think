@@ -50,7 +50,7 @@ try {
   const browser = await chromium.launch()
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
   await page.goto(BASE, { waitUntil: 'domcontentloaded' })
-  await page.waitForFunction(() => !!document.querySelector('.race li'), null, { timeout: 180_000 })
+  await page.waitForFunction(() => !!document.querySelector('[data-race] [data-row]'), null, { timeout: 180_000 })
   await page.waitForTimeout(600)
 
   const seen = await page.evaluate(async (sentence) => {
@@ -94,7 +94,7 @@ try {
         else if (kind.includes('translateY')) travels++
       }
 
-      const leader = race.querySelector('li.is-leader .name')
+      const leader = race.querySelector('[data-row][data-leader] [data-row-name]')
       if (leader) leaders.add(leader.textContent)
 
       // A row for the same intent must be the same element as last time, or the
@@ -106,7 +106,7 @@ try {
       // behaving correctly.
       const present = new Set()
       for (const li of race.querySelectorAll('li')) {
-        const name = li.querySelector('.name')?.textContent
+        const name = li.querySelector('[data-row-name]')?.textContent
         if (!name) continue
         present.add(name)
         const was = identities.get(name)
@@ -197,7 +197,7 @@ try {
    * transition at the 1 ms this stylesheet reduces it to. The assertion did not
    * change; what it waits for did.
    */
-  await rp.waitForFunction(() => !!document.querySelector('.word'), null, { timeout: 180_000 })
+  await rp.waitForFunction(() => !!document.querySelector('[data-word]'), null, { timeout: 180_000 })
   await rp.waitForTimeout(600)
   // Both halves. The stylesheet's transition AND anything the script starts.
   //
@@ -220,7 +220,7 @@ try {
     }
 
     return {
-      transition: getComputedStyle(document.querySelector('.race .bar')).transitionDuration,
+      transition: getComputedStyle(document.querySelector('[data-race] [data-row-bar]')).transitionDuration,
       running,
     }
   })

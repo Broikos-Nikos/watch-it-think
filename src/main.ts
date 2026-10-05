@@ -236,9 +236,10 @@ function render(p: Prediction) {
    */
   const tagged = wordTags(p, meta)
   el.tags.replaceChildren(
-    ...tagged.map(({ word, tag }) => {
+    ...tagged.map(({ word, tag }, at) => {
       const span = document.createElement('span')
       span.className = tag === 'O' ? 'word' : 'word word--slot'
+      span.dataset.word = String(at)
       span.textContent = visibleLabel(word)
       if (tag !== 'O') {
         const small = document.createElement('small')
@@ -348,15 +349,21 @@ function drawSkeleton(): void {
   for (let i = 0; i < 6; i++) {
     const row = document.createElement('li')
     row.className = 'is-skeleton'
+    row.dataset.row = ''
+    row.dataset.skeleton = ''
     const track = document.createElement('span')
     track.className = 'track'
+    track.dataset.rowTrack = ''
     const bar = document.createElement('span')
     bar.className = 'bar'
+    bar.dataset.rowBar = ''
     const name = document.createElement('span')
     name.className = 'name'
+    name.dataset.rowName = ''
     track.append(bar, name)
     const pct = document.createElement('span')
     pct.className = 'pct'
+    pct.dataset.rowPct = ''
     row.append(track, pct)
     rows.push(row)
   }
@@ -373,8 +380,10 @@ function drawSkeleton(): void {
        is 73 pixels shorter and the grid grows when the answer lands. */
     const tag = document.createElement('span')
     tag.className = 'headcell-tag'
+    tag.dataset.headTag = ''
     const score = document.createElement('span')
     score.className = 'headcell-score'
+    score.dataset.headScore = ''
     cell.append(c, tag, score)
     cells.push(cell)
   }
@@ -426,6 +435,7 @@ function drawRace(top: { intent: string; prob: number }[]): void {
     const isNew = !row
     if (!row) {
       row = document.createElement('li')
+      row.dataset.row = ''
       // textContent per part, not innerHTML: an intent name is model output and
       // this page builds its tag row from the visitor's own words one section
       // down. Two audits have now checked that nothing can escape through
@@ -443,14 +453,18 @@ function drawRace(top: { intent: string; prob: number }[]): void {
        */
       const track = document.createElement('span')
       track.className = 'track'
+      track.dataset.rowTrack = ''
       const bar = document.createElement('span')
       bar.className = 'bar'
+      bar.dataset.rowBar = ''
       const name = document.createElement('span')
       name.className = 'name'
+      name.dataset.rowName = ''
       name.textContent = intent
       track.append(bar, name)
       const pct = document.createElement('span')
       pct.className = 'pct'
+      pct.dataset.rowPct = ''
       row.append(track, pct)
       raceRows.set(intent, row)
     }
@@ -458,6 +472,7 @@ function drawRace(top: { intent: string; prob: number }[]): void {
     row.style.setProperty('--p', String(prob))
     row.querySelector('.pct')!.textContent = `${(prob * 100).toFixed(1)}%`
     row.classList.toggle('is-leader', rank === 0)
+    row.toggleAttribute('data-leader', rank === 0)
     row.style.order = String(rank)
     if (!row.isConnected) el.race.append(row)
     if (isNew) arriving.push(row)
@@ -681,6 +696,7 @@ function drawAttention(p: Prediction) {
       const b = document.createElement('button')
       b.type = 'button'
       b.className = 'headcell'
+      b.dataset.headCell = ''
       b.role = 'tab'
       // Which head this is, on the element, so `markGrid` can set the selected
       // state without rebuilding anything and without index arithmetic that
@@ -728,9 +744,11 @@ function drawAttention(p: Prediction) {
       const conc = concentration(fieldAt(cube, layer, head), cube.positions)
       const tag = document.createElement('span')
       tag.className = 'headcell-tag'
+      tag.dataset.headTag = ''
       tag.textContent = `L${layer + 1}H${head + 1}`
       const score = document.createElement('span')
       score.className = 'headcell-score'
+      score.dataset.headScore = ''
       score.textContent = `${(conc * 100).toFixed(0)}`
       // The sharpest heads are the interesting ones, so they are the ones that
       // read as bright rather than every cell shouting equally.
@@ -827,6 +845,7 @@ function drawAttention(p: Prediction) {
     ...rowLabels.map((text) => {
       const d = document.createElement('div')
       d.className = 'field-row'
+      d.dataset.fieldRow = ''
       d.textContent = text
       return d
     }),
@@ -852,6 +871,7 @@ function drawAttention(p: Prediction) {
       b.type = 'button'
       b.textContent = labelAt(p, pos)
       b.className = pos === 0 ? 'axis-token axis-token--cls' : 'axis-token'
+      b.dataset.token = String(pos)
       b.setAttribute('aria-pressed', String(focusToken === pos))
       /*
        * The whole word here, never the cut one. `cut` exists so that one chip
@@ -945,6 +965,7 @@ function markGrid() {
   for (const cell of el.heads.querySelectorAll<HTMLElement>('.headcell')) {
     const on = Number(cell.dataset.layer) === selected.layer && Number(cell.dataset.head) === selected.head
     cell.classList.toggle('is-on', on)
+    cell.toggleAttribute('data-on', on)
     cell.setAttribute('aria-selected', String(on))
     // One tab stop for the whole grid: see the note where the cells are built.
     cell.tabIndex = on ? 0 : -1
@@ -955,6 +976,8 @@ function markAxis() {
   el.axis.querySelectorAll('.axis-token').forEach((n, i) => {
     n.classList.toggle('is-focus', i === focusToken)
     n.classList.toggle('is-pinned', i === pinnedToken)
+    n.toggleAttribute('data-focus', i === focusToken)
+    n.toggleAttribute('data-pinned', i === pinnedToken)
     n.setAttribute('aria-pressed', String(i === pinnedToken))
   })
 }

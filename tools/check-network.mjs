@@ -105,7 +105,7 @@ try {
   })
 
   await page.goto(server.url)
-  await page.waitForFunction(() => !!document.querySelector('.word'), null, { timeout: 180_000 })
+  await page.waitForFunction(() => !!document.querySelector('[data-word]'), null, { timeout: 180_000 })
   await page.waitForTimeout(2500)
   const onLoad = requests.length
 
@@ -141,11 +141,11 @@ try {
   await page.fill('textarea', secret)
   await page.waitForTimeout(1500)
   for (let i = 0; i < 6; i++) {
-    await page.locator('.headcell').nth(i).click()
+    await page.locator('[data-head-cell]').nth(i).click()
     await page.waitForTimeout(120)
   }
   for (let i = 0; i < 5; i++) {
-    await page.locator('.axis-token').nth(i).hover()
+    await page.locator('[data-token]').nth(i).hover()
     await page.waitForTimeout(120)
   }
   await page.waitForTimeout(3000)

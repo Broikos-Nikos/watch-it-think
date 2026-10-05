@@ -49,9 +49,9 @@ const server = process.env.WIT_URL ? await useShared(process.env.WIT_URL) : awai
 /** Every row's bar against its own label, plus what the bar is shaped like. */
 const LOOK = () => {
   const out = []
-  for (const li of document.querySelectorAll('.race li')) {
-    const bar = li.querySelector('.bar')
-    const pct = li.querySelector('.pct')
+  for (const li of document.querySelectorAll('[data-race] [data-row]')) {
+    const bar = li.querySelector('[data-row-bar]')
+    const pct = li.querySelector('[data-row-pct]')
     if (!bar || !pct) continue
     const b = bar.getBoundingClientRect()
     const p = pct.getBoundingClientRect()
@@ -75,7 +75,7 @@ try {
   for (const width of [1280, 390]) {
     const page = await browser.newPage({ viewport: { width, height: 1000 } })
     await page.goto(server.url)
-    await page.waitForFunction(() => !!document.querySelector('.word'), null, { timeout: 180_000 })
+    await page.waitForFunction(() => !!document.querySelector('[data-word]'), null, { timeout: 180_000 })
     await page.waitForTimeout(1600)
 
     /*
@@ -93,7 +93,7 @@ try {
     for (const [what, forced] of cases) {
       if (forced !== null) {
         await page.evaluate((p) => {
-          for (const li of document.querySelectorAll('.race li')) li.style.setProperty('--p', String(p))
+          for (const li of document.querySelectorAll('[data-race] [data-row]')) li.style.setProperty('--p', String(p))
         }, forced)
         await page.waitForTimeout(350)
       }

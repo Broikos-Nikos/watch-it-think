@@ -57,9 +57,9 @@ const server = process.env.WIT_URL ? await useShared(process.env.WIT_URL) : awai
 
 const LOOK = () => {
   const canvas = document.querySelector('[data-field]')
-  const field = document.querySelector('.field')
-  const chips = [...document.querySelectorAll('.axis-token')]
-  const rows = [...document.querySelectorAll('.field-row')]
+  const field = document.querySelector('[data-figure]')
+  const chips = [...document.querySelectorAll('[data-token]')]
+  const rows = [...document.querySelectorAll('[data-field-row]')]
   const c = canvas.getBoundingClientRect()
   const n = chips.length || rows.length
   return {
@@ -76,13 +76,13 @@ const LOOK = () => {
     rows: rows.length,
     rowTop: rows.length ? +rows[0].getBoundingClientRect().top.toFixed(1) : null,
     rowHeights: rows.map((x) => +x.getBoundingClientRect().height.toFixed(2)),
-    axisShown: chips.length > 0 && getComputedStyle(document.querySelector('.axis')).display !== 'none',
-    rowsShown: getComputedStyle(document.querySelector('.field-rows')).display !== 'none',
+    axisShown: chips.length > 0 && getComputedStyle(document.querySelector('[data-axis]')).display !== 'none',
+    rowsShown: getComputedStyle(document.querySelector('[data-field-rows]')).display !== 'none',
     chipsClickable: chips.filter((x) => {
       const r = x.getBoundingClientRect()
       return r.width >= 8 && r.height >= 8 && getComputedStyle(x).visibility === 'visible'
     }).length,
-    fieldLeft: +document.querySelector('.field').getBoundingClientRect().left.toFixed(1),
+    fieldLeft: +document.querySelector('[data-figure]').getBoundingClientRect().left.toFixed(1),
   }
 }
 
@@ -101,7 +101,7 @@ try {
   const browser = await chromium.launch()
   const page = await browser.newPage({ viewport: { width: 1280, height: 1100 } })
   await page.goto(server.url)
-  await page.waitForFunction(() => !!document.querySelector('.word'), null, { timeout: 180_000 })
+  await page.waitForFunction(() => !!document.querySelector('[data-word]'), null, { timeout: 180_000 })
   await page.waitForTimeout(1200)
 
   for (const [what, text] of SENTENCES) {

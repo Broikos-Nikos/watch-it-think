@@ -85,7 +85,7 @@ try {
   const browser = await chromium.launch()
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
   await page.goto(server.url)
-  await page.waitForFunction(() => !!document.querySelector('.word'), null, { timeout: 180_000 })
+  await page.waitForFunction(() => !!document.querySelector('[data-word]'), null, { timeout: 180_000 })
 
   const type = (text: string) =>
     page.evaluate((t) => {
@@ -117,7 +117,7 @@ try {
     const got = await page.evaluate(() => ({
       hidden: !!(document.querySelector('[data-unknown-note]') as HTMLElement | null)?.hidden,
       note: document.querySelector('[data-unknown-note]')?.textContent?.trim() ?? '',
-      chips: document.querySelectorAll('.tags .word').length,
+      chips: document.querySelectorAll('[data-tags] [data-word]').length,
     }))
 
     if (want.unknown === 0) {
