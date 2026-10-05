@@ -79,6 +79,14 @@ const covered = new Set(
     `${q.fp32.tagAccuracy}%`,
     `${int8.exactMatch}%`,
     `${q.fp32.exactMatch}%`,
+    /* Derived rather than recorded, and still a meta.json figure: the chance of
+       getting the intent right by guessing, which is one over however many
+       intents the model ships with. Added at tick 213 with WR-F5, where the
+       README gained it; `check:claims` is what holds the README and the page
+       footer to it. Computed from the same file rather than pinned upstream,
+       because a number that follows from the labels is not a measurement
+       somebody else made. */
+    `${(100 / meta.intents.length).toFixed(2)}%`,
   ].filter(Boolean),
 )
 for (const n of upstream.numbers) covered.add(n.value)

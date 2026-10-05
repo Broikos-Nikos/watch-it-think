@@ -1363,10 +1363,28 @@ async function boot() {
       ? `nothing over the wire, served from your cache, ready in ${howLong(loadMs)}`
       : `${(wireBytes / 1e6).toFixed(2)} MB over the wire, ${howLong(loadMs)} to load`
 
+  /*
+   * What 74.53% is out of.
+   *
+   * WR-F5 was filed against the README: "the biggest number in the document
+   * reads as a failing grade, and the only baseline given belongs to the other
+   * number". The footer had the same shape and was not in the finding. It read
+   * "74.53% ... against 74.58% before quantisation", which looks like a scale
+   * and is not one: int8 against float32 is this model measured twice, and
+   * both numbers are the thing being judged. A reader who did school reads 74
+   * as a C and leaves.
+   *
+   * The scale is how many ways there are to be wrong. 44 intents, so a coin
+   * scores 2.27%, derived here rather than written down so it cannot drift from
+   * the labels the model actually ships with.
+   */
+  const guess = `${(100 / m.intents.length).toFixed(2)}%`
+
   el.footer.textContent = q
     ? `${cost}. ` +
       `Intent accuracy ${q.int8.intentAccuracy}% on ${q.rowsEvaluated.toLocaleString('en-US')} ` +
-      `held out sentences, against ${q.fp32.intentAccuracy}% before quantisation.` +
+      `held out sentences, against a ${guess} guess between ${m.intents.length} intents, ` +
+      `and ${q.fp32.intentAccuracy}% before quantisation.` +
       both +
       floor
     : `${cost}.`

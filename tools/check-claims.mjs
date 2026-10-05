@@ -73,6 +73,14 @@ const claims = [
   ['context length, where the limit is explained', `A ${meta.maxLen} token context`],
   ['intent count, as the scope section says it', `${meta.intents.length} intents`],
   /*
+   * WR-F5. The table led with a bold 74.53% and no anchor, while the tag row
+   * two lines below carried its 74.98% floor in the row label: the recruiter
+   * pass read the biggest number on the page as a C. The anchor is one
+   * division, so it is held like every other figure rather than typed:
+   * one correct answer out of however many intents this model has.
+   */
+  ['the guess the intent number is read against', `${(100 / meta.intents.length).toFixed(2)}%`],
+  /*
    * WDR-F6 named the page's version of this: "5.28 MB over the wire" described
    * one file of the seven a visit fetches. The page's sentence was fixed at tick
    * 150 and this label was not, so the gate holding the claims went on calling
@@ -220,6 +228,76 @@ if (q.testSet?.split === 'adversarial' && !/adversarial/i.test(readme)) {
  * read the rest of the file first, so the floor moved into the row label: "slot
  * tag accuracy, against a 74.98% floor".
  */
+/*
+ * And the same for the intent accuracy, on both surfaces that print it.
+ *
+ * WR-F5, the recruiter pass of 22 September: "the biggest number in the
+ * document reads as a failing grade, and the only baseline given belongs to
+ * the other number". The tag figure, two rows down, had carried its floor in
+ * the row label since tick 170 because of the assertion below. The intent
+ * figure, which is the larger type and the one a reader quotes, had nothing.
+ *
+ * Its scale is how many ways there are to be wrong: 44 intents, so a coin
+ * scores 2.27%. Derived from `meta.intents`, never written down, so it cannot
+ * drift from the labels the model ships with.
+ *
+ * In bold, and not in every paragraph. The tag rule below asks every paragraph
+ * that quotes the number, because the tag floor is surprising and a reader can
+ * meet that figure anywhere. This one asks where the figure is **set in bold**,
+ * which in this README is the row a reader takes away, because the sentence
+ * under the table reasons about 74.53 against 72.63 and making it recite the
+ * baseline again would be the kind of assertion an author edits out.
+ *
+ * ## The page, not just the file
+ *
+ * The footer said "74.53% ... against 74.58% before quantisation", which has
+ * the shape of a scale and is not one: int8 against float32 is this model
+ * measured twice. The finding was filed against the README and the page had it
+ * too, which is why this reads `src/main.ts` as well. What it can see there is
+ * the sentence being built, not the sentence on screen; `check:weight` is what
+ * drives a browser at that footer.
+ */
+const guess = `${(100 / meta.intents.length).toFixed(2)}%`
+const boldWith = readmeRaw
+  .split(/\n\s*\n/)
+  .map((p) => p.replace(/\s+/g, ' '))
+  .filter((p) => new RegExp(`\\*\\*\\s*${int8.intentAccuracy}\\s*%\\s*\\*\\*`).test(p))
+
+if (boldWith.length === 0) {
+  failed++
+  console.error(
+    `FAIL  the README never sets the intent accuracy ${int8.intentAccuracy}% in bold, so this gate cannot tell which figure it is about`,
+  )
+} else {
+  const anchored = boldWith.filter((p) => p.includes(guess))
+  if (anchored.length < boldWith.length) {
+    failed++
+    console.error(
+      `FAIL  ${int8.intentAccuracy}% is set in bold in ${boldWith.length} block${boldWith.length === 1 ? '' : 's'} and ${boldWith.length - anchored.length} of them ${boldWith.length - anchored.length === 1 ? 'does' : 'do'} not name the ${guess} guess between ${meta.intents.length} intents`,
+    )
+    console.error('      A reader who did school reads 74 as a C. The scale is how many ways there are to be wrong.')
+  } else {
+    console.log(
+      `  ok      ${int8.intentAccuracy}% is in bold in ${boldWith.length} block${boldWith.length === 1 ? '' : 's'}, every one naming the ${guess} guess`,
+    )
+  }
+}
+
+const mainTs = readFileSync(resolve(root, 'src/main.ts'), 'utf8')
+const footerCall = mainTs.match(/el\.footer\.textContent[\s\S]{0,700}/)?.[0] ?? ''
+if (!/100 \/ m\.intents\.length/.test(mainTs)) {
+  failed++
+  console.error('FAIL  src/main.ts does not derive the guess from meta.intents, so the footer prints a baseline typed by hand or none')
+} else if (!/\$\{guess\}/.test(footerCall)) {
+  failed++
+  console.error(
+    `FAIL  the page footer quotes the intent accuracy without the ${guess} guess beside it`,
+    )
+  console.error('      It read "against 74.58% before quantisation", which is this model measured twice, not a scale.')
+} else {
+  console.log(`  ok      the page footer names the ${guess} guess, derived from meta.intents`)
+}
+
 const pinned = JSON.parse(readFileSync(resolve(root, 'docs/upstream.json'), 'utf8'))
 const baseline = pinned.numbers?.find((n) => n.id === 'tag-majority-baseline')?.value
 /* From the raw text, not from `readme`: that one has had its newlines flattened

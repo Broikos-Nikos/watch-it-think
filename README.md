@@ -55,11 +55,13 @@ The three things the page draws:
 ## The numbers
 
 Measured on 10,578 held out sentences, the adversarial split, which is built
-from templates and synonyms held out of training:
+from templates and synonyms held out of training and is deliberately the hardest
+of the three sets in `bslm`. The model is choosing between 44 intents, so
+guessing scores 2.27%.
 
 | | int8, what ships | float32 |
 |---|---|---|
-| intent accuracy | **74.53%** | 74.58% |
+| intent accuracy, against a 2.27% guess | **74.53%** | 74.58% |
 | intent accuracy, allowed to decline | **72.63%**, declining 834 | |
 | slot tag accuracy, against a 74.98% floor | 97.28% | 97.28% |
 | intent and every tag correct | 69.86% | 69.97% |
