@@ -21,28 +21,32 @@
  * The browser is the authority on what `oklch(0.6 0.12 148)` looks like.
  */
 
-import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
+/*
+ * The module itself, imported.
+ *
+ * WM2-F12. This used to find `export function oklchToRgb` by string index,
+ * slice to the next line that begins a close brace, strip the TypeScript with
+ * two exact `.replace()` calls, and `eval` the result inside the page. A guard
+ * caught the slice failing. Nothing caught the replaces failing, and they fail
+ * on the ordinary act of tidying: measured at tick 212 by wrapping the
+ * signature across four lines, which is what a formatter does to it,
+ * `npx tsc --noEmit` came back clean and this gate died with
+ *
+ *     page.evaluate: SyntaxError: Unexpected token 'export'
+ *
+ * which says nothing about a string match in a build tool. This is the most
+ * valuable gate in the suite, and it was booby trapped against touching a
+ * twenty line pure function.
+ *
+ * Nothing is lifted now. Node imports the real export, the browser is asked
+ * only what it renders, and the comparison happens here.
+ */
+import { oklchToRgb } from '../src/lib/attention.ts'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-
-// The function under test, lifted out of the module as source so the page can
-// run exactly what ships rather than a copy that has drifted.
-const src = readFileSync(resolve(root, 'src/lib/attention.ts'), 'utf8')
-const fn = src.slice(
-  src.indexOf('export function oklchToRgb'),
-  src.indexOf('\n}', src.indexOf('export function oklchToRgb')) + 2,
-)
-if (!fn.includes('0.3963377774')) {
-  console.error('FAIL  could not lift oklchToRgb out of src/lib/attention.ts')
-  process.exit(1)
-}
-const plain = fn
-  .replace('export function oklchToRgb(L: number, C: number, hDeg: number): [number, number, number] {',
-           'function oklchToRgb(L, C, hDeg) {')
-  .replace('}) as [number, number, number]', '})')
 
 
 let failed = 0
@@ -66,8 +70,7 @@ try {
   await page.goto(BASE, { waitUntil: 'domcontentloaded' })
 
   // ---- half one: my conversion against the browser's ----------------------
-  const colour = await page.evaluate(({ plain }) => {
-    eval(plain)
+  const browserSays = await page.evaluate(() => {
     const c = document.createElement('canvas')
     c.width = 1
     c.height = 1
@@ -75,8 +78,7 @@ try {
 
     // The whole ramp the page actually uses, at both chroma levels, over every
     // hue the encodings and the heat map use.
-    const worst = { diff: 0, at: null }
-    let checked = 0
+    const out = []
     for (const hue of [148, 155, 200, 250, 295, 45, 0, 359]) {
       for (let i = 0; i < 256; i += 3) {
         const v = i / 255
@@ -86,18 +88,26 @@ try {
           ctx.fillStyle = `oklch(${L} ${C} ${hue})`
           ctx.fillRect(0, 0, 1, 1)
           const [br, bg, bb] = ctx.getImageData(0, 0, 1, 1).data
-          const [mr, mg, mb] = oklchToRgb(L, C, hue)
-          const d = Math.max(Math.abs(br - mr), Math.abs(bg - mg), Math.abs(bb - mb))
-          checked++
-          if (d > worst.diff) {
-            worst.diff = d
-            worst.at = { hue, L: +L.toFixed(4), C: +C.toFixed(4), browser: [br, bg, bb], mine: [mr, mg, mb] }
-          }
+          out.push([L, C, hue, br, bg, bb])
         }
       }
     }
-    return { worst, checked }
-  }, { plain })
+    return out
+  })
+
+  /* The comparison, in node, against the module this project ships. */
+  const worst = { diff: 0, at: null }
+  let checked = 0
+  for (const [L, C, hue, br, bg, bb] of browserSays) {
+    const [mr, mg, mb] = oklchToRgb(L, C, hue)
+    const d = Math.max(Math.abs(br - mr), Math.abs(bg - mg), Math.abs(bb - mb))
+    checked++
+    if (d > worst.diff) {
+      worst.diff = d
+      worst.at = { hue, L: +L.toFixed(4), C: +C.toFixed(4), browser: [br, bg, bb], mine: [mr, mg, mb] }
+    }
+  }
+  const colour = { worst, checked }
 
   // One unit per channel is the resolution of the format. Anything larger is a
   // different colour, not a rounding difference.

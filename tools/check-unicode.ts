@@ -31,12 +31,8 @@
  */
 
 import { execFileSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { normalize, wordTokenize } from '../src/lib/tokenizer'
+import { NEWER_THAN_PYTHON, normalize, wordTokenize } from '../src/lib/tokenizer'
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
 let failed = 0
 const fail = (what: string, detail?: string) => {
@@ -45,17 +41,17 @@ const fail = (what: string, detail?: string) => {
   if (detail) console.error(`      ${detail}`)
 }
 
-/* The pinned list, read out of the file that ships rather than copied here. */
-const source = readFileSync(resolve(root, 'src/lib/tokenizer.ts'), 'utf8')
-const literal = /const NEWER_THAN_PYTHON = '([^']*)'/.exec(source)?.[1]
-if (!literal) {
-  console.error('FAIL  src/lib/tokenizer.ts no longer pins a word class')
-  process.exit(1)
-}
-
-/* eslint-disable no-eval -- the escapes are the file's own, and this is the
-   only way to read them as the runtime will. */
-const pinnedText: string = eval(`'${literal}'`)
+/*
+ * The pinned list, imported from the file that ships.
+ *
+ * WM2-F12, swept from `check:draw`. This read the literal out of
+ * `src/lib/tokenizer.ts` with a regex and ran it through `eval` to decode the
+ * escapes. The regex was guarded, so a rename failed loudly, but a line split
+ * or a template literal would have left it reading a different list and saying
+ * nothing. A gate that reconstructs its subject from text is one reformat away
+ * from testing something else.
+ */
+const pinnedText: string = NEWER_THAN_PYTHON
 
 /** The ranges, expanded, so each one can be asked about individually. */
 const pinned: number[] = []

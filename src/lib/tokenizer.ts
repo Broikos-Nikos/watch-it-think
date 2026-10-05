@@ -109,7 +109,11 @@ const W = String.raw`\p{L}\p{N}_`
  * `check:unicode` fails if the runtime ever disagrees with it in the direction
  * that matters.
  */
-const NEWER_THAN_PYTHON = '\u088F\u0C5C\u0CDC\uA7CE-\uA7CF\uA7D2\uA7D4\uA7F1\u{10940}-\u{10959}\u{10EC5}-\u{10EC7}\u{11DB0}-\u{11DDB}\u{11DE0}-\u{11DE9}\u{16EA0}-\u{16EB8}\u{16EBB}-\u{16ED3}\u{16FF2}-\u{16FF6}\u{187F8}-\u{187FF}\u{18D09}-\u{18D1E}\u{18D80}-\u{18DF2}\u{1E6C0}-\u{1E6DE}\u{1E6E0}-\u{1E6E2}\u{1E6E4}-\u{1E6E5}\u{1E6E7}-\u{1E6ED}\u{1E6F0}-\u{1E6F4}\u{1E6FE}-\u{1E6FF}\u{2B73A}-\u{2B73F}\u{2CEA2}-\u{2CEAD}\u{323B0}-\u{33479}'
+/* Exported for `check:unicode`, which held this list by regex and `eval`
+   until tick 212: it read the literal out of this file as text and ran it
+   to decode the escapes, so splitting the line would have left the gate
+   reading nothing. Exporting it is the whole fix. WM2-F12. */
+export const NEWER_THAN_PYTHON = '\u088F\u0C5C\u0CDC\uA7CE-\uA7CF\uA7D2\uA7D4\uA7F1\u{10940}-\u{10959}\u{10EC5}-\u{10EC7}\u{11DB0}-\u{11DDB}\u{11DE0}-\u{11DE9}\u{16EA0}-\u{16EB8}\u{16EBB}-\u{16ED3}\u{16FF2}-\u{16FF6}\u{187F8}-\u{187FF}\u{18D09}-\u{18D1E}\u{18D80}-\u{18DF2}\u{1E6C0}-\u{1E6DE}\u{1E6E0}-\u{1E6E2}\u{1E6E4}-\u{1E6E5}\u{1E6E7}-\u{1E6ED}\u{1E6F0}-\u{1E6F4}\u{1E6FE}-\u{1E6FF}\u{2B73A}-\u{2B73F}\u{2CEA2}-\u{2CEAD}\u{323B0}-\u{33479}'
 /* The guard and the class together as one atom, because `+` on
    `(?!x)[y]` repeats the class and checks the lookahead once: written that way
    first, and "a" then swallowed the excluded character and the "b" after it. */

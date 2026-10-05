@@ -31,7 +31,7 @@
     "check:shapes": "node tools/check-shapes.mjs",
     "check:field": "node tools/check-field.mjs",
     "witness:controls": "tsx tools/witness-controls.ts",
-    "check:draw": "node tools/check-draw.mjs",
+    "check:draw": "tsx tools/check-draw.mjs",
     "check:race": "node tools/check-race.mjs",
     "check:first-screen": "node tools/check-first-screen.mjs",
     "check:forced": "node tools/check-forced.mjs",
