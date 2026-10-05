@@ -211,6 +211,31 @@ npx playwright install chromium   # once
 npm run verify    # twenty six gates, twenty five sharing one browser server. Three minutes.
 ```
 
+Before publishing:
+
+```bash
+npm run release   # both of the above, with RELEASE=1
+```
+
+### The five switches
+
+Five environment variables change what the gates do. They were documented only
+inside the files that read them, which is WM2-F10: a switch armed by a string
+that exists nowhere else is a switch nobody finds.
+
+| variable | what it does |
+|---|---|
+| `RELEASE=1` | `check:authorship` holds the branch to the same standard as the authorship, instead of reporting and moving on. `npm run release` sets it. |
+| `PYTHON` | the interpreter `check:tools` runs the exporter and the quantiser with. Defaults to `python`. |
+| `WIT_LIVE` | a URL. `check:weight` measures the real gzipped transfer from it instead of predicting one. |
+| `WIT_SENTENCE` | the sentence `npm run capture` films. Defaults to the Greek one in the recording. |
+| `WIT_COST_CONTROL=1` | `check:cost` runs its own negative control, the quadratic tokenizer, and fails if the thresholds let it through. |
+
+`WIT_URL` and `CAPTURE_FAIL_AT` are not in that table on purpose: nobody sets
+them by hand. `npm run verify` sets the first to hand one preview server to
+every browser gate, and the workspace's `check-capture-exit.mjs` sets the second
+to drive this project's capture through its own failure path.
+
 The split is deliberate. The two used to be one command taking 87 seconds, of
 which 75 were ten separate `vite preview` servers, and a check suite that slow
 is one people stop running. `npm run build` is now cheap enough to run on every

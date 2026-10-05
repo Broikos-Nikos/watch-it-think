@@ -67,6 +67,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "vendor:tokens": "node tools/vendor-house-tokens.mjs",
+    "release": "node tools/release.mjs",
     "verify": "node tools/verify.mjs",
     "check:counts": "node tools/check-counts.mjs",
     "check:upstream": "node tools/check-upstream.mjs",
