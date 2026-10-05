@@ -5,7 +5,7 @@ Commit messages cite identifiers like `WDR-F1`. This is what they refer to.
 Seventeen audit passes and the workspace sweeps. Each pass was run against
 one assigned perspective and nothing else.
 
-**198 findings, 135 closed, 63 open**, across the 17 perspectives that produced them.
+**198 findings, 136 closed, 62 open**, across the 17 perspectives that produced them.
 
 Held to the workspace queue this project is built from by
 `tools/check-audit-status.mjs`, which fails if a row here says anything the
@@ -185,7 +185,7 @@ queue does not.
 
 ## `WM2`, maintainer
 
-16 findings, 11 closed.
+16 findings, 12 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
@@ -200,7 +200,7 @@ queue does not.
 | `WM2-F9` | medium | fixed, tick 63 | The cleanup is taskkill, so on any machine that is not Windows nothing is cleaned up |
 | `WM2-F10` | medium | fixed, tick 210 | RELEASE=1 is documented only inside the gate that reads it, and the publish step it names does not exist |
 | `WM2-F11` | medium | fixed, tick 211 | Nine of the gates' DOM hooks are presentational class names, and eighteen design findings are about to rewrite that markup |
-| `WM2-F12` | medium | open | check:draw slices a function out of the source with indexOf and evals it |
+| `WM2-F12` | medium | fixed, tick 212 | check:draw slices a function out of the source with indexOf and evals it |
 | `WM2-F13` | low | open | PYTHON and tools/requirements.txt appear nowhere in the README |
 | `WM2-F14` | low | open | The model's shape is hardcoded as 24 in one gate and nowhere else |
 | `WM2-F15` | low | open | Seventeen of the nineteen gates are outside the typecheck |
