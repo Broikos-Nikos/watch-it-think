@@ -5,7 +5,7 @@ Commit messages cite identifiers like `WDR-F1`. This is what they refer to.
 Seventeen audit passes and the workspace sweeps. Each pass was run against
 one assigned perspective and nothing else.
 
-**198 findings, 137 closed, 61 open**, across the 17 perspectives that produced them.
+**198 findings, 138 closed, 60 open**, across the 17 perspectives that produced them.
 
 Held to the workspace queue this project is built from by
 `tools/check-audit-status.mjs`, which fails if a row here says anything the
@@ -166,7 +166,7 @@ queue does not.
 
 ## `WR`, recruiter
 
-12 findings, 8 closed.
+12 findings, 9 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
@@ -175,7 +175,7 @@ queue does not.
 | `WR-F3` | high | fixed, tick 58 | Nothing anywhere near the top says he built the model himself |
 | `WR-F4` | medium | fixed, tick 58 | The best sentence in the README is the fourth block, and the first thing under the picture is npm install |
 | `WR-F5` | medium | fixed, tick 213 | The biggest number in the document reads as a failing grade, and the only baseline given belongs to the other number |
-| `WR-F6` | medium | open | Seven of the eleven rows in the file list carry the same commit message |
+| `WR-F6` | medium | fixed, tick 214 | Seven of the eleven rows in the file list carry the same commit message |
 | `WR-F7` | medium | fixed, tick 57 | On a phone the moving picture is a 356 by 235 smear |
 | `WR-F8` | medium | fixed, tick 58 | The page makes a different promise from the one that got me there |
 | `WR-F12` | medium | open | The profile pins two archived batch file Caesar ciphers and neither of the two repositories worth reading |
