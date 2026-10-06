@@ -5,7 +5,7 @@ Commit messages cite identifiers like `WDR-F1`. This is what they refer to.
 Seventeen audit passes and the workspace sweeps. Each pass was run against
 one assigned perspective and nothing else.
 
-**199 findings, 139 closed, 60 open**, across the 17 perspectives that produced them.
+**199 findings, 140 closed, 59 open**, across the 17 perspectives that produced them.
 
 Held to the workspace queue this project is built from by
 `tools/check-audit-status.mjs`, which fails if a row here says anything the
@@ -122,7 +122,7 @@ queue does not.
 
 ## `WS`, supply chain
 
-12 findings, 6 closed.
+12 findings, 7 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
@@ -131,7 +131,7 @@ queue does not.
 | `WS-F3` | medium | fixed, tick 216 | The one file every visitor downloads and executes is the one file with no hash |
 | `WS-F4` | medium | open | numpy is the only unpinned dependency in the pipeline, and it is the one that produces the repository's strongest number |
 | `WS-F5` | medium | fixed, tick 199 | .capture/ is not ignored, and npm run capture leaves a full screen recording in it on any failure |
-| `WS-F6` | medium | open | ffmpeg is an undeclared, unpinned binary taken off PATH, and it makes the repository's front door |
+| `WS-F6` | medium | fixed, tick 217 | ffmpeg is an undeclared, unpinned binary taken off PATH, and it makes the repository's front door |
 | `WS-F7` | medium | fixed, tick 202 | meta.json is fetched at runtime and 109 of its strings reach innerHTML, while the gate reading that file checks only its numbers |
 | `WS-F8` | medium | open | There is no CI, so nothing has ever installed this project from its own lockfile |
 | `WS-F9` | medium | fixed, tick 59 | The licence is one sentence of prose, the machine readable metadata says the opposite, and the MIT runtime ships with no notice |

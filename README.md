@@ -204,6 +204,14 @@ src/lib/router.ts       onnxruntime-web, wasm, one thread
 The Python tools need `torch`, `onnx` and `onnxruntime`, and the checkpoint. You
 do not need any of it to run the page.
 
+`npm run capture` needs one program npm does not install: **ffmpeg**, which
+turns the recorded webm into the GIF at the top of this file. Install it
+(`winget install Gyan.FFmpeg`, `brew install ffmpeg`, `apt install ffmpeg`) or
+set `FFMPEG` to its full path. `check:tools` probes it and prints its version,
+and `docs/capture.json` records which build made the recording that is
+committed here. Nothing else in this repository needs it, and the page does
+not.
+
 Before committing:
 
 ```bash
@@ -236,6 +244,7 @@ that exists nowhere else is a switch nobody finds.
 | `WIT_LIVE` | a URL. `check:weight` measures the real gzipped transfer from it instead of predicting one. |
 | `WIT_SENTENCE` | the sentence `npm run capture` films. Defaults to the Greek one in the recording. |
 | `WIT_COST_CONTROL=1` | `check:cost` runs its own negative control, the quadratic tokenizer, and fails if the thresholds let it through. |
+| `FFMPEG` | the ffmpeg `npm run capture` calls. Defaults to whatever PATH answers, which is what WS-F6 was about: the binary was named bare and the reader's PATH chose it. |
 
 `WIT_URL` and `CAPTURE_FAIL_AT` are not in that table on purpose: nobody sets
 them by hand. `npm run verify` sets the first to hand one preview server to

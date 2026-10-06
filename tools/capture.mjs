@@ -29,6 +29,7 @@ import { existsSync, mkdirSync, renameSync, rmSync, readdirSync, statSync, write
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { reachable } from './wait-for.mjs'
+import { requireFfmpeg } from './ffmpeg.mjs'
 import { chromium } from 'playwright'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -111,6 +112,18 @@ if (!(await reachable(`http://localhost:${PORT}/`, 60_000))) {
   console.error(`FAIL  nothing answered on http://localhost:${PORT}/ within 60 seconds`)
   process.exit(1)
 }
+
+/*
+ * ffmpeg before the browser, WS-F6.
+ *
+ * The call used to be on line 322, which is after a browser launch, a five
+ * megabyte model download and twelve seconds of recording, and a reader
+ * without ffmpeg got `spawnSync ffmpeg ENOENT` at the end of all of it. The
+ * question "do you have the program this needs" is answerable in a second, so
+ * it is answered here, and the version is kept for `docs/capture.json`.
+ */
+const FFMPEG = requireFfmpeg()
+console.log(`ffmpeg ${FFMPEG.version}${process.env.FFMPEG ? ` (FFMPEG=${FFMPEG.path})` : ''}`)
 
 const browser = await chromium.launch()
 const context = await browser.newContext({
@@ -319,7 +332,7 @@ const webm = resolve(WORK, video)
 // tool died with "No such file or directory" pointing at its own output.
 mkdirSync(resolve(root, 'docs'), { recursive: true })
 
-const ff = (args) => execFileSync('ffmpeg', ['-y', '-loglevel', 'error', ...args], { stdio: 'inherit' })
+const ff = (args) => execFileSync(FFMPEG.path, ['-y', '-loglevel', 'error', ...args], { stdio: 'inherit' })
 const palette = resolve(WORK, 'palette.png')
 const filters = `${CROP},fps=${FPS},scale=${WIDTH}:-1:flags=lanczos`
 
@@ -370,7 +383,7 @@ rmSync(WORK, { recursive: true, force: true })
 
 writeFileSync(
   resolve(root, 'docs/capture.json'),
-  JSON.stringify({ recorded: new Date().toISOString().slice(0, 10), sentence: SENTENCE, looked, drawing }, null, 2) + '\n',
+  JSON.stringify({ recorded: new Date().toISOString().slice(0, 10), ffmpeg: FFMPEG.version, sentence: SENTENCE, looked, drawing }, null, 2) + '\n',
 )
 
 const { size } = await import('node:fs').then((m) => m.promises.stat(OUT))
