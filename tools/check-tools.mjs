@@ -24,7 +24,7 @@ import { execFileSync } from 'node:child_process'
 import { readFileSync, readdirSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { FFMPEG_HOW, resolveFfmpeg } from './ffmpeg.mjs'
+import { FFMPEG_ENV, FFMPEG_HOW, resolveFfmpeg } from './ffmpeg.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const python = process.env.PYTHON ?? 'python'
@@ -98,7 +98,7 @@ if (pythonTools.length === 0) {
  * the ones that are not part of an operating system are probed.
  */
 const DECLARED = new Map([
-  ['ffmpeg', { probe: resolveFfmpeg, why: 'turns the recorded webm into the GIF in the README' }],
+  ['ffmpeg', { probe: resolveFfmpeg, env: FFMPEG_ENV, why: 'turns the recorded webm into the GIF in the README' }],
   ['npm', { probe: null, why: 'tools/serve.mjs and tools/verify.mjs start the preview through it' }],
   ['git', { probe: null, why: 'tools/check-authorship.mjs reads the commit authors' }],
   ['taskkill', { probe: null, why: 'Windows: tools/serve.mjs ends the preview and its children' }],
@@ -162,14 +162,35 @@ for (const [command, d] of DECLARED) {
   }
   if (!d.probe) continue
 
+  /*
+   * Absent is a skip. A choice that is wrong is a failure.
+   *
+   * This probe went in at tick 217 and failed the build on `ubuntu-latest`
+   * twenty minutes later, with `FAIL ffmpeg: not found as "ffmpeg"`. The runner
+   * does not carry ffmpeg and nothing in `npm run build` needs it: the GIF is
+   * recorded here and committed, and the deploy copies it. So the gate demanded
+   * an install from an environment that will never run the tool, which is the
+   * same mistake as the finding it came from, pointed the other way: WS-F6 was
+   * a reader not being told what they need, and this was everybody being told
+   * they need it.
+   *
+   * The line is the one this gate already draws for the Python tools, which
+   * skip on a missing torch and never skip on a syntax error: "you have not
+   * installed the pipeline" is not "the pipeline is broken". A reader who set
+   * `FFMPEG` has said which one they want, so a failure there is theirs and is
+   * reported as one.
+   */
   const got = d.probe()
-  if ('error' in got) {
+  if (!('error' in got)) {
+    console.log(`  ok      ${command} ${got.version}, which ${d.why}`)
+  } else if (process.env[d.env ?? '']) {
     failed++
     console.error(`FAIL  ${command}: ${got.error}`)
-    console.error(`      ${FFMPEG_HOW}`)
-    console.error(`      ${[...found.get(command)].join(', ')} ${d.why}, and it is the first thing in the README.`)
+    console.error(`      ${d.env} is set, so this is the program you asked for and it did not run.`)
   } else {
-    console.log(`  ok      ${command} ${got.version}, which ${d.why}`)
+    skipped++
+    console.log(`  skip    ${command} is not installed, and ${[...found.get(command)].join(', ')} ${d.why}`)
+    console.log(`          ${FFMPEG_HOW}`)
   }
 }
 
