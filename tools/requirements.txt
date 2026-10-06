@@ -1,4 +1,24 @@
+# The pipeline, pinned to the patch. Nothing here floats, because every line is
+# arithmetic that ends up in a number the README leads on.
+#
+# numpy was the exception until tick 219, and it was the worst one to leave
+# floating: it computes parity.attentionAgainstNumpyWitness, the independent
+# recomputation of every attention field from the raw weights, which exists
+# precisely to survive the objection that a passing gate might be passing on a
+# wrong cube. WS-F4.
+#
+# 2.5.2 is not a guess. The exporter was re-run at tick 219 against the same
+# checkpoint, sha256 ff9d84451a7f72fa, under this environment, and all four
+# parity values came back bit for bit:
+#
+#   copyAgainstOriginal            0.0
+#   graphAgainstOriginal           9.059906005859375e-06
+#   attentionRowSumDeviation       3.5762786865234375e-07
+#   attentionAgainstNumpyWitness   1.0059445660903776e-06
+#
+# Those are the digits meta.json has carried since 2026-09-21, so this is the
+# numpy that produced them.
 torch==2.14.0
 onnx==1.23.0
 onnxruntime==1.30.0
-numpy
+numpy==2.5.2

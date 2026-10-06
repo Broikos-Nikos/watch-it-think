@@ -69,6 +69,67 @@ if (q) {
   if (!q.testSet?.sha256) fail('quantisation.testSet', 'the evaluated file is not identified')
 
   /*
+   * Every library whose arithmetic reaches a recorded number, by version.
+   *
+   * WS-F4, the supply chain pass: `measuredOn` recorded the runtime, the thread
+   * count, the CPU, the Python and the OS, and not numpy and not torch. numpy
+   * computes `parity.attentionAgainstNumpyWitness`, the independent
+   * recomputation of every attention field from the raw weights, which is the
+   * strongest claim this repository makes and exists precisely to survive the
+   * objection that a passing gate might be passing on a wrong cube. Its value
+   * is quoted to seventeen digits.
+   *
+   * `requirements.txt` pins all four now, and `tools/requirements.txt` says why
+   * 2.5.2 rather than something else: the exporter was re-run against the same
+   * checkpoint under it and all four parity values came back bit identical.
+   * Held here against the pins, because a version recorded in `meta.json` that
+   * the requirements do not install is two claims that disagree.
+   */
+  const libs = q.measuredOn?.libraries
+  const REQUIRED = ['numpy', 'torch', 'onnx', 'onnxruntime']
+  if (!libs) {
+    fail(
+      'quantisation.measuredOn.libraries',
+      'no library versions, so the witness is a residual out of arithmetic nothing names. Run python tools/record_libraries.py',
+    )
+  } else {
+    const absent = REQUIRED.filter((k) => !libs[k])
+    if (absent.length > 0) {
+      fail('quantisation.measuredOn.libraries', `does not record ${absent.join(', ')}`)
+    } else {
+      const reqPath = resolve(root, 'tools/requirements.txt')
+      /* Only lines that actually pin. A bare `numpy` split on `==` gives
+         `['numpy']`, which `Map` stores as a key with the value undefined, and
+         the first version of this reported "requirements.txt pins undefined"
+         instead of "does not pin numpy". The unpinned case is the finding. */
+      const pins = new Map(
+        readFileSync(reqPath, 'utf8')
+          .split(/\r?\n/)
+          .map((l) => l.trim())
+          .filter((l) => l && !l.startsWith('#') && l.includes('=='))
+          .map((l) => l.split('==')),
+      )
+      const unpinnedFirst = REQUIRED.filter((k) => !pins.has(k))
+      if (unpinnedFirst.length > 0) {
+        fail(
+          'tools/requirements.txt',
+          `does not pin ${unpinnedFirst.join(', ')}, and meta.json records ${unpinnedFirst.map((k) => `${k} ${libs[k]}`).join(', ')} as what produced the numbers in this file`,
+        )
+      }
+      /* `2.14.0+cu126` against a pin of `2.14.0`: the local build tag is part of
+         what ran and not part of what pip was asked for, so the pin has to be a
+         prefix rather than equal. */
+      const off = REQUIRED.filter((k) => pins.has(k) && !String(libs[k]).startsWith(pins.get(k)))
+      if (off.length > 0) {
+        fail(
+          'quantisation.measuredOn.libraries',
+          `${off.map((k) => `${k} ran ${libs[k]} and tools/requirements.txt pins ${pins.get(k)}`).join('; ')}. A reader installing the requirements would not get the numbers in this file.`,
+        )
+      }
+    }
+  }
+
+  /*
    * The graph the browser runs, against its own bytes.
    *
    * WS-F3, the supply chain pass of 22 September: "the one file every visitor
@@ -274,5 +335,11 @@ if (q?.sha256Int8) {
   console.log(
     `  the shipped graph is the measured graph: ${q.bytesInt8.toLocaleString('en-US')} bytes, ` +
       `sha256 ${q.sha256Int8.slice(0, 16)}, recomputed here`,
+  )
+}
+if (q?.measuredOn?.libraries) {
+  console.log(
+    `  the witness is reproducible: numpy ${q.measuredOn.libraries.numpy}, torch ${q.measuredOn.libraries.torch}, ` +
+      `all four pinned in tools/requirements.txt`,
   )
 }

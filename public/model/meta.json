@@ -245,7 +245,13 @@
       "cpu": "AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD",
       "python": "3.12.10",
       "os": "Windows 11",
-      "notThePage": "The page runs onnxruntime-web in wasm at one thread, which is several times slower than this. These numbers describe the graph, not the visitor's experience: the page measures its own latency live and that is the figure a reader should believe about the page."
+      "notThePage": "The page runs onnxruntime-web in wasm at one thread, which is several times slower than this. These numbers describe the graph, not the visitor's experience: the page measures its own latency live and that is the figure a reader should believe about the page.",
+      "libraries": {
+        "numpy": "2.5.2",
+        "torch": "2.14.0+cu126",
+        "onnx": "1.23.0",
+        "onnxruntime": "1.30.0"
+      }
     },
     "testSet": {
       "bytes": 2526137,

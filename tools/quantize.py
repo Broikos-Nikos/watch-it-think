@@ -310,12 +310,29 @@ def runtime_facts(threads: int) -> dict:
     except (OSError, subprocess.SubprocessError, IndexError):
         pass
 
+    # Every library whose arithmetic reaches a recorded number, by version.
+    #
+    # WS-F4: this block recorded the runtime, the thread count, the CPU, the
+    # Python and the OS, and not numpy and not torch. numpy is the one that
+    # computes the attention witness, which is the strongest claim in the
+    # README, and torch is the one that produced the weights it is computed
+    # from. A residual quoted to seventeen digits out of libraries nothing
+    # names cannot be reproduced by anybody, including whoever wrote it.
+    import numpy as _np
+    import torch as _torch
+
     return {
         "runtime": f"onnxruntime {ort.__version__} CPUExecutionProvider",
         "threads": threads,
         "cpu": cpu,
         "python": platform.python_version(),
         "os": f"{platform.system()} {platform.release()}",
+        "libraries": {
+            "numpy": _np.__version__,
+            "torch": _torch.__version__,
+            "onnx": __import__("onnx").__version__,
+            "onnxruntime": ort.__version__,
+        },
         "notThePage": "The page runs onnxruntime-web in wasm at one thread, "
                       "which is several times slower than this. These numbers "
                       "describe the graph, not the visitor's experience: the "
