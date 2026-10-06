@@ -115,7 +115,35 @@ if (stale.length > 0) {
   console.log('  ok      every pinned code point is a letter to this runtime, which is why it needed pinning')
 }
 
-/* ---- 3. and against Python, when Python is here --------------------------- */
+/* ---- 3. and against Python, when Python is here and is the right Python --- */
+
+/*
+ * The unicodedata the pin was generated against, and why the version is asserted.
+ *
+ * The pin is one sentence: "these are the code points V8 calls letters and
+ * Python does not". Both halves of that are a version number. This file used to
+ * run the comparison against whatever Python answered, under a comment saying
+ * "CI has no unicodedata to disagree with", and `ubuntu-latest` disagreed with
+ * it the first time the gate ever ran there:
+ *
+ *     FAIL  5004 code points are letters here and not in Python 15.0.0,
+ *           and are not pinned
+ *
+ * The runner's Python carries unicodedata 15.0.0. The pin was built against
+ * 16.0.0, so the gap it describes is not the gap measured there, and 5,004
+ * against the pinned 4,657 is the difference between two Unicode releases
+ * rather than a defect in this repository. It failed the build of a published
+ * project on a number that would change again on the next runner image.
+ *
+ * So the version is part of the claim now. Against the Python the pin was made
+ * for, the comparison runs and is exact. Against any other, it says which two
+ * versions it was handed and asserts nothing, because a disagreement between
+ * 15.0.0 and 17.0 is a fact about Unicode and not about the tokenizer. The two
+ * assertions above still run everywhere, and they are the ones that hold the
+ * port to the model.
+ */
+const PINNED_AGAINST = '16.0.0'
+
 const python = process.env.PYTHON ?? 'python'
 try {
   const out = execFileSync(
@@ -145,7 +173,12 @@ try {
 
   const pinnedSet = new Set(pinned)
   const unpinned = extra.filter((cp) => !pinnedSet.has(cp))
-  if (unpinned.length > 0) {
+  if (v !== PINNED_AGAINST) {
+    console.log(`  skipped the comparison: this Python has unicodedata ${v} and the pin was built against ${PINNED_AGAINST}`)
+    console.log(
+      `          ${n.toLocaleString('en-US')} word code points here, ${extra.length.toLocaleString('en-US')} of them letters to this runtime and not to that Python against ${pinned.length.toLocaleString('en-US')} pinned. That difference is a fact about two Unicode releases, not about this tokenizer, and the two assertions above hold the port either way.`,
+    )
+  } else if (unpinned.length > 0) {
     fail(
       `${unpinned.length} code points are letters here and not in Python ${v}, and are not pinned`,
       `starting at U+${unpinned[0]!.toString(16).toUpperCase()}. Regenerate the list: this runtime has moved ahead of the file again.`,
