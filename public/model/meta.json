@@ -370,6 +370,7 @@
     "intentAccuracyDelta": -0.05,
     "bytesFp32": 20420994,
     "bytesInt8": 5284077,
+    "sha256Int8": "3d3c33836a1c882fa931ad192bcaf3f8360874ec9a3dcd66ba9b4767f3d230ea",
     "shrink": 3.86,
     "ships": "int8",
     "crossCheck": {

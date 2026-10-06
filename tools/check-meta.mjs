@@ -17,7 +17,8 @@
  * method attached.
  */
 
-import { readFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { existsSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -66,6 +67,42 @@ if (q) {
   if (!q.measuredOn?.runtime) fail('quantisation.measuredOn', 'no runtime recorded for the timings')
   if (typeof q.measuredOn?.threads !== 'number') fail('quantisation.measuredOn', 'no thread count')
   if (!q.testSet?.sha256) fail('quantisation.testSet', 'the evaluated file is not identified')
+
+  /*
+   * The graph the browser runs, against its own bytes.
+   *
+   * WS-F3, the supply chain pass of 22 September: "the one file every visitor
+   * downloads and executes is the one file with no hash". `meta.json` hashed
+   * four input files, two of which it also records as `obtainable: false`,
+   * and recorded `router.int8.onnx` by byte count alone. The README's honest
+   * limits say "you can check that you have the same files", and the file a
+   * reader most needs to check was the one they could not.
+   *
+   * Recomputed here rather than compared between two recorded numbers, which
+   * is the only version of this assertion that is worth anything: it catches
+   * the graph being replaced without the numbers being remeasured, which is
+   * the failure the rest of this gate exists for, and it catches either of
+   * the two tools that write the field writing it wrong.
+   */
+  if (!q.sha256Int8) {
+    fail('quantisation.sha256Int8', 'the graph the browser downloads and runs is recorded by size alone, and a byte count is not a hash')
+  } else {
+    const graph = resolve(root, 'public/model/router.int8.onnx')
+    if (!existsSync(graph)) {
+      fail('quantisation.sha256Int8', 'public/model/router.int8.onnx is not here, so the hash describes nothing')
+    } else {
+      const bytes = readFileSync(graph)
+      const sha = createHash('sha256').update(bytes).digest('hex')
+      if (sha !== q.sha256Int8) {
+        fail(
+          'quantisation.sha256Int8',
+          `recorded ${q.sha256Int8.slice(0, 16)}, the shipped graph is ${sha.slice(0, 16)}. Re-run the quantiser, or node tools/seal-artefact.mjs if only the seal is stale`,
+        )
+      } else if (bytes.length !== q.bytesInt8) {
+        fail('quantisation.bytesInt8', `says ${q.bytesInt8} and the file is ${bytes.length}`)
+      }
+    }
+  }
   if (typeof q.rowsRead !== 'number' || typeof q.rowsEvaluated !== 'number') {
     fail('quantisation', 'rowsRead and rowsEvaluated are not both recorded')
   }
@@ -232,4 +269,10 @@ if (int8?.latency) {
       `${q.measuredOn.threads} thread, ${q.measuredOn.runtime}`,
   )
   console.log(`  by length: ${int8.byLength.map((b) => `T=${b.tokens} ${b.medianMs}ms`).join('  ')}`)
+}
+if (q?.sha256Int8) {
+  console.log(
+    `  the shipped graph is the measured graph: ${q.bytesInt8.toLocaleString('en-US')} bytes, ` +
+      `sha256 ${q.sha256Int8.slice(0, 16)}, recomputed here`,
+  )
 }

@@ -31,7 +31,7 @@ from pathlib import Path
 
 import numpy as np
 
-from provenance import describe, repo_facts
+from provenance import describe, repo_facts, sha256
 
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parent
@@ -498,6 +498,13 @@ def main() -> int:
         "intentAccuracyDelta": delta,
         "bytesFp32": fp32.stat().st_size,
         "bytesInt8": int8.stat().st_size,
+        # WS-F3, the supply chain pass: the graph the visitor's browser
+        # downloads and runs was the one file here recorded by size alone,
+        # while three files nobody can fetch carried a sha256. A byte count is
+        # not a hash: a graph with different weights and the same size passes
+        # it. check:meta recomputes both of these from the bytes on disk.
+        "sha256Fp32": sha256(fp32),
+        "sha256Int8": sha256(int8),
         "shrink": shrink,
         # What quantisation did to the field the page draws, which had no number
         # at all until tick 163.

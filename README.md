@@ -161,8 +161,12 @@ open. Commit messages cite the identifiers in it.
 - **The weights and the test set are not in this repository and not in `bslm`
   either.** `meta.json` records their size and sha256 and says `obtainable:
   false` for both. You can check that you have the same files; you cannot get
-  them from here. The int8 graph the page runs on *is* committed, so the
-  accuracy numbers can be reproduced from this clone alone. The MIT licence
+  them from here. The int8 graph the page runs on *is* committed, and it is now
+  recorded the same way: `quantisation.sha256Int8`, which `check:meta`
+  recomputes from the bytes on every build, so the accuracy numbers can be
+  reproduced from this clone alone and you can tell that the 5,284,077 bytes
+  your browser just ran are the 5,284,077 bytes they were measured on. The MIT
+  licence
   covers everything that is in this repository, that graph included. The
   training checkpoint and the held out set are simply not distributed.
 - **A first visit is about 8.1 MB over the wire.** That is 19.9 MB of files,
