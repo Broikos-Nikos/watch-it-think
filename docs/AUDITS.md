@@ -5,7 +5,7 @@ Commit messages cite identifiers like `WDR-F1`. This is what they refer to.
 Seventeen audit passes and the workspace sweeps. Each pass was run against
 one assigned perspective and nothing else.
 
-**199 findings, 143 closed, 56 open**, across the 17 perspectives that produced them.
+**199 findings, 144 closed, 55 open**, across the 17 perspectives that produced them.
 
 Held to the workspace queue this project is built from by
 `tools/check-audit-status.mjs`, which fails if a row here says anything the
@@ -249,11 +249,11 @@ queue does not.
 
 ## `WDE2`, design eye, second pass
 
-2 findings, 0 closed.
+2 findings, 1 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
-| `WDE2-F1` | medium | open | The shared scale is right and the ramp under it is now wrong |
+| `WDE2-F1` | medium | fixed, tick 222 | The shared scale is right and the ramp under it is now wrong |
 | `WDE2-F2` | low | open | There is a hole under the grid at desktop width |
 
 ## `WH2`, hostile stranger, second pass
