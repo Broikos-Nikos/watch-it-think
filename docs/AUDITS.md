@@ -5,7 +5,7 @@ Commit messages cite identifiers like `WDR-F1`. This is what they refer to.
 Seventeen audit passes and the workspace sweeps. Each pass was run against
 one assigned perspective and nothing else.
 
-**199 findings, 142 closed, 57 open**, across the 17 perspectives that produced them.
+**199 findings, 143 closed, 56 open**, across the 17 perspectives that produced them.
 
 Held to the workspace queue this project is built from by
 `tools/check-audit-status.mjs`, which fails if a row here says anything the
@@ -228,13 +228,13 @@ queue does not.
 
 ## `WR2`, recruiter, second pass
 
-4 findings, 3 closed.
+4 findings, 4 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
 | `WR2-F1` | high | fixed, tick 103 | The picture shows a headline the page threw away, and check:capture records eight colours and a font so it cannot see words |
 | `WR2-F2` | medium | fixed, tick 103 | 760 characters and twelve lines before the picture, against the sibling's 555 and eight |
-| `WR2-F3` | medium | open | 'so the claim above is one click from its evidence' is writing about the writing |
+| `WR2-F3` | medium | fixed, tick 221 | 'so the claim above is one click from its evidence' is writing about the writing |
 | `WR2-F4` | low | not reproduced, tick 149 | The alt text is correct, which is worth saying |
 
 ## `WDR3`, deep reviewer, third pass
