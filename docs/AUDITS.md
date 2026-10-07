@@ -5,7 +5,7 @@ Commit messages cite identifiers like `WDR-F1`. This is what they refer to.
 Seventeen audit passes and the workspace sweeps. Each pass was run against
 one assigned perspective and nothing else.
 
-**199 findings, 141 closed, 58 open**, across the 17 perspectives that produced them.
+**199 findings, 142 closed, 57 open**, across the 17 perspectives that produced them.
 
 Held to the workspace queue this project is built from by
 `tools/check-audit-status.mjs`, which fails if a row here says anything the
@@ -122,7 +122,7 @@ queue does not.
 
 ## `WS`, supply chain
 
-12 findings, 8 closed.
+12 findings, 9 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
@@ -133,7 +133,7 @@ queue does not.
 | `WS-F5` | medium | fixed, tick 199 | .capture/ is not ignored, and npm run capture leaves a full screen recording in it on any failure |
 | `WS-F6` | medium | fixed, tick 217 | ffmpeg is an undeclared, unpinned binary taken off PATH, and it makes the repository's front door |
 | `WS-F7` | medium | fixed, tick 202 | meta.json is fetched at runtime and 109 of its strings reach innerHTML, while the gate reading that file checks only its numbers |
-| `WS-F8` | medium | open | There is no CI, so nothing has ever installed this project from its own lockfile |
+| `WS-F8` | medium | fixed, tick 220 | There is no CI, so nothing has ever installed this project from its own lockfile |
 | `WS-F9` | medium | fixed, tick 59 | The licence is one sentence of prose, the machine readable metadata says the opposite, and the MIT runtime ships with no notice |
 | `WS-F10` | low | open | wait-on costs 39 packages, including all of lodash, joi, axios and rxjs, to poll one localhost URL |
 | `WS-F11` | low | open | @types/node is the only floating version in a package.json where everything else is pinned to the patch |

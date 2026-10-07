@@ -1,0 +1,47 @@
+# What watches the lockfile when nobody is running npm audit.
+#
+# watch-it-think WS-F8, the supply chain pass of 22 September: "on a public
+# repository the lockfile is the supply chain boundary, and right now nothing
+# verifies that a clean install from it even succeeds". The install half was
+# answered on 2026-10-06, when every project here got a workflow that runs
+# `npm ci` on ubuntu-latest. This is the other half.
+#
+# The same audit recorded "0 vulnerabilities at every severity including info",
+# and noted that it was "a clean bill that currently exists only as something I
+# ran once". Fifteen days later, measured at tick 220, all eight repositories
+# in this workspace carried one high advisory:
+#
+#   source-map-js 1.2.1, GHSA-68fv-2mgg-jv7q, event loop denial of service,
+#   reached by vite -> postcss -> source-map-js
+#
+# Nothing said so. That is what this file is for.
+#
+# ## Why open-pull-requests-limit is 0
+#
+# It is not a way of turning Dependabot off. Zero suppresses **version update**
+# pull requests and leaves **security** updates alone, which is the behaviour
+# this workspace wants: every dependency here is pinned to an exact version on
+# purpose, `tools/check-pins.mjs` fails when one is not, and a daily stream of
+# "bump vite from 8.3.0 to 8.3.1" would be a stream of pull requests arguing
+# with a rule the repository holds deliberately. An advisory is different: it
+# is news rather than an opinion, and it arrives either way.
+#
+# ## github-actions
+#
+# The workflow pins every action by commit sha, which is the supply chain point
+# of pinning them and also what makes a stale one invisible: a tag moves when it
+# is fixed and a sha does not. This ecosystem is what notices.
+
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
