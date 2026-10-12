@@ -65,6 +65,7 @@
     "check:network": "node tools/check-network.mjs",
     "dev": "vite",
     "preview": "vite preview",
+    "card": "node tools/card.mjs",
     "typecheck": "tsc --noEmit",
     "vendor:tokens": "node tools/vendor-house-tokens.mjs",
     "release": "node tools/release.mjs",
