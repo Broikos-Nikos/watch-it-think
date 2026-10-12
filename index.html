@@ -55,6 +55,30 @@
       name="description"
       content="A five million parameter model, trained from random init, resolving a sentence into an intent in your browser."
     />
+    <!--
+      The card a pasted link unfurls into. `tokenlab` RC-F11 was fixed in
+      `tokenlab` alone on 2026-09-24, and the sweep at tick 229 asked the same
+      question of the other seven with curl, which is what an unfurler sees
+      because none of these pages are rendered by a service running JavaScript:
+      six of the seven published pages carried none of the nine tags and handed
+      Slack, a mail client or LinkedIn a bare link.
+
+      `card.png` is in `public/` because that is what ships: `docs/` is in the
+      repository and not on the site, so an og:image pointing there unfurls into
+      a 404. The URL is absolute because a relative one is resolved against the
+      service's own domain rather than this page's. `npm run card` takes it at
+      1200 by 630, the size these services crop to, and records what was on
+      screen in `docs/card.json`, which is where the `theme-color` below comes from.
+    -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://broikos-nikos.github.io/watch-it-think/" />
+    <meta property="og:title" content="watch it think" />
+    <meta property="og:description" content="A five million parameter model, trained from random init, resolving a sentence into an intent in your browser." />
+    <meta property="og:image" content="https://broikos-nikos.github.io/watch-it-think/card.png" />
+    <meta property="og:image:alt" content="The first screen of the watch-it-think page, headed: I trained this model. Watch it think" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://broikos-nikos.github.io/watch-it-think/card.png" />
+    <meta name="theme-color" content="#080604" />
   </head>
   <body>
     <header>
