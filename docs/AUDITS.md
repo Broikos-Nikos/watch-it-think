@@ -5,7 +5,7 @@ Commit messages cite identifiers like `WDR-F1`. This is what they refer to.
 Seventeen audit passes and the workspace sweeps. Each pass was run against
 one assigned perspective and nothing else.
 
-**199 findings, 144 closed, 55 open**, across the 17 perspectives that produced them.
+**199 findings, 145 closed, 54 open**, across the 17 perspectives that produced them.
 
 Held to the workspace queue this project is built from by
 `tools/check-audit-status.mjs`, which fails if a row here says anything the
@@ -312,7 +312,7 @@ Not a perspective and not an agent. Findings raised against this project while
 a class found somewhere else in the workspace was being swept across all eight,
 kept here because commit messages cite them like any other.
 
-23 findings, 14 closed.
+23 findings, 15 closed.
 
 | id | severity | status | finding |
 |---|---|---|---|
