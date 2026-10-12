@@ -325,7 +325,7 @@ kept here because commit messages cite them like any other.
 | `WEVAL-F1` | medium | open | The quantisation table compares fp32 and int8 on differences of 0 to 16 rows out of 10,578, with no paired test, no discordant counts, and one of the four metrics pointing the other way |
 | `WFOLD-F1` | medium | open | The picture the page is built on is below the fold at both widths |
 | `WGIF-F1` | medium | open | The picture at the top runs eight seconds, so a reader sees it once |
-| `WHEAD-F1` | medium | open | A forwarded link unfurls into a bare URL: no og tags anywhere in the head |
+| `WHEAD-F1` | medium | fixed, tick 229 | A forwarded link unfurls into a bare URL: no og tags anywhere in the head |
 | `WICON-F1` | medium | fixed, tick 189 | The inline favicon ended the head, so the document put markup in the body and refused a policy |
 | `WNOT-F1` | medium | open | The bundle ships onnxruntime-web and its licence travels with nothing |
 | `WSEAL-F1` | medium | fixed, tick 189 | The page says the work happens in your browser and nothing enforces it |
